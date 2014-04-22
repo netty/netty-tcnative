@@ -206,6 +206,40 @@ public final class SSLContext {
         throws Exception;
 
     /**
+     * Set the size of the internal session cache.
+     * http://www.openssl.org/docs/ssl/SSL_CTX_sess_set_cache_size.html
+     */
+    public static native long setSessionCacheSize(long ctx, long size);
+
+    /**
+     * Set the timeout for the internal session cache in seconds.
+     * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
+     */
+    public static native long setSessionCacheTimeout(long ctx, long timeoutSeconds);
+
+    /**
+     * Session resumption statistics methods.
+     * http://www.openssl.org/docs/ssl/SSL_CTX_sess_number.html
+     */
+    public static native long sessionAccept(long ctx);
+    public static native long sessionAcceptGood(long ctx);
+    public static native long sessionAcceptRenegotiate(long ctx);
+    public static native long sessionCacheFull(long ctx);
+    public static native long sessionCbHits(long ctx);
+    public static native long sessionConnect(long ctx);
+    public static native long sessionConnectGood(long ctx);
+    public static native long sessionConnectRenegotiate(long ctx);
+    public static native long sessionHits(long ctx);
+    public static native long sessionMisses(long ctx);
+    public static native long sessionNumber(long ctx);
+    public static native long sessionTimeouts(long ctx);
+
+    /**
+     * Set TLS session keys. This allows us to share keys across TFEs.
+     */
+    public static native void setSessionTicketKeys(long ctx, byte[] keys);
+
+    /**
      * Set File and Directory of concatenated PEM-encoded CA Certificates
      * for Client Auth
      * <br />
@@ -286,4 +320,10 @@ public final class SSLContext {
      */
     public static native void setVerify(long ctx, int level, int depth);
 
+    /**
+     * Set next protocol for next protocol negotiation extension
+     * @param ctx Server context to use.
+     * @param next_protos comma deliniated list of protocols in priority order
+     */
+    public static native void setNextProtos(long ctx, String next_protos);
 }

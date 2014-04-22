@@ -851,12 +851,14 @@ static int jbs_new(BIO *bi)
 
 static int jbs_free(BIO *bi)
 {
+    JNIEnv *e = NULL;
+    BIO_JAVA *j;
+
     if (bi == NULL)
         return 0;
     if (bi->ptr != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)bi->ptr;
+        j = (BIO_JAVA *)bi->ptr;
         if (bi->init) {
-            JNIEnv   *e = NULL;
             bi->init = 0;
             tcn_get_java_env(&e);
             TCN_UNLOAD_CLASS(e, j->cb.obj);
@@ -869,19 +871,26 @@ static int jbs_free(BIO *bi)
 
 static int jbs_write(BIO *b, const char *in, int inl)
 {
-    jint ret = 0;
+    jint ret = -1;
+    JNIEnv *e = NULL;
+    BIO_JAVA *j;
+    jbyteArray jb;
+
     if (b->init && in != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)b->ptr;
-        JNIEnv   *e = NULL;
-        jbyteArray jb = (*e)->NewByteArray(e, inl);
+        j = (BIO_JAVA *)b->ptr;
         tcn_get_java_env(&e);
+        jb = (*e)->NewByteArray(e, inl);
         if (!(*e)->ExceptionOccurred(e)) {
+            BIO_clear_retry_flags(b);
             (*e)->SetByteArrayRegion(e, jb, 0, inl, (jbyte *)in);
             ret = (*e)->CallIntMethod(e, j->cb.obj,
                                       j->cb.mid[0], jb);
-            (*e)->ReleaseByteArrayElements(e, jb, (jbyte *)in, JNI_ABORT);
             (*e)->DeleteLocalRef(e, jb);
         }
+    }
+    if (ret == 0) {
+        BIO_set_retry_write(b);
+        ret = -1;
     }
     return ret;
 }
@@ -889,18 +898,26 @@ static int jbs_write(BIO *b, const char *in, int inl)
 static int jbs_read(BIO *b, char *out, int outl)
 {
     jint ret = 0;
+    JNIEnv *e = NULL;
+    BIO_JAVA *j;
+    jbyteArray jb;
+    jbyte *jout;
+
     if (b->init && out != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)b->ptr;
-        JNIEnv   *e = NULL;
-        jbyteArray jb = (*e)->NewByteArray(e, outl);
+        j = (BIO_JAVA *)b->ptr;
         tcn_get_java_env(&e);
+        jb = (*e)->NewByteArray(e, outl);
         if (!(*e)->ExceptionOccurred(e)) {
+            BIO_clear_retry_flags(b);
             ret = (*e)->CallIntMethod(e, j->cb.obj,
                                       j->cb.mid[1], jb);
             if (ret > 0) {
-                jbyte *jout = (*e)->GetPrimitiveArrayCritical(e, jb, NULL);
+                jout = (*e)->GetPrimitiveArrayCritical(e, jb, NULL);
                 memcpy(out, jout, ret);
                 (*e)->ReleasePrimitiveArrayCritical(e, jb, jout, 0);
+            } else if (outl != 0) {
+                ret = -1;
+                BIO_set_retry_read(b);
             }
             (*e)->DeleteLocalRef(e, jb);
         }
@@ -911,9 +928,11 @@ static int jbs_read(BIO *b, char *out, int outl)
 static int jbs_puts(BIO *b, const char *in)
 {
     int ret = 0;
+    JNIEnv *e = NULL;
+    BIO_JAVA *j;
+
     if (b->init && in != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)b->ptr;
-        JNIEnv   *e = NULL;
+        j = (BIO_JAVA *)b->ptr;
         tcn_get_java_env(&e);
         ret = (*e)->CallIntMethod(e, j->cb.obj,
                                   j->cb.mid[2],
@@ -925,16 +944,19 @@ static int jbs_puts(BIO *b, const char *in)
 static int jbs_gets(BIO *b, char *out, int outl)
 {
     int ret = 0;
+    JNIEnv *e = NULL;
+    BIO_JAVA *j;
+    jobject o;
+    int l;
+
     if (b->init && out != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)b->ptr;
-        JNIEnv   *e = NULL;
-        jobject  o;
+        j = (BIO_JAVA *)b->ptr;
         tcn_get_java_env(&e);
         if ((o = (*e)->CallObjectMethod(e, j->cb.obj,
                             j->cb.mid[3], (jint)(outl - 1)))) {
             TCN_ALLOC_CSTRING(o);
             if (J2S(o)) {
-                int l = (int)strlen(J2S(o));
+                l = (int)strlen(J2S(o));
                 if (l < outl) {
                     strcpy(out, J2S(o));
                     ret = outl;
@@ -948,7 +970,16 @@ static int jbs_gets(BIO *b, char *out, int outl)
 
 static long jbs_ctrl(BIO *b, int cmd, long num, void *ptr)
 {
-    return 0;
+    int ret = 0;
+    switch (cmd) {
+        case BIO_CTRL_FLUSH:
+            ret = 1;
+            break;
+        default:
+            ret = 0;
+            break;
+    }
+    return ret;
 }
 
 static BIO_METHOD jbs_methods = {
@@ -1100,7 +1131,234 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, hasOp)(TCN_STDARGS, jint op)
     return op == (op & supported_ssl_opts) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*** Begin Twitter 1:1 API addition ***/
+TCN_IMPLEMENT_CALL(jint, SSL, getLastErrorNumber)(TCN_STDARGS) {
+    UNREFERENCED_STDARGS;
+    return ERR_get_error();
+}
+
+TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
+                                                   jlong ctx /* tcn_ssl_ctxt_t * */,
+                                                   jboolean server) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    SSL *ssl;
+
+    UNREFERENCED_STDARGS;
+
+    TCN_ASSERT(ctx != 0);
+    ssl = SSL_new(c->ctx);
+    if (ssl == NULL) {
+        tcn_ThrowException(e, "cannot create new ssl");
+        return 0;
+    }
+    if (server) {
+        SSL_set_accept_state(ssl);
+    } else {
+        SSL_set_connect_state(ssl);
+    }
+    return P2J(ssl);
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setBIO)(TCN_STDARGS,
+                                      jlong ssl /* SSL * */,
+                                      jlong rbio /* BIO * */,
+                                      jlong wbio /* BIO * */) {
+    UNREFERENCED_STDARGS;
+    SSL_set_bio(J2P(ssl, SSL *), J2P(rbio, BIO *), J2P(wbio, BIO *));
+    return;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, getError)(TCN_STDARGS,
+                                       jlong ssl /* SSL * */,
+                                       jint ret) {
+    UNREFERENCED_STDARGS;
+    return SSL_get_error(J2P(ssl, SSL*), ret);
+}
+
+// How much did SSL write into this BIO?
+TCN_IMPLEMENT_CALL(jint /* nbytes */, SSL, pendingWrittenBytesInBIO)(TCN_STDARGS,
+                                                                     jlong bio /* BIO * */) {
+    UNREFERENCED_STDARGS;
+
+    return BIO_ctrl_pending(J2P(bio, BIO *));
+}
+
+// How much is available for reading in the given SSL struct?
+TCN_IMPLEMENT_CALL(jint, SSL, pendingReadableBytesInSSL)(TCN_STDARGS, jlong ssl /* SSL * */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_pending(J2P(ssl, SSL *));
+}
+
+// Write wlen bytes from wbuf into bio
+TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToBIO)(TCN_STDARGS,
+                                                       jlong bio /* BIO * */,
+                                                       jlong wbuf /* char* */,
+                                                       jint wlen /* sizeof(wbuf) */) {
+    UNREFERENCED_STDARGS;
+
+    return BIO_write(J2P(bio, BIO *), J2P(wbuf, void *), wlen);
+
+}
+
+// Read up to rlen bytes from bio into rbuf
+TCN_IMPLEMENT_CALL(jint /* status */, SSL, readFromBIO)(TCN_STDARGS,
+                                                        jlong bio /* BIO * */,
+                                                        jlong rbuf /* char * */,
+                                                        jint rlen /* sizeof(rbuf) - 1 */) {
+    UNREFERENCED_STDARGS;
+
+    return BIO_read(J2P(bio, BIO *), J2P(rbuf, void *), rlen);
+}
+
+// Write up to wlen bytes of application data to the ssl BIO (encrypt)
+TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToSSL)(TCN_STDARGS,
+                                                       jlong ssl /* SSL * */,
+                                                       jlong wbuf /* char * */,
+                                                       jint wlen /* sizeof(wbuf) */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_write(J2P(ssl, SSL *), J2P(wbuf, void *), wlen);
+}
+
+// Read up to rlen bytes of application data from the given SSL BIO (decrypt)
+TCN_IMPLEMENT_CALL(jint /* status */, SSL, readFromSSL)(TCN_STDARGS,
+                                                        jlong ssl /* SSL * */,
+                                                        jlong rbuf /* char * */,
+                                                        jint rlen /* sizeof(rbuf) - 1 */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_read(J2P(ssl, SSL *), J2P(rbuf, void *), rlen);
+}
+
+// Get the shutdown status of the engine
+TCN_IMPLEMENT_CALL(jint /* status */, SSL, getShutdown)(TCN_STDARGS,
+                                                        jlong ssl /* SSL * */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_get_shutdown(J2P(ssl, SSL *));
+}
+
+// Called when the peer closes the connection
+TCN_IMPLEMENT_CALL(void, SSL, setShutdown)(TCN_STDARGS,
+                                           jlong ssl /* SSL * */,
+                                           jint mode) {
+    UNREFERENCED_STDARGS;
+
+    SSL_set_shutdown(J2P(ssl, SSL *), mode);
+}
+
+// Free the SSL * and its associated internal BIO
+TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
+                                       jlong ssl /* SSL * */) {
+    UNREFERENCED_STDARGS;
+
+    SSL_free(J2P(ssl, SSL *));
+}
+
+// Make a BIO pair (network and internal) for the provided SSL * and return the network BIO
+TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO)(TCN_STDARGS,
+                                               jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    BIO *internal_bio;
+    BIO *network_bio;
+
+    UNREFERENCED(o);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        goto fail;
+    }
+
+    if (BIO_new_bio_pair(&internal_bio, 0, &network_bio, 0) != 1) {
+        tcn_ThrowException(e, "BIO_new_bio_pair failed");
+        goto fail;
+    }
+
+    SSL_set_bio(ssl_, internal_bio, internal_bio);
+
+    return P2J(network_bio);
+ fail:
+    return 0;
+}
+
+// Free a BIO * (typically, the network BIO)
+TCN_IMPLEMENT_CALL(void, SSL, freeBIO)(TCN_STDARGS,
+                                       jlong bio /* BIO * */) {
+    BIO *bio_;
+    UNREFERENCED_STDARGS;
+
+    bio_ = J2P(bio, BIO *);
+    BIO_free(bio_);
+}
+
+// Send CLOSE_NOTIFY to peer
+TCN_IMPLEMENT_CALL(jint /* status */, SSL, shutdownSSL)(TCN_STDARGS,
+                                                        jlong ssl /* SSL * */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_shutdown(J2P(ssl, SSL *));
+}
+
+// Read which cipher was negotiated for the given SSL *.
+TCN_IMPLEMENT_CALL(jstring, SSL, getCipherForSSL)(TCN_STDARGS,
+                                                  jlong ssl /* SSL * */)
+{
+    UNREFERENCED_STDARGS;
+
+    return AJP_TO_JSTRING(SSL_get_cipher(J2P(ssl, SSL*)));
+}
+
+// Is the handshake over yet?
+TCN_IMPLEMENT_CALL(jint, SSL, isInInit)(TCN_STDARGS,
+                                        jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    UNREFERENCED(o);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    } else {
+        return SSL_in_init(ssl_);
+    }
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, doHandshake)(TCN_STDARGS,
+                                           jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    return SSL_do_handshake(ssl_);
+}
+
+// Read which protocol was negotiated for the given SSL *.
+TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
+                                                         jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    const unsigned char *proto;
+    unsigned int proto_len;
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    SSL_get0_next_proto_negotiated(ssl_, &proto, &proto_len);
+    return tcn_new_stringn(e, proto, proto_len);
+}
+/*** End Twitter API Additions ***/
+
 #else
+#error OpenSSL is required!
+
 /* OpenSSL is not supported.
  * Create empty stubs.
  */
@@ -1219,4 +1477,146 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, hasOp)(TCN_STDARGS, jint op)
     UNREFERENCED(op);
     return JNI_FALSE;
 }
+
+/*** Begin Twitter 1:1 API addition ***/
+TCN_IMPLEMENT_CALL(jint, SSL, getLastErrorNumber)(TCN_STDARGS) {
+  UNREFERENCED(o);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSL, newSSL)(TCN_STDARGS, jlong ssl_ctx) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl_ctx);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setBIO)(TCN_STDARGS, jlong ssl, jlong rbio, jlong wbio) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  UNREFERENCED(rbio);
+  UNREFERENCED(wbio);
+  tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, pendingWrittenBytesInBIO)(TCN_STDARGS, jlong bio) {
+  UNREFERENCED(o);
+  UNREFERENCED(bio);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, pendingReadableBytesInSSL)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, writeToBIO)(TCN_STDARGS, jlong bio, jlong wbuf, jint wlen) {
+  UNREFERENCED(o);
+  UNREFERENCED(bio);
+  UNREFERENCED(wbuf);
+  UNREFERENCED(wlen);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, readFromBIO)(TCN_STDARGS, jlong bio, jlong rbuf, jint rlen) {
+  UNREFERENCED(o);
+  UNREFERENCED(bio);
+  UNREFERENCED(rbuf);
+  UNREFERENCED(rlen);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, writeToSSL)(TCN_STDARGS, jlong ssl, jlong wbuf, jint wlen) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  UNREFERENCED(wbuf);
+  UNREFERENCED(wlen);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, readFromSSL)(TCN_STDARGS, jlong ssl, jlong rbuf, jint rlen) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  UNREFERENCED(rbuf);
+  UNREFERENCED(rlen);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, getShutdown)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setShutdown)(TCN_STDARGS, jlong ssl, jint mode) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  UNREFERENCED(mode);
+  tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, freeBIO)(TCN_STDARGS, jlong bio) {
+  UNREFERENCED(o);
+  UNREFERENCED(bio);
+  tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, shutdownSSL)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jstring, SSL, getCipherForSSL)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return NULL;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, isInInit)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, doHandshake)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return NULL;
+}
+
+/*** End Twitter 1:1 API addition ***/
+
 #endif

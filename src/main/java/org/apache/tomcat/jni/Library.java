@@ -74,7 +74,9 @@ public final class Library {
 
     private Library(String libraryName)
     {
-        System.loadLibrary(libraryName);
+        if (!"provided".equals(libraryName)) {
+            System.loadLibrary(libraryName);
+        }
     }
 
     /* create global TCN's APR pool
