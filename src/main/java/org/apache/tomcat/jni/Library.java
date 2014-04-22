@@ -17,64 +17,44 @@
 
 package org.apache.tomcat.jni;
 
+import io.netty.util.internal.NativeLibraryLoader;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 /** Library
  *
  * @author Mladen Turk
  */
 public final class Library {
 
-    /* Default library names */
-    private static final String [] NAMES = {"tcnative-1", "libtcnative-1"};
     /*
      * A handle to the unique Library singleton instance.
      */
     private static Library _instance = null;
 
     private Library()
-        throws Exception
     {
-        boolean loaded = false;
-        StringBuilder err = new StringBuilder();
-        for (int i = 0; i < NAMES.length; i++) {
-            try {
-                System.loadLibrary(NAMES[i]);
-                loaded = true;
-            }
-            catch (Throwable t) {
-                if (t instanceof ThreadDeath) {
-                    throw (ThreadDeath) t;
-                }
-                if (t instanceof VirtualMachineError) {
-                    throw (VirtualMachineError) t;
-                }
-                String name = System.mapLibraryName(NAMES[i]);
-                String path = System.getProperty("java.library.path");
-                String sep = System.getProperty("path.separator");
-                String [] paths = path.split(sep);
-                for (int j=0; j<paths.length; j++) {
-                    java.io.File fd = new java.io.File(paths[j] , name);
-                    if (fd.exists()) {
-                        t.printStackTrace();
-                    }
-                }
-                if ( i > 0)
-                    err.append(", ");
-                err.append(t.getMessage());
-            }
-            if (loaded)
-                break;
-        }
-        if (!loaded) {
-            err.append('(');
-            err.append(System.getProperty("java.library.path"));
-            err.append(')');
-            throw new UnsatisfiedLinkError(err.toString());
-        }
+        this("netty-tcnative");
     }
 
     private Library(String libraryName)
     {
-        System.loadLibrary(libraryName);
+        NativeLibraryLoader.load(libraryName, getClassLoader());
+    }
+
+    private ClassLoader getClassLoader() {
+        final Class<?> clazz = getClass();
+        if (System.getSecurityManager() == null) {
+            return clazz.getClassLoader();
+        } else {
+            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                @Override
+                public ClassLoader run() {
+                    return clazz.getClassLoader();
+                }
+            });
+        }
     }
 
     /* create global TCN's APR pool
