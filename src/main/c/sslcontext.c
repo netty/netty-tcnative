@@ -141,15 +141,35 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
     SSL_CTX_set_options(c->ctx, SSL_OP_SINGLE_ECDH_USE);
 #endif
 
+#ifdef SSL_OP_NO_COMPRESSION
+    SSL_CTX_set_options(c->ctx, SSL_OP_NO_COMPRESSION);
+#else
+#error "SSL_OP_NO_COMPRESSION not supported in your version of OpenSSL"
+#endif
+
 #ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
     /*
      * Disallow a session from being resumed during a renegotiation,
      * so that an acceptable cipher suite can be negotiated.
      */
     SSL_CTX_set_options(c->ctx, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+#else
+#error "SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION not supported in your version of OpenSSL"
+#endif
+
+#ifdef SSL_MODE_RELEASE_BUFFERS
+    /* Release idle buffers to the SSL_CTX free list */
+    SSL_CTX_set_mode(c->ctx, SSL_MODE_RELEASE_BUFFERS);
+#else
+#error "SSL_MODE_RELEASE_BUFFERS not supported in your version of OpenSSL"
 #endif
     /* Default session context id and cache size */
     SSL_CTX_sess_set_cache_size(c->ctx, SSL_DEFAULT_CACHE_SIZE);
+
+    /* Session cache is disabled by default */
+    SSL_CTX_set_session_cache_mode(c->ctx, SSL_SESS_CACHE_OFF);
+    /* Longer session timeout */
+    SSL_CTX_set_timeout(c->ctx, 14400);
     EVP_Digest((const unsigned char *)SSL_DEFAULT_VHOST_NAME,
                (unsigned long)((sizeof SSL_DEFAULT_VHOST_NAME) - 1),
                &(c->context_id[0]), NULL, EVP_sha1(), NULL);
@@ -665,6 +685,166 @@ cleanup:
     return rv;
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, setNextProtos)(TCN_STDARGS, jlong ctx,
+                                                    jstring next_protos)
+{
+    int i, len, start = 0;
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    TCN_ALLOC_CSTRING(next_protos);
+
+    TCN_ASSERT(ctx != 0);
+    UNREFERENCED(o);
+
+    // Convert comma separated next_protos string to wire format
+    if (J2S(next_protos)) {
+        len = (int)strlen(J2S(next_protos));
+        if (len <= 65535) {
+        c->next_proto_len = (unsigned int)(strlen(J2S(next_protos)) + 1);
+            if ((c->next_proto_data = apr_palloc(c->pool, len + 1)) != NULL) {
+                c->next_proto_len = len + 1;
+                for (i = 0; i <= len; i++) {
+                    if (i == len || J2S(next_protos)[i] == ',') {
+                        if (i - start > 255) {
+                            c->next_proto_data = NULL;
+                            c->next_proto_len = 0;
+                            break;
+                        }
+                        (c->next_proto_data)[start] = i - start;
+                        start = i + 1;
+                    } else {
+                        (c->next_proto_data)[i+1] = J2S(next_protos)[i];
+                    }
+                }
+            }
+        }
+    }
+
+    // If conversion was successful set callback function
+    if (c->next_proto_data) {
+        SSL_CTX_set_next_protos_advertised_cb(c->ctx, SSL_callback_next_protos, (void *)c);
+    }
+
+    TCN_FREE_CSTRING(next_protos);
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheTimeout)(TCN_STDARGS, jlong ctx, jlong timeout)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_set_timeout(c->ctx, timeout);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheSize)(TCN_STDARGS, jlong ctx, jlong size)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = 0;
+
+    /* Prevent unbounded session cache sizes. */
+    if (size > 0) {
+      SSL_CTX_set_session_cache_mode(c->ctx, SSL_SESS_CACHE_SERVER);
+      rv = SSL_CTX_sess_set_cache_size(c->ctx, size);
+    }
+
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionNumber)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_number(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnect)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_connect(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnectGood)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_connect_good(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnectRenegotiate)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_connect_renegotiate(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAccept)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_accept(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAcceptGood)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_accept_good(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAcceptRenegotiate)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_accept_renegotiate(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionHits)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_hits(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCbHits)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_cb_hits(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionMisses)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_misses(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTimeouts)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_timeouts(c->ctx);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCacheFull)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = SSL_CTX_sess_cache_full(c->ctx);
+    return rv;
+}
+
+#define TICKET_KEYS_SIZE 48
+TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ctx, jbyteArray keys)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    if ((*e)->GetArrayLength(e, keys) != TICKET_KEYS_SIZE) {
+      BIO_printf(c->bio_os, "[ERROR] Session ticket keys provided were wrong size.");
+      exit(1);
+    }
+    jbyte* b = (*e)->GetByteArrayElements(e, keys, NULL);
+    SSL_CTX_set_tlsext_ticket_keys(c->ctx, b, TICKET_KEYS_SIZE);
+    (*e)->ReleaseByteArrayElements(e, keys, b, 0);
+}
+
 #else
 /* OpenSSL is not supported.
  * Create empty stubs.
@@ -807,6 +987,128 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     UNREFERENCED(password);
     UNREFERENCED(idx);
     return JNI_FALSE;
+}
+
+TCN_IMPLEMENT_CALL(void, SSLContext, setNextProtos)(TCN_STDARGS, jlong ctx,
+                                                    jstring next_protos)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(next_protos);
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheTimeout)(TCN_STDARGS, jlong ctx, jlong timeout)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(timeout);
+    return -1;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheSize)(TCN_STDARGS, jlong ctx, jlong size)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(size);
+    return -1;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionNumber)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnect)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnectGood)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnectRenegotiate)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAccept)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAcceptGood)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAcceptRenegotiate)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionHits)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCbHits)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTimeouts)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCacheFull)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionMisses)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionHits)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ctx, jbyteArray keys)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(keys);
 }
 
 #endif
