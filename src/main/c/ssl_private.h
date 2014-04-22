@@ -265,6 +265,9 @@ struct tcn_ssl_ctxt_t {
     int             verify_depth;
     int             verify_mode;
     tcn_pass_cb_t   *cb_data;
+
+    unsigned char   *next_proto_data;
+    unsigned int    next_proto_len;
 };
 
   
@@ -313,5 +316,6 @@ void        SSL_callback_handshake(const SSL *, int, int);
 int         SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, int);
 int         SSL_callback_SSL_verify(int, X509_STORE_CTX *);
 int         SSL_rand_seed(const char *file);
+int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);
 
 #endif /* SSL_PRIVATE_H */

@@ -734,6 +734,17 @@ void SSL_callback_handshake(const SSL *ssl, int where, int rc)
 
 }
 
+int SSL_callback_next_protos(SSL *ssl, const unsigned char **data,
+                             unsigned int *len, void *arg)
+{
+    tcn_ssl_ctxt_t *ssl_ctxt = arg;
+
+    *data = ssl_ctxt->next_proto_data;
+    *len = ssl_ctxt->next_proto_len;
+
+    return SSL_TLSEXT_ERR_OK;
+}
+
 #ifdef HAVE_OPENSSL_OCSP
 
 /* Function that is used to do the OCSP verification */
