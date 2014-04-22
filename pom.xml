@@ -101,6 +101,13 @@
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <classifier>${os.classifier}</classifier>
+        </configuration>
+      </plugin>
     </plugins>
 
     <pluginManagement>
@@ -123,6 +130,9 @@
           <arch>amd64</arch>
         </os>
       </activation>
+      <properties>
+        <os.classifier>linux</os.classifier>
+      </properties>
       <build>
         <plugins>
           <plugin>
@@ -185,6 +195,9 @@
           <arch>x86_64</arch>
         </os>
       </activation>
+      <properties>
+        <os.classifier>osx</os.classifier>
+      </properties>
       <build>
         <plugins>
           <plugin>
