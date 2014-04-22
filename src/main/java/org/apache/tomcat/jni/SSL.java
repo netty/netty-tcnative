@@ -16,6 +16,8 @@
  */
 package org.apache.tomcat.jni;
 
+import java.nio.ByteBuffer;
+
 /** SSL
  *
  * @author Mladen Turk
@@ -135,6 +137,8 @@ public final class SSL {
     public static final int SSL_OP_NO_SSLv2                         = 0x01000000;
     public static final int SSL_OP_NO_SSLv3                         = 0x02000000;
     public static final int SSL_OP_NO_TLSv1                         = 0x04000000;
+    public static final int SSL_OP_NO_TLSv1_1                       = 0x10000000;
+    public static final int SSL_OP_NO_TLSv1_2                       = 0x08000000;
     public static final int SSL_OP_NO_TICKET                        = 0x00004000;
 
     /* The next flag deliberately changes the ciphertest, this is a check
@@ -351,4 +355,184 @@ public final class SSL {
      * @return true if all SSL_OP_* are supported by OpenSSL library.
      */
     public static native boolean hasOp(int op);
+
+    /*
+     * Begin Twitter API additions
+     */
+
+    public static final int SSL_SENT_SHUTDOWN = 1;
+    public static final int SSL_RECEIVED_SHUTDOWN = 2;
+
+    public static final int SSL_ERROR_NONE             = 0;
+    public static final int SSL_ERROR_SSL              = 1;
+    public static final int SSL_ERROR_WANT_READ        = 2;
+    public static final int SSL_ERROR_WANT_WRITE       = 3;
+    public static final int SSL_ERROR_WANT_X509_LOOKUP = 4;
+    public static final int SSL_ERROR_SYSCALL          = 5; /* look at error stack/return value/errno */
+    public static final int SSL_ERROR_ZERO_RETURN      = 6;
+    public static final int SSL_ERROR_WANT_CONNECT     = 7;
+    public static final int SSL_ERROR_WANT_ACCEPT      = 8;
+
+    /**
+     * SSL_new
+     * @param ctx Server or Client context to use.
+     * @param server if true configure SSL instance to use accept handshake routines
+     *               if false configure SSL instance to use connect handshake routines
+     * @return pointer to SSL instance (SSL *)
+     */
+    public static native long newSSL(long ctx, boolean server);
+
+    /**
+     * SSL_set_bio
+     * @param ssl SSL pointer (SSL *)
+     * @param rbio read BIO pointer (BIO *)
+     * @param wbio write BIO pointer (BIO *)
+     */
+    public static native void setBIO(long ssl, long rbio, long wbio);
+
+    /**
+     * SSL_get_error
+     * @param ssl SSL pointer (SSL *)
+     * @param ret TLS/SSL I/O return value
+     */
+    public static native int getError(long ssl, int ret);
+
+    /**
+     * BIO_ctrl_pending
+     * @param bio BIO pointer (BIO *)
+     * @return
+     */
+    public static native int pendingWrittenBytesInBIO(long bio);
+
+    /**
+     * SSL_pending
+     * @param ssl SSL pointer (SSL *)
+     * @return
+     */
+    public static native int pendingReadableBytesInSSL(long ssl);
+
+    /**
+     * BIO_write
+     * @param bio
+     * @param wbuf
+     * @param wlen
+     * @return
+     */
+    public static native int writeToBIO(long bio, long wbuf, int wlen);
+
+    /**
+     * BIO_read
+     * @param bio
+     * @param rbuf
+     * @param rlen
+     * @return
+     */
+    public static native int readFromBIO(long bio, long rbuf, int rlen);
+
+    /**
+     * SSL_write
+     * @param ssl the SSL instance (SSL *)
+     * @param wbuf
+     * @param wlen
+     * @return
+     */
+    public static native int writeToSSL(long ssl, long wbuf, int wlen);
+
+    /**
+     * SSL_read
+     * @param ssl the SSL instance (SSL *)
+     * @param rbuf
+     * @param rlen
+     * @return
+     */
+    public static native int readFromSSL(long ssl, long rbuf, int rlen);
+
+    /**
+     * SSL_get_shutdown
+     * @param ssl the SSL instance (SSL *)
+     * @return
+     */
+    public static native int getShutdown(long ssl);
+
+    /**
+     * SSL_set_shutdown
+     * @param ssl the SSL instance (SSL *)
+     * @param mode
+     */
+    public static native void setShutdown(long ssl, int mode);
+
+    /**
+     * SSL_free
+     * @param ssl the SSL instance (SSL *)
+     */
+    public static native void freeSSL(long ssl);
+
+    /**
+     * Wire up internal and network BIOs for the given SSL instance.
+     *
+     * <b>Warning: you must explicitly free this resource by calling freeBIO</b>
+     *
+     * While the SSL's internal/application data BIO will be freed when freeSSL is called on
+     * the provided SSL instance, you must call freeBIO on the returned network BIO.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return pointer to the Network BIO (BIO *)
+     */
+    public static native long makeNetworkBIO(long ssl);
+
+    /**
+     * BIO_free
+     * @param bio
+     */
+    public static native void freeBIO(long bio);
+
+    /**
+     * BIO_flush
+     * @param bio
+     */
+    public static native void flushBIO(long bio);
+
+    /**
+     * SSL_shutdown
+     * @param ssl the SSL instance (SSL *)
+     * @return
+     */
+    public static native int shutdownSSL(long ssl);
+
+    /**
+     * Get the error number representing the last error OpenSSL encountered on this thread.
+     * @return
+     */
+    public static native int getLastErrorNumber();
+
+    /**
+     * SSL_get_cipher
+     * @param ssl the SSL instance (SSL *)
+     * @return
+     */
+    public static native String getCipherForSSL(long ssl);
+
+    /**
+     * SSL_do_handshake
+     * @param ssl the SSL instance (SSL *)
+     */
+    public static native int doHandshake(long ssl);
+
+    /**
+     * SSL_in_init
+     * @param SSL
+     * @return
+     */
+    public static native int isInInit(long SSL);
+
+    /**
+     * SSL_get0_next_proto_negotiated
+     * @param ssl the SSL isntance (SSL *)
+     * @return
+     */
+    public static native String getNextProtoNegotiated(long ssl);
+
+    /*
+     * End Twitter API Additions
+     */
 }
