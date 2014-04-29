@@ -1,0 +1,110 @@
+#!/bin/bash -e
+cd "`dirname "$0"`"
+
+if [[ $# -ne 1 ]]; then
+  echo "Usage: $0 <tcnative_version>" >&2
+  exit 1
+fi
+
+if [[ ! "$1" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+  echo "Invalid version: $1" >&2
+  exit 1
+fi
+
+BASEDIR="$PWD"
+WORKDIR="$BASEDIR/target"
+
+TCN_VER="$1"
+TCN_TGZ="tomcat-native-$TCN_VER-src.tar.gz"
+TCN_TGZ_FILE="$WORKDIR/$TCN_TGZ"
+TCN_SRC_DIR="$WORKDIR/tomcat-native-$TCN_VER-src"
+
+function msg() {
+  echo -e "\033[1;32m$@\033[0;0m" >&2
+}
+
+# Create the work directory.
+rm -fr "$WORKDIR"
+mkdir "$WORKDIR"
+
+# Download the source tarball.
+msg "Downloading: $TCN_TGZ"
+curl "http://archive.apache.org/dist/tomcat/tomcat-connectors/native/$TCN_VER/source/$TCN_TGZ" > "$TCN_TGZ_FILE"
+
+# Extract the tarball into a new directory.
+msg "Extracting: $TCN_TGZ"
+mkdir "$TCN_SRC_DIR"
+cd "$TCN_SRC_DIR"
+cat "$TCN_TGZ_FILE" | gunzip | tar -x --strip-components 1
+
+# Delete the source directory and ensure it doesn't exist anymore.
+cd "$BASEDIR"
+rm -fr 'src'
+mkdir 'src'
+mkdir 'src/main'
+
+# Copy the necessary source files into proper directories.
+msg "Mavenizing: copy"
+## Files necessary for Mavenization
+rsync -a --exclude='.gitignore' 'template/' '.'
+## Autotools macros
+rsync -am --include='*.m4' --exclude='**/*.*' "$TCN_SRC_DIR/jni/native/build/" 'src/main/native-package/m4'
+## Java source files
+rsync -am --include='**/*.java' --exclude='**/*.*' "$TCN_SRC_DIR/jni/java/" 'src/main/java'
+## Java resource files
+rsync -am --exclude='**/*.java' --exclude='overview.html' "$TCN_SRC_DIR/jni/java/" 'src/main/resources'
+## C source files
+rsync -am --include='**/*.c' --exclude='**/*.*' "$TCN_SRC_DIR/jni/native/src/" 'src/main/c'
+rsync -am --include='**/*.h' --exclude='**/*.*' "$TCN_SRC_DIR/jni/native/include/" 'src/main/c'
+## Platform-specific C source files
+rsync -am --include='**/*.c' --exclude='**/*.*' "$TCN_SRC_DIR/jni/native/os/unix" 'src/main/c/os'
+
+# Define a function that performs in-place sed on a file.
+function in_place_sed() {
+  sed -i.bak "$1" "$2"
+  rm "$2".bak
+}
+
+msg "Mavenizing: replace"
+# Inject the version number of the new fork.
+in_place_sed 's/@VERSION@/'"$TCN_VER"'/g' 'pom.xml'
+# Use Maven's resource filter to inject the project version into apr.properties.
+in_place_sed 's#^tcn.info=.*$#tcn.info=${project.artifactId}/${project.version}#g' 'src/main/resources/org/apache/tomcat/apr.properties'
+# Allow using the system-wide apr installation to build.
+in_place_sed 's/APR_FIND_APR(,,,[^)]*)/APR_FIND_APR(,,[1],[1])/g' 'src/main/native-package/m4/tcnative.m4'
+# Patch autotool macros to make the latest autotool happy.
+in_place_sed 's/AC_DEFUN(\([^\[,]\+\),/AC_DEFUN([\1],/g' 'src/main/native-package/m4/tcnative.m4'
+in_place_sed 's/AC_DEFINE(HAVE_OPENSSL_DSA)/AC_DEFINE([HAVE_OPENSSL_DSA], [1], [Define HAVE_OPENSSL_DSA])/g' 'src/main/native-package/m4/tcnative.m4'
+
+# Mavenization has been finished. Check if the build succeeds.
+msg "Mavenization complete; running the initial build .."
+mvn package
+
+# Switch to a new branch.
+msg "Creating a new branch: $TCN_VER"
+if git for-each-ref --format="%(refname)" refs/heads/ | sed 's#^refs/heads/##' | grep -qFx "$TCN_VER"; then
+  echo "Branch exists already: $TCN_VER" >&2
+  exit 1
+fi
+
+git checkout -B "$TCN_VER"
+
+# Add the changes to the gix index.
+msg "Adding the changes to the git index .."
+## .gitignore should be copied after switching to the new branch so that the bootstrap branch doesn't get dirty.
+cp -f 'template/.gitignore' '.'
+git add .gitignore pom.xml src
+git rm -f "$0"
+git rm -fr 'template'
+
+# Commit the fork.
+msg "Committing the fork .."
+COMMIT_MSG="Mavenize tcnative-$TCN_VER"
+git commit -q -m "$COMMIT_MSG"
+
+# Squash all commits into one.
+msg "Squashing all commits .."
+git reset "$(git commit-tree HEAD^{tree} -m "$COMMIT_MSG")"
+
+msg "All done; cherry-pick your patches!"
+
