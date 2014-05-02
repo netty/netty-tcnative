@@ -138,5 +138,27 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <!--
+            Do not deploy when releasing.
+            The JARs for different platforms (linux-x86_64 and osx-x86_64) must be
+            collected and uploaded manually to oss.sonatype.org.
+          -->
+          <plugin>
+            <artifactId>maven-deploy-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
+
 
