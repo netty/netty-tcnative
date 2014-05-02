@@ -23,14 +23,19 @@
   </parent>
   <artifactId>netty-tcnative</artifactId>
   <version>@VERSION@.Fork1-SNAPSHOT</version>
+  <packaging>jar</packaging>
 
   <name>Netty/TomcatNativeFork</name>
-  <packaging>jar</packaging>
-  
+  <url>https://github.com/netty/netty-tcnative/</url>
+  <description>
+    A Mavenized fork of Tomcat Native which incorporates various patches
+  </description>
+
   <scm>
     <url>https://github.com/netty/netty-tcnative</url>
     <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
+    <tag>HEAD</tag>
   </scm>
 
   <properties>
@@ -120,6 +125,15 @@
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <classifier>${os.detected.classifier}</classifier>
+        </configuration>
+      </plugin>
+
+      <!-- Override the parent POM's configuration -->
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <arguments>-P release,sonatype-oss-release</arguments>
+          <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
         </configuration>
       </plugin>
     </plugins>
