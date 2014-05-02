@@ -26,6 +26,12 @@
 
   <name>Netty/TomcatNativeFork</name>
   <packaging>jar</packaging>
+  
+  <scm>
+    <url>https://github.com/netty/netty-tcnative</url>
+    <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
+  </scm>
 
   <properties>
     <checkstyle.skip>true</checkstyle.skip>
