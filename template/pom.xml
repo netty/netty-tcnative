@@ -149,11 +149,61 @@
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
         <configuration>
-          <arguments>-P release,sonatype-oss-release</arguments>
+          <arguments>-P restricted-release,sonatype-oss-release</arguments>
           <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
         </configuration>
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!--
+      netty-tcnative must be released from RHEL 6.5 x86_64 or compatible so that:
+
+        1) we ship x86_64 version of epoll transport officially, and
+        2) we ensure the ABI compatibility with older GLIBC versions.
+
+           The shared library built on a distribution with newer GLIBC
+           will not run on older distributions.
+    -->
+    <profile>
+      <id>restricted-release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-release-environment</id>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireProperty>
+                      <regexMessage>
+                        Release process must be performed on linux-x86_64.
+                      </regexMessage>
+                      <property>os.detected.classifier</property>
+                      <regex>^linux-x86_64$</regex>
+                    </requireProperty>
+                    <requireFilesContent>
+                      <message>
+                        Release process must be performed on RHEL 6.5 or its derivatives.
+                      </message>
+                      <files>
+                        <file>/etc/redhat-release</file>
+                      </files>
+                      <content>release 6.5</content>
+                    </requireFilesContent>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
 
