@@ -200,6 +200,14 @@
                 </configuration>
               </execution>
             </executions>
+            <dependencies>
+              <!-- Provides the 'requireFilesContent' enforcer rule. -->
+              <dependency>
+                <groupId>com.ceilfors.maven.plugin</groupId>
+                <artifactId>enforcer-rules</artifactId>
+                <version>1.1.0</version>
+              </dependency>
+            </dependencies>
           </plugin>
         </plugins>
       </build>
