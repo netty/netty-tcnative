@@ -54,10 +54,11 @@ rsync -am --include='**/*.java' --exclude='**/*.*' "$TCN_SRC_DIR/jni/java/" 'src
 ## Java resource files
 rsync -am --exclude='**/*.java' --exclude='overview.html' "$TCN_SRC_DIR/jni/java/" 'src/main/resources'
 ## C source files
-rsync -am --include='**/*.c' --exclude='**/*.*' "$TCN_SRC_DIR/jni/native/src/" 'src/main/c'
-rsync -am --include='**/*.h' --exclude='**/*.*' "$TCN_SRC_DIR/jni/native/include/" 'src/main/c'
+rsync -am "$TCN_SRC_DIR/jni/native/src/" 'src/main/c'
+rsync -am "$TCN_SRC_DIR/jni/native/include/" 'src/main/c'
 ## Platform-specific C source files
-rsync -am --include='**/*.c' --exclude='**/*.*' "$TCN_SRC_DIR/jni/native/os/unix" 'src/main/c/os'
+rsync -am "$TCN_SRC_DIR/jni/native/os/unix" 'src/main/c/os'
+rsync -am "$TCN_SRC_DIR/jni/native/os/win32" 'src/main/c/os'
 
 # Define a function that performs in-place sed on a file.
 function in_place_sed() {
@@ -75,6 +76,32 @@ in_place_sed 's/APR_FIND_APR(,,,[^)]*)/APR_FIND_APR(,,[1],[1])/g' 'src/main/nati
 # Patch autotool macros to make the latest autotool happy.
 in_place_sed 's/AC_DEFUN(\([^\[,]\+\),/AC_DEFUN([\1],/g' 'src/main/native-package/m4/tcnative.m4'
 in_place_sed 's/AC_DEFINE(HAVE_OPENSSL_DSA)/AC_DEFINE([HAVE_OPENSSL_DSA], [1], [Define HAVE_OPENSSL_DSA])/g' 'src/main/native-package/m4/tcnative.m4'
+
+# Wrap with 'ifndef WIN32' for Unix-specific source files.
+find src/main/c/os/unix -name '*.c' | while read F; do
+  {
+    echo '#ifndef WIN32'
+    echo
+    cat "$F"
+    echo
+    echo '#endif'
+    echo
+  } > "$F.new"
+  mv -f "$F.new" "$F"
+done
+
+# Wrap with 'ifdef WIN32' for Windows-specific source files.
+find src/main/c/os/win32 -name '*.c' | while read F; do
+  {
+    echo '#ifdef WIN32'
+    echo
+    cat "$F"
+    echo
+    echo '#endif'
+    echo
+  } > "$F.new"
+  mv -f "$F.new" "$F"
+done
 
 # Mavenization has been finished. Check if the build succeeds.
 msg "Mavenization complete; running the initial build .."
