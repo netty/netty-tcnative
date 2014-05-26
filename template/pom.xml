@@ -22,7 +22,7 @@
     <version>4.0.18.Final</version>
   </parent>
   <artifactId>netty-tcnative</artifactId>
-  <version>@VERSION@.Fork1-SNAPSHOT</version>
+  <version>@TCN_VER@.Fork@FORK_REV@-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>Netty/TomcatNative</name>

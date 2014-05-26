@@ -1,12 +1,17 @@
 #!/bin/bash -e
 cd "`dirname "$0"`"
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <tcnative_version>" >&2
+if [[ $# -ne 2 ]]; then
+  echo "  Usage: $0 <tcnative_version> <fork_revision>" >&2
+  echo "Example: $0 1.1.30 3" >&2
   exit 1
 fi
 
 if [[ ! "$1" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+  echo "Invalid version: $1" >&2
+  exit 1
+fi
+if [[ ! "$2" =~ ([0-9]+) ]]; then
   echo "Invalid version: $1" >&2
   exit 1
 fi
@@ -15,6 +20,7 @@ BASEDIR="$PWD"
 WORKDIR="$BASEDIR/target"
 
 TCN_VER="$1"
+FORK_REV="$2"
 TCN_TGZ="tomcat-native-$TCN_VER-src.tar.gz"
 TCN_TGZ_FILE="$WORKDIR/$TCN_TGZ"
 TCN_SRC_DIR="$WORKDIR/tomcat-native-$TCN_VER-src"
@@ -77,7 +83,8 @@ function in_place_sed() {
 
 msg "Mavenizing: replace"
 # Inject the version number of the new fork.
-in_place_sed 's/@VERSION@/'"$TCN_VER"'/g' 'pom.xml'
+in_place_sed 's/@TCN_VER@/'"$TCN_VER"'/g' 'pom.xml'
+in_place_sed 's/@FORK_REV@/'"$FORK_REV"'/g' 'pom.xml'
 # Use Maven's resource filter to inject the project version into apr.properties.
 in_place_sed 's#^tcn.info=.*$#tcn.info=${project.artifactId}/${project.version}#g' 'src/main/resources/org/apache/tomcat/apr.properties'
 # Allow using the system-wide apr installation to build.
