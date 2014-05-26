@@ -43,6 +43,10 @@
     <animal.sniffer.skip>true</animal.sniffer.skip>
     <forceAutogen>true</forceAutogen>
     <forceConfigure>true</forceConfigure>
+    <defaultJarFile>${project.build.directory}/${project.build.finalName}.jar</defaultJarFile>
+    <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}.jar</nativeJarFile>
+    <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
+    <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
   </properties>
 
   <build>
