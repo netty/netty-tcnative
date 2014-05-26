@@ -57,13 +57,13 @@ rsync -am --exclude='**/*.java' --exclude='overview.html' "$TCN_SRC_DIR/jni/java
 rsync -am "$TCN_SRC_DIR/jni/native/src/" 'src/main/c'
 rsync -am "$TCN_SRC_DIR/jni/native/include/" 'src/main/c'
 ## Platform-specific C source files
-rsync -am --include="**/*.c" "$TCN_SRC_DIR/jni/native/os/unix" 'src/main/c/os'
-find 'src/main/c/os/unix' '(' -type f -and -name '*.c' ')' | while read F; do
+rsync -am "$TCN_SRC_DIR/jni/native/os/unix" 'src/main/c/os'
+find 'src/main/c/os/unix' -type f | while read F; do
   BF="`basename "$F"`"
   mv "$F" "src/main/c/os_unix_$BF"
 done
-rsync -am --include="**/*.c" "$TCN_SRC_DIR/jni/native/os/win32" 'src/main/c/os'
-find 'src/main/c/os/win32' '(' -type f -and -name '*.c' ')' | while read F; do
+rsync -am "$TCN_SRC_DIR/jni/native/os/win32" 'src/main/c/os'
+find 'src/main/c/os/win32' -type f | while read F; do
   BF="`basename "$F"`"
   mv "$F" "src/main/c/os_win32_$BF"
 done
