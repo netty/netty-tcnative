@@ -86,10 +86,10 @@ in_place_sed 's/APR_FIND_APR(,,,[^)]*)/APR_FIND_APR(,,[1],[1])/g' 'src/main/nati
 in_place_sed 's/AC_DEFUN(\([^\[,]\+\),/AC_DEFUN([\1],/g' 'src/main/native-package/m4/tcnative.m4'
 in_place_sed 's/AC_DEFINE(HAVE_OPENSSL_DSA)/AC_DEFINE([HAVE_OPENSSL_DSA], [1], [Define HAVE_OPENSSL_DSA])/g' 'src/main/native-package/m4/tcnative.m4'
 
-# Wrap with 'ifndef WIN32' for Unix-specific source files.
+# Wrap with 'ifndef _WINDOWS' for Unix-specific source files.
 find src/main/c -name 'os_unix_*.c' | while read F; do
   {
-    echo '#ifndef WIN32'
+    echo '#ifndef _WINDOWS'
     echo
     cat "$F"
     echo
@@ -99,10 +99,10 @@ find src/main/c -name 'os_unix_*.c' | while read F; do
   mv -f "$F.new" "$F"
 done
 
-# Wrap with 'ifdef WIN32' for Windows-specific source files.
+# Wrap with 'ifdef _WINDOWS' for Windows-specific source files.
 find src/main/c -name 'os_win32_*.c' | while read F; do
   {
-    echo '#ifdef WIN32'
+    echo '#ifdef _WINDOWS'
     echo
     cat "$F"
     echo
