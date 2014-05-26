@@ -105,11 +105,7 @@
             <id>build-native-lib</id>
             <configuration>
               <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
-              <libDirectory>${project.build.outputDirectory}</libDirectory>
-              <!-- We use Maven's artifact classifier instead.
-                   This hack will make the hawtjni plugin to put the native library
-                   under 'META-INF/native' rather than 'META-INF/native/${platform}'. -->
-              <platform>.</platform>
+              <libDirectory>${nativeLibOnlyDir}</libDirectory>
               <forceAutogen>${forceAutogen}</forceAutogen>
               <forceConfigure>${forceConfigure}</forceConfigure>
               <windowsBuildTool>msbuild</windowsBuildTool>
@@ -123,26 +119,34 @@
         </executions>
       </plugin>
 
+      <!-- Build the additional JAR that contains the native library. -->
       <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
+        <artifactId>maven-antrun-plugin</artifactId>
         <executions>
-          <!-- Generate the fallback JAR that does not contain the native library. -->
-          <execution>
-            <id>default-jar</id>
-            <configuration>
-              <excludes>
-                <exclude>META-INF/native/**</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-          <!-- Generate the JAR that contains the native library in it. -->
           <execution>
             <id>native-jar</id>
+            <phase>package</phase>
             <goals>
-              <goal>jar</goal>
+              <goal>run</goal>
             </goals>
             <configuration>
-              <classifier>${os.detected.classifier}</classifier>
+              <target>
+                <copy todir="${nativeJarWorkdir}">
+                  <zipfileset src="${defaultJarFile}" />
+                </copy>
+                <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                  <regexpmapper handledirsep="yes"
+                    from="^(?:[^/]+/)*([^/]+)$"
+                    to="META-INF/native/\1" />
+                </copy>
+                <jar
+                  destfile="${nativeJarFile}"
+                  manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF"
+                  basedir="${nativeJarWorkdir}" index="true"
+                  excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar"/>
+              </target>
             </configuration>
           </execution>
         </executions>
@@ -215,6 +219,8 @@
         </plugins>
       </build>
     </profile>
+
+    <!-- Windows-specific configuration -->
     <profile>
       <id>windows</id>
       <activation>
