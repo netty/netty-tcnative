@@ -110,6 +110,7 @@
               <platform>.</platform>
               <forceConfigure>true</forceConfigure>
               <forceAutogen>true</forceAutogen>
+              <windowsBuildTool>msbuild</windowsBuildTool>
             </configuration>
             <goals>
               <goal>generate</goal>

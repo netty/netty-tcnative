@@ -57,8 +57,17 @@ rsync -am --exclude='**/*.java' --exclude='overview.html' "$TCN_SRC_DIR/jni/java
 rsync -am "$TCN_SRC_DIR/jni/native/src/" 'src/main/c'
 rsync -am "$TCN_SRC_DIR/jni/native/include/" 'src/main/c'
 ## Platform-specific C source files
-rsync -am "$TCN_SRC_DIR/jni/native/os/unix" 'src/main/c/os'
-rsync -am "$TCN_SRC_DIR/jni/native/os/win32" 'src/main/c/os'
+rsync -am --include="**/*.c" "$TCN_SRC_DIR/jni/native/os/unix" 'src/main/c/os'
+find 'src/main/c/os/unix' '(' -type f -and -name '*.c' ')' | while read F; do
+  BF="`basename "$F"`"
+  mv "$F" "src/main/c/os_unix_$BF"
+done
+rsync -am --include="**/*.c" "$TCN_SRC_DIR/jni/native/os/win32" 'src/main/c/os'
+find 'src/main/c/os/win32' '(' -type f -and -name '*.c' ')' | while read F; do
+  BF="`basename "$F"`"
+  mv "$F" "src/main/c/os_win32_$BF"
+done
+rm -r 'src/main/c/os'
 
 # Define a function that performs in-place sed on a file.
 function in_place_sed() {
@@ -78,7 +87,7 @@ in_place_sed 's/AC_DEFUN(\([^\[,]\+\),/AC_DEFUN([\1],/g' 'src/main/native-packag
 in_place_sed 's/AC_DEFINE(HAVE_OPENSSL_DSA)/AC_DEFINE([HAVE_OPENSSL_DSA], [1], [Define HAVE_OPENSSL_DSA])/g' 'src/main/native-package/m4/tcnative.m4'
 
 # Wrap with 'ifndef WIN32' for Unix-specific source files.
-find src/main/c/os/unix -name '*.c' | while read F; do
+find src/main/c -name 'os_unix_*.c' | while read F; do
   {
     echo '#ifndef WIN32'
     echo
@@ -91,7 +100,7 @@ find src/main/c/os/unix -name '*.c' | while read F; do
 done
 
 # Wrap with 'ifdef WIN32' for Windows-specific source files.
-find src/main/c/os/win32 -name '*.c' | while read F; do
+find src/main/c -name 'os_win32_*.c' | while read F; do
   {
     echo '#ifdef WIN32'
     echo
