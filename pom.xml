@@ -22,7 +22,7 @@
     <version>4.0.18.Final</version>
   </parent>
   <artifactId>netty-tcnative</artifactId>
-  <version>1.1.30.Fork2-SNAPSHOT</version>
+  <version>1.1.30.Fork2</version>
   <packaging>jar</packaging>
 
   <name>Netty/TomcatNative</name>
@@ -35,7 +35,7 @@
     <url>https://github.com/netty/netty-tcnative</url>
     <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>netty-tcnative-1.1.30.Fork2</tag>
   </scm>
 
   <properties>
@@ -140,16 +140,10 @@
                 </copy>
                 <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
                   <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
-                  <regexpmapper handledirsep="yes"
-                    from="^(?:[^/]+/)*([^/]+)$"
-                    to="META-INF/native/\1" />
+                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
                 </copy>
-                <jar
-                  destfile="${nativeJarFile}"
-                  manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF"
-                  basedir="${nativeJarWorkdir}" index="true"
-                  excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
-                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar"/>
+                <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
               </target>
             </configuration>
           </execution>
