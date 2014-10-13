@@ -474,7 +474,7 @@ static int ssl_X509_STORE_lookup(X509_STORE *store, int yype,
     return rc;
 }
 
-static int ssl_verify_CRL(int ok, X509_STORE_CTX *ctx, tcn_ssl_conn_t *con)
+static int ssl_verify_CRL(int ok, X509_STORE_CTX *ctx, tcn_ssl_ctxt_t *c)
 {
     X509_OBJECT obj;
     X509_NAME *subject, *issuer;
@@ -526,7 +526,7 @@ static int ssl_verify_CRL(int ok, X509_STORE_CTX *ctx, tcn_ssl_conn_t *con)
      * the current certificate in order to verify it's integrity.
      */
     memset((char *)&obj, 0, sizeof(obj));
-    rc = ssl_X509_STORE_lookup(con->ctx->crl,
+    rc = ssl_X509_STORE_lookup(c->crl,
                                X509_LU_CRL, subject, &obj);
     crl = obj.data.crl;
 
@@ -580,7 +580,7 @@ static int ssl_verify_CRL(int ok, X509_STORE_CTX *ctx, tcn_ssl_conn_t *con)
      * the current certificate in order to check for revocation.
      */
     memset((char *)&obj, 0, sizeof(obj));
-    rc = ssl_X509_STORE_lookup(con->ctx->crl,
+    rc = ssl_X509_STORE_lookup(c->crl,
                                X509_LU_CRL, issuer, &obj);
 
     crl = obj.data.crl;
@@ -621,12 +621,13 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
    /* Get Apache context back through OpenSSL context */
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
                                           SSL_get_ex_data_X509_STORE_CTX_idx());
-    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl);
+    tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
+
     /* Get verify ingredients */
     int errnum   = X509_STORE_CTX_get_error(ctx);
     int errdepth = X509_STORE_CTX_get_error_depth(ctx);
-    int verify   = con->ctx->verify_mode;
-    int depth    = con->ctx->verify_depth;
+    int verify   = c->verify_mode;
+    int depth    = c->verify_depth;
     int skip_crl = 0;
 
     if (verify == SSL_CVERIFY_UNSET ||
@@ -670,8 +671,8 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
     /*
      * Additionally perform CRL-based revocation checks
      */
-    if (ok && con->ctx->crl && !skip_crl) {
-        if (!(ok = ssl_verify_CRL(ok, ctx, con))) {
+    if (ok && c->crl && !skip_crl) {
+        if (!(ok = ssl_verify_CRL(ok, ctx, c))) {
             errnum = X509_STORE_CTX_get_error(ctx);
             /* TODO: Log something */
         }
@@ -680,10 +681,14 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
      * If we already know it's not ok, log the real reason
      */
     if (!ok) {
+        // Just in case that sslnetwork stuff was used, which is not true for netty but it can't harm to still
+        // guard against it.
+        tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl);
+
         /* TODO: Some logging
          * Certificate Verification: Error
          */
-        if (con->peer) {
+        if (con != NULL && con->peer) {
             X509_free(con->peer);
             con->peer = NULL;
         }
