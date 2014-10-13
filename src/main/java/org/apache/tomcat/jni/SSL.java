@@ -542,4 +542,14 @@ public final class SSL {
     /*
      * End Twitter API Additions
      */
+
+    /**
+     * Get the peer certificate chain or {@code null} if non was send.
+     */
+    public static native byte[][] getPeerCertChain(long ssl);
+
+    /**
+     * Get the peer certificate or {@code null} if non was send.
+     */
+    public static native byte[] getPeerCertificate(long ssl);
 }

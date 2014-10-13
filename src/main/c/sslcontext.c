@@ -209,6 +209,7 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, free)(TCN_STDARGS, jlong ctx)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
+
     /* Run and destroy the cleanup callback */
     return apr_pool_cleanup_run(c->pool, c, ssl_context_cleanup);
 }
