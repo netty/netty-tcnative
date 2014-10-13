@@ -40,6 +40,8 @@ tcn_pass_cb_t tcn_password_callback;
 /* Global reference to the pool used by the dynamic mutexes */
 static apr_pool_t *dynlockpool = NULL;
 
+static jclass byteArrayClass;
+
 /* Dynamic lock structure */
 struct CRYPTO_dynlock_value {
     apr_pool_t *pool;
@@ -722,6 +724,11 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
                               ssl_init_cleanup,
                               apr_pool_cleanup_null);
     TCN_FREE_CSTRING(engine);
+
+    // Cache the byte[].class for performance reasons
+    jclass clazz = (*e)->FindClass(e, "[B");
+    byteArrayClass = (jclass) (*e)->NewGlobalRef(e, clazz);
+
     return (jint)APR_SUCCESS;
 }
 
@@ -1173,6 +1180,13 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
     } else {
         SSL_set_connect_state(ssl);
     }
+
+    // Setup verify and seed
+    SSL_set_verify_result(ssl, X509_V_OK);
+    SSL_rand_seed(c->rand_file);
+
+    // Store for later usage in SSL_callback_SSL_verify
+    SSL_set_app_data2(ssl, c);
     return P2J(ssl);
 }
 
@@ -1381,6 +1395,88 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
     return tcn_new_stringn(e, proto, proto_len);
 }
 /*** End Twitter API Additions ***/
+
+/*** Apple API Additions ***/
+TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
+                                                  jlong ssl /* SSL * */)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return NULL;
+    }
+
+    UNREFERENCED(o);
+
+    // Get a stack of all certs in the chain.
+    STACK_OF(X509) *sk = SSL_get_peer_cert_chain(ssl_);
+
+    unsigned len = sk_num(sk);
+    if (len <= 0) {
+        // No peer certificate chain as no auth took place yet, or the auth was not successful.
+        return NULL;
+    }
+    unsigned i;
+    X509 *cert;
+    int length;
+    unsigned char *buf;
+
+    // Create the byte[][] array that holds all the certs
+    jobjectArray array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
+
+    for(i = 0; i < len; i++) {
+        cert = (X509*) sk_value(sk, i);
+
+        buf = NULL;
+        length = i2d_X509(cert, &buf);
+        if (length < 0) {
+            // In case of error just return an empty byte[][]
+            return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
+        }
+        jbyteArray bArray = (*e)->NewByteArray(e, length);
+        (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+        (*e)->SetObjectArrayElement(e, array, i, bArray);
+
+        // Delete the local reference as we not know how long the chain is and local references are otherwise
+        // only freed once jni method returns.
+        (*e)->DeleteLocalRef(e, bArray);
+    }
+    return array;
+}
+
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
+                                                  jlong ssl /* SSL * */)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return NULL;
+    }
+
+    UNREFERENCED(o);
+
+    // Get a stack of all certs in the chain
+    X509 *cert = SSL_get_peer_certificate(ssl_);
+    if (cert == NULL) {
+        return NULL;
+    }
+    int length;
+    unsigned char *buf = NULL;
+
+    length = i2d_X509(cert, &buf);
+
+    jbyteArray bArray = (*e)->NewByteArray(e, length);
+    (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+
+    // We need to free the cert as the reference count is incremented by one and it is not destroyed when the
+    // session is freed.
+    // See https://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html
+    X509_free(cert);
+    return bArray;
+}
+/*** End Apple API Additions ***/
 
 #else
 #error OpenSSL is required!
@@ -1651,5 +1747,25 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS, jlong ssl)
 }
 
 /*** End Twitter 1:1 API addition ***/
+
+/*** Begin Apple 1:1 API addition ***/
+
+TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS, jlong ssl)
+{
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return NULL;
+}
+
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS, jlong ssl)
+{
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return NULL;
+}
+
+/*** End Apple API Additions ***/
 
 #endif
