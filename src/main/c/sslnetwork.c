@@ -144,6 +144,9 @@ static tcn_ssl_conn_t *ssl_create(JNIEnv *env, tcn_ssl_ctxt_t *ctx, apr_pool_t *
 
     SSL_set_app_data(ssl, (void *)con);
 
+    // Store for later usage in SSL_callback_SSL_verify
+    SSL_set_app_data2(ssl, ctx);
+
     if (ctx->mode) {
         /*
          *  Configure callbacks for SSL connection
