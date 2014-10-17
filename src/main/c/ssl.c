@@ -1402,6 +1402,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
     SSL_get0_next_proto_negotiated(ssl_, &proto, &proto_len);
     return tcn_new_stringn(e, proto, proto_len);
 }
+
 /*** End Twitter API Additions ***/
 
 /*** Apple API Additions ***/
@@ -1483,6 +1484,14 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
     // See https://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html
     X509_free(cert);
     return bArray;
+}
+
+TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
+{
+    char buf[256];
+    UNREFERENCED(o);
+    ERR_error_string(number, buf);
+    return tcn_new_string(e, buf);
 }
 /*** End Apple API Additions ***/
 
@@ -1774,6 +1783,13 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS, jlong ssl)
   return NULL;
 }
 
-/*** End Apple API Additions ***/
+TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
+{
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return NULL;
+}
 
+/*** End Apple API Additions ***/
 #endif

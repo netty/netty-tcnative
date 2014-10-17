@@ -16,8 +16,6 @@
  */
 package org.apache.tomcat.jni;
 
-import java.nio.ByteBuffer;
-
 /** SSL
  *
  * @author Mladen Turk
@@ -577,4 +575,8 @@ public final class SSL {
      * Get the peer certificate or {@code null} if non was send.
      */
     public static native byte[] getPeerCertificate(long ssl);
+    /*
+     * Get the error number representing for the given {@code errorNumber}.
+     */
+    public static native String getErrorString(long errorNumber);
 }
