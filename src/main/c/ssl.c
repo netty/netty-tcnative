@@ -1493,6 +1493,21 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
     ERR_error_string(number, buf);
     return tcn_new_string(e, buf);
 }
+
+TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    return SSL_get_time(ssl_);
+}
+
 /*** End Apple API Additions ***/
 
 #else
@@ -1791,5 +1806,20 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
   return NULL;
 }
 
+TCN_IMPLEMENT_CALL(jstring, SSL, getVersion)(TCN_STDARGS, jlong ssl)
+{
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return NULL;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
+{
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
 /*** End Apple API Additions ***/
 #endif
