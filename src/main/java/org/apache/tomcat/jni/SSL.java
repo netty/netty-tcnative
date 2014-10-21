@@ -561,4 +561,40 @@ public final class SSL {
      * @return returns the time at which the session ssl was established. The time is given in seconds since the Epoch
      */
     public static native long getTime(long ssl);
+
+    /**
+     * Set Type of Client Certificate verification and Maximum depth of CA Certificates
+     * in Client Certificate verification.
+     * <br />
+     * This directive sets the Certificate verification level for the Client
+     * Authentication. Notice that this directive can be used both in per-server
+     * and per-directory context. In per-server context it applies to the client
+     * authentication process used in the standard SSL handshake when a connection
+     * is established. In per-directory context it forces a SSL renegotiation with
+     * the reconfigured client verification level after the HTTP request was read
+     * but before the HTTP response is sent.
+     * <br />
+     * The following levels are available for level:
+     * <pre>
+     * SSL_CVERIFY_NONE           - No client Certificate is required at all
+     * SSL_CVERIFY_OPTIONAL       - The client may present a valid Certificate
+     * SSL_CVERIFY_REQUIRE        - The client has to present a valid Certificate
+     * SSL_CVERIFY_OPTIONAL_NO_CA - The client may present a valid Certificate
+     *                              but it need not to be (successfully) verifiable
+     * </pre>
+     * <br />
+     * The depth actually is the maximum number of intermediate certificate issuers,
+     * i.e. the number of CA certificates which are max allowed to be followed while
+     * verifying the client certificate. A depth of 0 means that self-signed client
+     * certificates are accepted only, the default depth of 1 means the client
+     * certificate can be self-signed or has to be signed by a CA which is directly
+     * known to the server (i.e. the CA's certificate is under
+     * {@code setCACertificatePath}, etc.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @param level Type of Client Certificate verification.
+     * @param depth Maximum depth of CA Certificates in Client Certificate
+     *              verification.
+     */
+    public static native void setVerify(long ssl, int level, int depth);
 }
