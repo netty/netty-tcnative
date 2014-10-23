@@ -1309,6 +1309,15 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getCipherForSSL)(TCN_STDARGS,
     return AJP_TO_JSTRING(SSL_get_cipher(J2P(ssl, SSL*)));
 }
 
+// Read which protocol was negotiated for the given SSL *.
+TCN_IMPLEMENT_CALL(jstring, SSL, getVersion)(TCN_STDARGS,
+                                                  jlong ssl /* SSL * */)
+{
+    UNREFERENCED_STDARGS;
+
+    return AJP_TO_JSTRING(SSL_get_version(J2P(ssl, SSL*)));
+}
+
 // Is the handshake over yet?
 TCN_IMPLEMENT_CALL(jint, SSL, isInInit)(TCN_STDARGS,
                                         jlong ssl /* SSL * */) {
