@@ -517,7 +517,7 @@ public final class SSL {
      * @param ssl the SSL instance (SSL *)
      * @return
      */
-    public static native String getProtocolForSSL(long ssl);
+    public static native String getVersionForSSL(long ssl);
 
     /**
      * SSL_do_handshake
