@@ -1310,7 +1310,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getCipherForSSL)(TCN_STDARGS,
 }
 
 // Read which protocol was negotiated for the given SSL *.
-TCN_IMPLEMENT_CALL(jstring, SSL, getVersionForSSL)(TCN_STDARGS,
+TCN_IMPLEMENT_CALL(jstring, SSL, getVersion)(TCN_STDARGS,
                                                   jlong ssl /* SSL * */)
 {
     UNREFERENCED_STDARGS;
