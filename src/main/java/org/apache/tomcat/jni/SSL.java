@@ -513,6 +513,13 @@ public final class SSL {
     public static native String getCipherForSSL(long ssl);
 
     /**
+     * SSL_get_version
+     * @param ssl the SSL instance (SSL *)
+     * @return
+     */
+    public static native String getVersion(long ssl);
+
+    /**
      * SSL_do_handshake
      * @param ssl the SSL instance (SSL *)
      */
