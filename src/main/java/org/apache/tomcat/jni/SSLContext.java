@@ -326,4 +326,13 @@ public final class SSLContext {
      * @param next_protos comma deliniated list of protocols in priority order
      */
     public static native void setNextProtos(long ctx, String next_protos);
+    
+    /**
+     * Set DH parameters
+     * @param ctx Server context to use.
+     * @param cert DH param file (can be generated from e.g. {@code openssl dhparam -rand - 2048 > dhparam.pem} -
+     *             see the <a href="https://www.openssl.org/docs/apps/dhparam.html">OpenSSL documentation</a>).
+     */
+    public static native void setTmpDH(long ctx, String cert)
+            throws Exception;
 }

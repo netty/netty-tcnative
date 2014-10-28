@@ -442,6 +442,54 @@ cleanup:
     return rv;
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
+                                                                  jstring file)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    TCN_ALLOC_CSTRING(file);
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+    TCN_ASSERT(file);
+
+    if (!J2S(file)) {
+        tcn_Throw(e, "Error while configuring DH: no dh param file given");
+        return;
+    }
+    
+    BIO *bio;
+    bio = BIO_new_file(J2S(file), "r");
+    if (!bio) {
+        char err[256];
+        ERR_error_string(ERR_get_error(), err);
+        tcn_Throw(e, "Error while configuring DH using %s: %s", J2S(file), err);
+        TCN_FREE_CSTRING(file);
+        return;
+    }
+
+    DH *dh;
+    dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
+    BIO_free(bio);
+    if (!dh) {
+        char err[256];
+        ERR_error_string(ERR_get_error(), err);
+        tcn_Throw(e, "Error while configuring DH: no DH parameter found in %s (%s)", J2S(file), err);
+        TCN_FREE_CSTRING(file);
+        return;
+    }
+
+    if (1 != SSL_CTX_set_tmp_dh(c->ctx, dh)) {
+    	DH_free(dh);
+        char err[256];
+        ERR_error_string(ERR_get_error(), err);
+        tcn_Throw(e, "Error while configuring DH with file %s: %s", J2S(file), err);
+        TCN_FREE_CSTRING(file);
+        return;
+    }
+    
+    DH_free(dh);
+    TCN_FREE_CSTRING(file);
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setShutdownType)(TCN_STDARGS, jlong ctx,
                                                       jint type)
 {
