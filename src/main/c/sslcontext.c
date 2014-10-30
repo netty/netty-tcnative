@@ -29,6 +29,8 @@
 #ifdef HAVE_OPENSSL
 #include "ssl_private.h"
 
+static jclass byteArrayClass;
+
 static apr_status_t ssl_context_cleanup(void *data)
 {
     tcn_ssl_ctxt_t *c = (tcn_ssl_ctxt_t *)data;
@@ -227,6 +229,11 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
     apr_pool_cleanup_register(p, (const void *)c,
                               ssl_context_cleanup,
                               apr_pool_cleanup_null);
+
+
+    // Cache the byte[].class for performance reasons
+    jclass clazz = (*e)->FindClass(e, "[B");
+    byteArrayClass = (jclass) (*e)->NewGlobalRef(e, clazz);
 
     return P2J(c);
 init_failed:
@@ -980,6 +987,184 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ct
     (*e)->ReleaseByteArrayElements(e, keys, b, 0);
 }
 
+
+/*
+ * Adapted from OpenSSL:
+ * http://osxr.org/openssl/source/ssl/ssl_locl.h#0291
+ */
+/* Bits for algorithm_mkey (key exchange algorithm) */
+#define SSL_kRSA        0x00000001L /* RSA key exchange */
+#define SSL_kDHr        0x00000002L /* DH cert, RSA CA cert */ /* no such ciphersuites supported! */
+#define SSL_kDHd        0x00000004L /* DH cert, DSA CA cert */ /* no such ciphersuite supported! */
+#define SSL_kEDH        0x00000008L /* tmp DH key no DH cert */
+#define SSL_kKRB5       0x00000010L /* Kerberos5 key exchange */
+#define SSL_kECDHr      0x00000020L /* ECDH cert, RSA CA cert */
+#define SSL_kECDHe      0x00000040L /* ECDH cert, ECDSA CA cert */
+#define SSL_kEECDH      0x00000080L /* ephemeral ECDH */
+#define SSL_kPSK        0x00000100L /* PSK */
+#define SSL_kGOST       0x00000200L /* GOST key exchange */
+#define SSL_kSRP        0x00000400L /* SRP */
+
+/* Bits for algorithm_auth (server authentication) */
+#define SSL_aRSA        0x00000001L /* RSA auth */
+#define SSL_aDSS        0x00000002L /* DSS auth */
+#define SSL_aNULL       0x00000004L /* no auth (i.e. use ADH or AECDH) */
+#define SSL_aDH         0x00000008L /* Fixed DH auth (kDHd or kDHr) */ /* no such ciphersuites supported! */
+#define SSL_aECDH       0x00000010L /* Fixed ECDH auth (kECDHe or kECDHr) */
+#define SSL_aKRB5       0x00000020L /* KRB5 auth */
+#define SSL_aECDSA      0x00000040L /* ECDSA auth*/
+#define SSL_aPSK        0x00000080L /* PSK auth */
+#define SSL_aGOST94     0x00000100L /* GOST R 34.10-94 signature auth */
+#define SSL_aGOST01     0x00000200L /* GOST R 34.10-2001 signature auth */
+
+/* OpenSSL end */
+
+/*
+ * Adapted from Android:
+ * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
+ */
+const char* SSL_CIPHER_authentication_method(const SSL_CIPHER* cipher){
+    switch (cipher->algorithm_mkey)
+        {
+    case SSL_kRSA:
+        return SSL_TXT_RSA;
+    case SSL_kDHr:
+        return SSL_TXT_DH "_" SSL_TXT_RSA;
+    case SSL_kDHd:
+        return SSL_TXT_DH "_" SSL_TXT_DSS;
+    case SSL_kEDH:
+        switch (cipher->algorithm_auth)
+            {
+        case SSL_aDSS:
+            return "DHE_" SSL_TXT_DSS;
+        case SSL_aRSA:
+            return "DHE_" SSL_TXT_RSA;
+        case SSL_aNULL:
+            return SSL_TXT_DH "_anon";
+        default:
+            return "UNKNOWN";
+            }
+    case SSL_kKRB5:
+        return SSL_TXT_KRB5;
+    case SSL_kECDHr:
+        return SSL_TXT_ECDH "_" SSL_TXT_RSA;
+    case SSL_kECDHe:
+        return SSL_TXT_ECDH "_" SSL_TXT_ECDSA;
+    case SSL_kEECDH:
+        switch (cipher->algorithm_auth)
+            {
+        case SSL_aECDSA:
+            return "ECDHE_" SSL_TXT_ECDSA;
+        case SSL_aRSA:
+            return "ECDHE_" SSL_TXT_RSA;
+        case SSL_aNULL:
+            return SSL_TXT_ECDH "_anon";
+        default:
+            return "UNKNOWN";
+            }
+    default:
+        return "UNKNOWN";
+    }
+}
+
+static const char* SSL_authentication_method(const SSL* ssl) {
+{
+    switch (ssl->version)
+        {
+        case SSL2_VERSION:
+            return SSL_TXT_RSA;
+        default:
+            return SSL_CIPHER_authentication_method(ssl->s3->tmp.new_cipher);
+        }
+    }
+}
+/* Android end */
+
+
+// Struct that holds the verifier callback
+struct cert_verifier {
+    jobject verifier;
+    jmethodID method;
+};
+
+static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
+    struct cert_verifier *verifier = (struct cert_verifier*) arg;
+    /* Get Apache context back through OpenSSL context */
+    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
+
+
+    // Get a stack of all certs in the chain
+    STACK_OF(X509) *sk = ctx->untrusted;
+
+    unsigned len = sk_num(sk);
+    unsigned i;
+    X509 *cert;
+    int length;
+    unsigned char *buf;
+    JNIEnv *e;
+    tcn_get_java_env(&e);
+
+    // Create the byte[][] array that holds all the certs
+    jobjectArray array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
+
+    for(i = 0; i < len; i++) {
+        cert = (X509*) sk_value(sk, i);
+
+        buf = NULL;
+        length = i2d_X509(cert, &buf);
+        if (length < 0) {
+            // In case of error just return an empty byte[][]
+            array = (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
+            break;
+        }
+        jbyteArray bArray = (*e)->NewByteArray(e, length);
+        (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+        (*e)->SetObjectArrayElement(e, array, i, bArray);
+
+        // Delete the local reference as we not know how long the chain is and local references are otherwise
+        // only freed once jni method returns.
+        (*e)->DeleteLocalRef(e, bArray);
+    }
+
+    const char *authMethod = SSL_authentication_method(ssl);
+    jstring authMethodString = (*e)->NewStringUTF(e, authMethod);
+
+    jboolean result = (*e)->CallBooleanMethod(e, verifier->verifier, verifier->method, P2J(ssl), array,
+            authMethodString);
+
+    int r = result == JNI_TRUE ? 1 : 0;
+
+    // We need to delete the local references so we not leak memory as this method is called via callback.
+    (*e)->DeleteLocalRef(e, authMethodString);
+    (*e)->DeleteLocalRef(e, array);
+    return r;
+}
+
+
+TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong ctx, jobject verifier)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+
+    if (verifier == NULL) {
+        SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
+    } else {
+        jclass verifier_class = (*e)->GetObjectClass(e, verifier);
+        jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)Z");
+        if (method == NULL) {
+            return;
+        }
+        struct cert_verifier *ver = malloc(sizeof(struct cert_verifier));
+        ver->verifier = (*e)->NewGlobalRef(e, verifier);
+        ver->method = method;
+
+        SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, (void *) ver);
+    }
+}
+
 #else
 /* OpenSSL is not supported.
  * Create empty stubs.
@@ -1246,4 +1431,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ct
     UNREFERENCED(keys);
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong ctx, jobject verifier)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(verifier);
+}
 #endif
