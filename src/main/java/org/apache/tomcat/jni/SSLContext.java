@@ -321,6 +321,15 @@ public final class SSLContext {
     public static native void setVerify(long ctx, int level, int depth);
 
     /**
+     * Allow to hook {@link CertificateVerifier} into the handshake processing.
+     * This will call {@code SSL_CTX_set_cert_verify_callback} and so replace the default verification
+     * callback used by openssl
+     * @param ctx Server or Client context to use.
+     * @param verifier the verifier to call during handshake.
+     */
+    public static native void setCertVerifyCallback(long ctx, CertificateVerifier verifier);
+
+    /**
      * Set next protocol for next protocol negotiation extension
      * @param ctx Server context to use.
      * @param next_protos comma deliniated list of protocols in priority order
