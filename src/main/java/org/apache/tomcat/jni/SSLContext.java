@@ -335,4 +335,13 @@ public final class SSLContext {
      */
     public static native void setTmpDH(long ctx, String cert)
             throws Exception;
+    
+    /**
+     * Set ECDH elliptic curve by name
+     * @param ctx Server context to use.
+     * @param curveName the name of the elliptic curve to use
+     *             (available names can be obtained from {@code openssl ecparam -list_curves}).
+     */
+    public static native void setTmpECDHByCurveName(long ctx, String curveName)
+            throws Exception;
 }
