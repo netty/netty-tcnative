@@ -519,6 +519,50 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
     TCN_FREE_CSTRING(file);
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, setTmpECDHByCurveName)(TCN_STDARGS, jlong ctx,
+                                                                  jstring curveName)
+{
+#ifdef HAVE_ECC
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    TCN_ALLOC_CSTRING(curveName);
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+    TCN_ASSERT(curveName);
+    
+    // First try to get curve by name
+    int i;
+    i = OBJ_sn2nid(J2S(curveName));
+    if (!i) {
+        tcn_Throw(e, "Can't configure elliptic curve: unknown curve name %s", J2S(curveName));
+        TCN_FREE_CSTRING(curveName);
+        return;
+    }
+    
+    EC_KEY  *ecdh;
+    ecdh = EC_KEY_new_by_curve_name(i);
+    if (!ecdh) {
+        tcn_Throw(e, "Can't configure elliptic curve: unknown curve name %s", J2S(curveName));
+        TCN_FREE_CSTRING(curveName);
+        return;
+    }
+    
+    // Setting found curve to context
+    if (1 != SSL_CTX_set_tmp_ecdh(c->ctx, ecdh)) {
+        EC_KEY_free(ecdh);
+        char err[256];
+        ERR_error_string(ERR_get_error(), err);
+        tcn_Throw(e, "Error while configuring elliptic curve %s: %s", J2S(curveName), err);
+        TCN_FREE_CSTRING(curveName);
+        return;
+    }
+    EC_KEY_free(ecdh);
+    TCN_FREE_CSTRING(curveName);
+#else
+	tcn_Throw(e, "Cant't configure elliptic curve: unsupported by this OpenSSL version");
+	return;
+#endif
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setShutdownType)(TCN_STDARGS, jlong ctx,
                                                       jint type)
 {
