@@ -861,6 +861,18 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNextProtos)(TCN_STDARGS, jlong ctx,
     TCN_FREE_CSTRING(next_protos);
 }
 
+TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheMode)(TCN_STDARGS, jlong ctx, jlong mode)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    return SSL_CTX_set_session_cache_mode(c->ctx, mode);
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, getSessionCacheMode)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    return SSL_CTX_get_session_cache_mode(c->ctx);
+}
+
 TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheTimeout)(TCN_STDARGS, jlong ctx, jlong timeout)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -879,8 +891,8 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheSize)(TCN_STDARGS, jlong ct
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = 0;
 
-    /* Prevent unbounded session cache sizes. */
-    if (size > 0) {
+    // Also allow size of 0 which is unlimited
+    if (size >= 0) {
       SSL_CTX_set_session_cache_mode(c->ctx, SSL_SESS_CACHE_SERVER);
       rv = SSL_CTX_sess_set_cache_size(c->ctx, size);
     }
@@ -1328,6 +1340,23 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNextProtos)(TCN_STDARGS, jlong ctx,
     UNREFERENCED(ctx);
     UNREFERENCED(next_protos);
 }
+
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheMode)(TCN_STDARGS, jlong ctx, jlong mode)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(mode);
+    return -1;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, getSessionCacheMode)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return -1;
+}
+
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheTimeout)(TCN_STDARGS, jlong ctx, jlong timeout)
 {
