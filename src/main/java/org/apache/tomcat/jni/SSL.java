@@ -214,6 +214,11 @@ public final class SSL {
      * Add certificate chain number to that flag (0 ... verify depth)
      */
     public static final int SSL_INFO_CLIENT_CERT_CHAIN         = 0x0400;
+
+    /* Only support OFF and SERVER for now */
+    public static final long SSL_SESS_CACHE_OFF = 0x0000;
+    public static final long SSL_SESS_CACHE_SERVER = 0x0002;
+
     /* Return OpenSSL version number */
     public static native int version();
 
