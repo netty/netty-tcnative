@@ -230,6 +230,16 @@ public final class SSLContext {
     public static native long getSessionCacheTimeout(long ctx);
 
     /**
+     * Set the mode of the internal session cache and return the previous used mode.
+     */
+    public static native long setSessionCacheMode(long ctx, long mode);
+
+    /**
+     * Get the mode of the current used internal session cache.
+     */
+    public static native long getSessionCacheMode(long ctx);
+
+    /**
      * Session resumption statistics methods.
      * http://www.openssl.org/docs/ssl/SSL_CTX_sess_number.html
      */
