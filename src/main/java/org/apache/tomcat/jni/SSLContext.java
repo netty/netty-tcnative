@@ -214,10 +214,22 @@ public final class SSLContext {
     public static native long setSessionCacheSize(long ctx, long size);
 
     /**
+     * Get the size of the internal session cache.
+     * http://www.openssl.org/docs/ssl/SSL_CTX_sess_get_cache_size.html
+     */
+    public static native long getSessionCacheSize(long ctx);
+
+    /**
      * Set the timeout for the internal session cache in seconds.
      * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
      */
     public static native long setSessionCacheTimeout(long ctx, long timeoutSeconds);
+
+    /**
+     * Get the timeout for the internal session cache in seconds.
+     * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
+     */
+    public static native long getSessionCacheTimeout(long ctx);
 
     /**
      * Session resumption statistics methods.
