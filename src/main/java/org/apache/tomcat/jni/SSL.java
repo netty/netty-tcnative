@@ -610,4 +610,18 @@ public final class SSL {
      * @return the session as byte array representation obtained via i2d_SSL_SESSION.
      */
     public static native byte[] getSessionId(long ssl);
+
+    /**
+     * Set OpenSSL Option.
+     * @param ssl the SSL instance (SSL *)
+     * @param options  See SSL.SSL_OP_* for option flags.
+     */
+    public static native void setOptions(long ssl, int options);
+
+    /**
+     * Get OpenSSL Option.
+     * @param ssl the SSL instance (SSL *)
+     * @return options  See SSL.SSL_OP_* for option flags.
+     */
+    public static native int getOptions(long ssl);
 }
