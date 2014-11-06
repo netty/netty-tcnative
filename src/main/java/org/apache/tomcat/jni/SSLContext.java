@@ -375,4 +375,15 @@ public final class SSLContext {
      */
     public static native void setTmpECDHByCurveName(long ctx, String curveName)
             throws Exception;
+
+    /**
+     * Set the context within which session be reused (server side only)
+     * http://www.openssl.org/docs/ssl/SSL_CTX_set_session_id_context.html
+     *
+     * @param ctx Server context to use.
+     * @param sidCtx can be any kind of binary data, it is therefore possible to use e.g. the name
+     *               of the application and/or the hostname and/or service name
+     * @return {@code true} if success, {@code false} otherwise.
+     */
+    public static native boolean setSessionIdContext(long ctx, byte[] sidCtx);
 }

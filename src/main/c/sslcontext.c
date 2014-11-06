@@ -1160,6 +1160,24 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     }
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong ctx, jbyteArray sidCtx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+
+    int len = (*e)->GetArrayLength(e, sidCtx) ;
+    unsigned char buf[len];
+
+    (*e)->GetByteArrayRegion(e, sidCtx, 0, len, (jbyte*) buf);
+
+    int res = SSL_CTX_set_session_id_context(c->ctx, buf, len);
+    if (res == 1) {
+        return JNI_TRUE;
+    }
+    return JNI_FALSE;
+}
 #else
 /* OpenSSL is not supported.
  * Create empty stubs.
@@ -1462,5 +1480,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     UNREFERENCED_STDARGS;
     UNREFERENCED(ctx);
     UNREFERENCED(verifier);
+}
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong ctx, jbyteArray sidCtx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(sidCtx);
+    return JNI_FALSE;
 }
 #endif
