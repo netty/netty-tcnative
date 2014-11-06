@@ -1550,6 +1550,41 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
     SSL_set_verify(ssl_, verify, SSL_callback_SSL_verify);
 }
 
+TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
+                                                 jint opt)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return;
+    }
+
+#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
+    /* Clear the flag if not supported */
+    if (opt & 0x00040000) {
+        opt &= ~0x00040000;
+    }
+#endif
+    SSL_set_options(ssl_, opt);
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    return SSL_get_options(ssl_);
+}
+
 /*** End Apple API Additions ***/
 
 #else
@@ -1871,5 +1906,32 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
     UNREFERENCED(ssl);
     tcn_ThrowException(e, "Not implemented");
 }
+<<<<<<< HEAD
+=======
+
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
+{
+    UNREFERENCED(o);
+    UNREFERENCED(ssl);
+    tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
+                                                 jint opt)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ssl);
+    UNREFERENCED(opt);
+    tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ssl);
+    tcn_ThrowException(e, "Not implemented");
+    return 0;
+}
+>>>>>>> d88ac57... Allow to get and set options of the SSLContext and SSL
 /*** End Apple API Additions ***/
 #endif
