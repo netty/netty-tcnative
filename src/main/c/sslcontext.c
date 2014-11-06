@@ -303,6 +303,16 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setOptions)(TCN_STDARGS, jlong ctx,
     SSL_CTX_set_options(c->ctx, opt);
 }
 
+TCN_IMPLEMENT_CALL(jint, SSLContext, getOptions)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    UNREFERENCED_STDARGS;
+    TCN_ASSERT(ctx != 0);
+
+    return SSL_CTX_get_options(c->ctx);
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, clearOptions)(TCN_STDARGS, jlong ctx,
                                                    jint opt)
 {
@@ -1252,6 +1262,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setOptions)(TCN_STDARGS, jlong ctx,
     UNREFERENCED_STDARGS;
     UNREFERENCED(ctx);
     UNREFERENCED(opt);
+}
+
+TCN_IMPLEMENT_CALL(jint, SSLContext, getOptions)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, clearOptions)(TCN_STDARGS, jlong ctx,
