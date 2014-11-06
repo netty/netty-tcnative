@@ -475,6 +475,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
                                                                   jstring file)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    BIO *bio = NULL;
+    DH *dh = NULL;
     TCN_ALLOC_CSTRING(file);
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
@@ -485,7 +487,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
         return;
     }
     
-    BIO *bio;
     bio = BIO_new_file(J2S(file), "r");
     if (!bio) {
         char err[256];
@@ -495,7 +496,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
         return;
     }
 
-    DH *dh;
     dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
     BIO_free(bio);
     if (!dh) {
@@ -507,8 +507,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
     }
 
     if (1 != SSL_CTX_set_tmp_dh(c->ctx, dh)) {
-    	DH_free(dh);
         char err[256];
+        DH_free(dh);
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Error while configuring DH with file %s: %s", J2S(file), err);
         TCN_FREE_CSTRING(file);
@@ -524,13 +524,14 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpECDHByCurveName)(TCN_STDARGS, jlong c
 {
 #ifdef HAVE_ECC
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    int i;
+    EC_KEY  *ecdh;
     TCN_ALLOC_CSTRING(curveName);
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
     TCN_ASSERT(curveName);
     
     // First try to get curve by name
-    int i;
     i = OBJ_sn2nid(J2S(curveName));
     if (!i) {
         tcn_Throw(e, "Can't configure elliptic curve: unknown curve name %s", J2S(curveName));
@@ -538,7 +539,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpECDHByCurveName)(TCN_STDARGS, jlong c
         return;
     }
     
-    EC_KEY  *ecdh;
     ecdh = EC_KEY_new_by_curve_name(i);
     if (!ecdh) {
         tcn_Throw(e, "Can't configure elliptic curve: unknown curve name %s", J2S(curveName));
@@ -548,8 +548,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpECDHByCurveName)(TCN_STDARGS, jlong c
     
     // Setting found curve to context
     if (1 != SSL_CTX_set_tmp_ecdh(c->ctx, ecdh)) {
-        EC_KEY_free(ecdh);
         char err[256];
+        EC_KEY_free(ecdh);
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Error while configuring elliptic curve %s: %s", J2S(curveName), err);
         TCN_FREE_CSTRING(curveName);
