@@ -666,4 +666,11 @@ public final class SSL {
     public static native boolean setCipherSuites(long ssl, String ciphers)
             throws Exception;
 
+    /**
+     * Returns the ID of the session as byte array representation.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the session as byte array representation obtained via SSL_SESSION_get_id.
+     */
+    public static native byte[] getSessionId(long ssl);
 }
