@@ -602,4 +602,12 @@ public final class SSL {
      *              verification.
      */
     public static native void setVerify(long ssl, int level, int depth);
+
+    /**
+     * Returns the session of as byte array representation.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the session as byte array representation obtained via i2d_SSL_SESSION.
+     */
+    public static native byte[] getSessionId(long ssl);
 }

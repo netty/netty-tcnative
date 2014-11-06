@@ -1525,6 +1525,39 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
     SSL_set_verify(ssl_, verify, SSL_callback_SSL_verify);
 }
 
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+    SSL_SESSION *session = SSL_get_session(ssl);
+
+    int len, j;
+    len = i2d_SSL_SESSION(session, NULL);
+    if (len == 0) {
+        return NULL;
+    }
+
+    char id[len];
+    char *p, *temp;
+
+    p = temp = id;
+
+    j = i2d_SSL_SESSION(session, &temp);
+    if (j == 0) {
+        return NULL;
+    }
+
+    jbyteArray bArray = (*e)->NewByteArray(e, len);
+    (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*) p);
+    return bArray;
+}
+
 /*** End Apple API Additions ***/
 
 #else
@@ -1839,5 +1872,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
     UNREFERENCED(ssl);
     tcn_ThrowException(e, "Not implemented");
 }
+
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
+{
+    UNREFERENCED(o);
+    UNREFERENCED(ssl);
+    tcn_ThrowException(e, "Not implemented");
+}
+
 /*** End Apple API Additions ***/
 #endif
