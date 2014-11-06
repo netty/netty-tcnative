@@ -88,6 +88,13 @@ public final class SSLContext {
     public static native void setOptions(long ctx, int options);
 
     /**
+     * Get OpenSSL Option.
+     * @param ctx Server or Client context to use.
+     * @return options  See SSL.SSL_OP_* for option flags.
+     */
+    public static native int getOptions(long ctx);
+
+    /**
      * Clears OpenSSL Options.
      * @param ctx Server or Client context to use.
      * @param options  See SSL.SSL_OP_* for option flags.

@@ -602,4 +602,18 @@ public final class SSL {
      *              verification.
      */
     public static native void setVerify(long ssl, int level, int depth);
+
+    /**
+     * Set OpenSSL Option.
+     * @param ssl the SSL instance (SSL *)
+     * @param options  See SSL.SSL_OP_* for option flags.
+     */
+    public static native void setOptions(long ssl, int options);
+
+    /**
+     * Get OpenSSL Option.
+     * @param ssl the SSL instance (SSL *)
+     * @return options  See SSL.SSL_OP_* for option flags.
+     */
+    public static native int getOptions(long ssl);
 }
