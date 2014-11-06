@@ -1652,6 +1652,26 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
     return rv;
 }
 
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+    UNREFERENCED(o);
+    SSL_SESSION *session = SSL_get_session(ssl);
+
+    int len;
+    char *session_id;
+
+    session_id = SSL_SESSION_get_id(session, &len);
+
+    if (len == 0 || session_id == NULL) {
+        return NULL;
+    }
+
+    jbyteArray bArray = (*e)->NewByteArray(e, len);
+    (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*) session_id);
+    return bArray;
+}
+
 /*** End Apple API Additions ***/
 
 #else
@@ -2006,4 +2026,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
     tcn_ThrowException(e, "Not implemented");
     return JNI_FALSE;
 }
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
+{
+    UNREFERENCED(o);
+    UNREFERENCED(ssl);
+    tcn_ThrowException(e, "Not implemented");
+}
+
+/*** End Apple API Additions ***/
 #endif
