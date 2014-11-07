@@ -41,6 +41,7 @@ tcn_pass_cb_t tcn_password_callback;
 static apr_pool_t *dynlockpool = NULL;
 
 static jclass byteArrayClass;
+static jclass stringClass;
 
 /* Dynamic lock structure */
 struct CRYPTO_dynlock_value {
@@ -709,6 +710,10 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     // Cache the byte[].class for performance reasons
     jclass clazz = (*e)->FindClass(e, "[B");
     byteArrayClass = (jclass) (*e)->NewGlobalRef(e, clazz);
+
+    // Cache the String.class for performance reasons
+    jclass sClazz = (*e)->FindClass(e, "java/lang/String");
+    stringClass = (jclass) (*e)->NewGlobalRef(e, sClazz);
 
     return (jint)APR_SUCCESS;
 }
@@ -1592,6 +1597,70 @@ TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
     return SSL_get_options(ssl_);
 }
 
+TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return NULL;
+    }
+
+    STACK_OF(SSL_CIPHER) *sk = SSL_get_ciphers(ssl_);
+    unsigned len = sk_num(sk);
+
+    if (len <= 0) {
+        // No peer certificate chain as no auth took place yet, or the auth was not successful.
+        return NULL;
+    }
+
+    // Create the byte[][] array that holds all the certs
+    jobjectArray array = (*e)->NewObjectArray(e, len, stringClass, NULL);
+
+    SSL_CIPHER *cipher;
+    char *name;
+    int i;
+    for (i = 0; i < len; i++) {
+        cipher = (SSL_CIPHER*) sk_value(sk, i);
+        name = SSL_CIPHER_get_name(cipher);
+
+        jstring c_name = (*e)->NewStringUTF(e, name);
+        (*e)->SetObjectArrayElement(e, array, i, c_name);
+    }
+    return array;
+}
+
+TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuite)(TCN_STDARGS, jlong ssl,
+                                                         jstring ciphers)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return NULL;
+    }
+
+    TCN_ALLOC_CSTRING(ciphers);
+    jboolean rv = JNI_TRUE;
+
+    UNREFERENCED(o);
+    if (!J2S(ciphers))
+        return JNI_FALSE;
+
+    if (!SSL_set_cipher_list(ssl_, J2S(ciphers))) {
+        char err[256];
+        ERR_error_string(ERR_get_error(), err);
+        tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
+        rv = JNI_FALSE;
+    }
+    TCN_FREE_CSTRING(ciphers);
+    return rv;
+}
+
 /*** End Apple API Additions ***/
 
 #else
@@ -1929,6 +1998,22 @@ TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
     UNREFERENCED(ssl);
     tcn_ThrowException(e, "Not implemented");
     return 0;
+}
+TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ssl);
+    tcn_ThrowException(e, "Not implemented");
+    return 0;
+}
+TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuite)(TCN_STDARGS, jlong ssl,
+                                                         jstring ciphers)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ssl);
+    UNREFERENCED(ciphers);
+    tcn_ThrowException(e, "Not implemented");
+    return JNI_FALSE;
 }
 /*** End Apple API Additions ***/
 #endif

@@ -624,4 +624,29 @@ public final class SSL {
      * @return options  See SSL.SSL_OP_* for option flags.
      */
     public static native int getOptions(long ssl);
+
+    /**
+     * Returns all Cipher Suites that are avabile for negation in the SSL handshake.
+     * @param ssl the SSL instance (SSL *)
+     * @return ciphers
+     */
+    public static native String[] getCiphers(long ssl);
+
+    /**
+     * Cipher Suite available for negotiation in SSL handshake.
+     * <br />
+     * This complex directive uses a colon-separated cipher-spec string consisting
+     * of OpenSSL cipher specifications to configure the Cipher Suite the client
+     * is permitted to negotiate in the SSL handshake phase. Notice that this
+     * directive can be used both in per-server and per-directory context.
+     * In per-server context it applies to the standard SSL handshake when a
+     * connection is established. In per-directory context it forces a SSL
+     * renegotiation with the reconfigured Cipher Suite after the HTTP request
+     * was read but before the HTTP response is sent.
+     * @param ssl the SSL instance (SSL *)
+     * @param ciphers An SSL cipher specification.
+     */
+    public static native boolean setCipherSuite(long ssl, String ciphers)
+            throws Exception;
+
 }
