@@ -554,4 +554,11 @@ public final class SSL {
      * Get the error number representing for the given {@code errorNumber}.
      */
     public static native String getErrorString(long errorNumber);
+
+    /**
+     * SSL_get_time
+     * @param ssl the SSL instance (SSL *)
+     * @return returns the time at which the session ssl was established. The time is given in seconds since the Epoch
+     */
+    public static native long getTime(long ssl);
 }
