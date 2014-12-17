@@ -1421,7 +1421,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     // Get a stack of all certs in the chain.
     STACK_OF(X509) *sk = SSL_get_peer_cert_chain(ssl_);
 
-    unsigned len = sk_num(sk);
+    int len = sk_num(sk);
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
         return NULL;
@@ -1906,32 +1906,5 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
     UNREFERENCED(ssl);
     tcn_ThrowException(e, "Not implemented");
 }
-<<<<<<< HEAD
-=======
-
-TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
-{
-    UNREFERENCED(o);
-    UNREFERENCED(ssl);
-    tcn_ThrowException(e, "Not implemented");
-}
-
-TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
-                                                 jint opt)
-{
-    UNREFERENCED_STDARGS;
-    UNREFERENCED(ssl);
-    UNREFERENCED(opt);
-    tcn_ThrowException(e, "Not implemented");
-}
-
-TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
-{
-    UNREFERENCED_STDARGS;
-    UNREFERENCED(ssl);
-    tcn_ThrowException(e, "Not implemented");
-    return 0;
-}
->>>>>>> d88ac57... Allow to get and set options of the SSLContext and SSL
 /*** End Apple API Additions ***/
 #endif
