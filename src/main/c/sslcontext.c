@@ -1121,6 +1121,8 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         if (length < 0) {
             // In case of error just return an empty byte[][]
             array = (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
+            // We need to delete the local references so we not leak memory as this method is called via callback.
+            OPENSSL_free(buf);
             break;
         }
         jbyteArray bArray = (*e)->NewByteArray(e, length);
@@ -1130,6 +1132,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
         (*e)->DeleteLocalRef(e, bArray);
+        OPENSSL_free(buf);
     }
 
     const char *authMethod = SSL_authentication_method(ssl);
