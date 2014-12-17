@@ -1445,6 +1445,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
         buf = NULL;
         length = i2d_X509(cert, &buf);
         if (length < 0) {
+            OPENSSL_free(buf);
             // In case of error just return an empty byte[][]
             return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
         }
@@ -1455,6 +1456,8 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
         (*e)->DeleteLocalRef(e, bArray);
+
+        OPENSSL_free(buf);
     }
     return array;
 }
@@ -1488,6 +1491,9 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
     // session is freed.
     // See https://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html
     X509_free(cert);
+
+    OPENSSL_free(buf);
+
     return bArray;
 }
 
