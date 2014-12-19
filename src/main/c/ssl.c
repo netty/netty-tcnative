@@ -1401,7 +1401,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     // Get a stack of all certs in the chain.
     STACK_OF(X509) *sk = SSL_get_peer_cert_chain(ssl_);
 
-    unsigned len = sk_num(sk);
+    int len = sk_num(sk);
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
         return NULL;
@@ -1609,7 +1609,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     }
 
     STACK_OF(SSL_CIPHER) *sk = SSL_get_ciphers(ssl_);
-    unsigned len = sk_num(sk);
+    int len = sk_num(sk);
 
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
