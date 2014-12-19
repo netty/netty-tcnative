@@ -1535,7 +1535,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
     }
 
     UNREFERENCED(o);
-    SSL_SESSION *session = SSL_get_session(ssl);
+    SSL_SESSION *session = SSL_get_session(ssl_);
 
     int len, j;
     len = i2d_SSL_SESSION(session, NULL);
