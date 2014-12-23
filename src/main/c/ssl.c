@@ -615,6 +615,9 @@ static int ssl_rand_make(const char *file, int len, int base64)
 TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 {
     int r = 0;
+    jclass clazz;
+    jclass sClazz;
+
     TCN_ALLOC_CSTRING(engine);
 
     UNREFERENCED(o);
@@ -708,11 +711,11 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     TCN_FREE_CSTRING(engine);
 
     // Cache the byte[].class for performance reasons
-    jclass clazz = (*e)->FindClass(e, "[B");
+    clazz = (*e)->FindClass(e, "[B");
     byteArrayClass = (jclass) (*e)->NewGlobalRef(e, clazz);
 
     // Cache the String.class for performance reasons
-    jclass sClazz = (*e)->FindClass(e, "java/lang/String");
+    sClazz = (*e)->FindClass(e, "java/lang/String");
     stringClass = (jclass) (*e)->NewGlobalRef(e, sClazz);
 
     return (jint)APR_SUCCESS;
@@ -1389,6 +1392,15 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
                                                   jlong ssl /* SSL * */)
 {
+    STACK_OF(X509) *sk;
+    int len;
+    int i;
+    X509 *cert;
+    int length;
+    unsigned char *buf;
+    jobjectArray array;
+    jbyteArray bArray;
+
     SSL *ssl_ = J2P(ssl, SSL *);
 
     if (ssl_ == NULL) {
@@ -1399,20 +1411,15 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     UNREFERENCED(o);
 
     // Get a stack of all certs in the chain.
-    STACK_OF(X509) *sk = SSL_get_peer_cert_chain(ssl_);
+    sk = SSL_get_peer_cert_chain(ssl_);
 
-    int len = sk_num(sk);
+    len = sk_num(sk);
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
         return NULL;
     }
-    unsigned i;
-    X509 *cert;
-    int length;
-    unsigned char *buf;
-
     // Create the byte[][] array that holds all the certs
-    jobjectArray array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
+    array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
         cert = (X509*) sk_value(sk, i);
@@ -1424,7 +1431,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
             // In case of error just return an empty byte[][]
             return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
         }
-        jbyteArray bArray = (*e)->NewByteArray(e, length);
+        bArray = (*e)->NewByteArray(e, length);
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
@@ -1440,6 +1447,11 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
 TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
                                                   jlong ssl /* SSL * */)
 {
+    X509 *cert;
+    int length;
+    unsigned char *buf = NULL;
+    jbyteArray bArray;
+
     SSL *ssl_ = J2P(ssl, SSL *);
 
     if (ssl_ == NULL) {
@@ -1450,16 +1462,14 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
     UNREFERENCED(o);
 
     // Get a stack of all certs in the chain
-    X509 *cert = SSL_get_peer_certificate(ssl_);
+    cert = SSL_get_peer_certificate(ssl_);
     if (cert == NULL) {
         return NULL;
     }
-    int length;
-    unsigned char *buf = NULL;
 
     length = i2d_X509(cert, &buf);
 
-    jbyteArray bArray = (*e)->NewByteArray(e, length);
+    bArray = (*e)->NewByteArray(e, length);
     (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
 
     // We need to free the cert as the reference count is incremented by one and it is not destroyed when the
@@ -1497,15 +1507,18 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
 TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
                                                 jint level, jint depth)
 {
+    tcn_ssl_ctxt_t *c;
+    int verify;
     SSL *ssl_ = J2P(ssl, SSL *);
+
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
         return;
     }
 
-    tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl_);
+    c = SSL_get_app_data2(ssl_);
 
-    int verify = SSL_VERIFY_NONE;
+    verify = SSL_VERIFY_NONE;
 
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
@@ -1573,6 +1586,13 @@ TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 {
+    STACK_OF(SSL_CIPHER) *sk;
+    int len;
+    jobjectArray array;
+    SSL_CIPHER *cipher;
+    char *name;
+    int i;
+    jstring c_name;
     SSL *ssl_ = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
@@ -1582,8 +1602,8 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
         return NULL;
     }
 
-    STACK_OF(SSL_CIPHER) *sk = SSL_get_ciphers(ssl_);
-    unsigned len = sk_num(sk);
+    sk = SSL_get_ciphers(ssl_);
+    len = sk_num(sk);
 
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
@@ -1591,16 +1611,13 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     }
 
     // Create the byte[][] array that holds all the certs
-    jobjectArray array = (*e)->NewObjectArray(e, len, stringClass, NULL);
+    array = (*e)->NewObjectArray(e, len, stringClass, NULL);
 
-    SSL_CIPHER *cipher;
-    char *name;
-    int i;
     for (i = 0; i < len; i++) {
         cipher = (SSL_CIPHER*) sk_value(sk, i);
         name = SSL_CIPHER_get_name(cipher);
 
-        jstring c_name = (*e)->NewStringUTF(e, name);
+        c_name = (*e)->NewStringUTF(e, name);
         (*e)->SetObjectArrayElement(e, array, i, c_name);
     }
     return array;
@@ -1609,22 +1626,21 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
                                                          jstring ciphers)
 {
+    jboolean rv = JNI_TRUE;
     SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_ALLOC_CSTRING(ciphers);
 
     UNREFERENCED_STDARGS;
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
-        return NULL;
+        return JNI_FALSE;
     }
 
-    TCN_ALLOC_CSTRING(ciphers);
-    jboolean rv = JNI_TRUE;
-
     UNREFERENCED(o);
-    if (!J2S(ciphers))
+    if (!J2S(ciphers)) {
         return JNI_FALSE;
-
+    }
     if (!SSL_set_cipher_list(ssl_, J2S(ciphers))) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
@@ -1637,20 +1653,25 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
 
 TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
 {
-    SSL *ssl_ = J2P(ssl, SSL *);
-    UNREFERENCED(o);
-    SSL_SESSION *session = SSL_get_session(ssl);
 
     int len;
     char *session_id;
-
+    SSL_SESSION *session;
+    jbyteArray bArray;
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return NULL;
+    }
+    UNREFERENCED(o);
+    session = SSL_get_session(ssl);
     session_id = SSL_SESSION_get_id(session, &len);
 
     if (len == 0 || session_id == NULL) {
         return NULL;
     }
 
-    jbyteArray bArray = (*e)->NewByteArray(e, len);
+    bArray = (*e)->NewByteArray(e, len);
     (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*) session_id);
     return bArray;
 }

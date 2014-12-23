@@ -71,6 +71,8 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
     apr_pool_t *p = J2P(pool, apr_pool_t *);
     tcn_ssl_ctxt_t *c = NULL;
     SSL_CTX *ctx = NULL;
+    jclass clazz;
+
     UNREFERENCED(o);
 
     switch (protocol) {
@@ -203,7 +205,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
 
 
     // Cache the byte[].class for performance reasons
-    jclass clazz = (*e)->FindClass(e, "[B");
+    clazz = (*e)->FindClass(e, "[B");
     byteArrayClass = (jclass) (*e)->NewGlobalRef(e, clazz);
 
     return P2J(c);
@@ -1102,16 +1104,22 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     // Get a stack of all certs in the chain
     STACK_OF(X509) *sk = ctx->untrusted;
 
-    unsigned len = sk_num(sk);
+    int len = sk_num(sk);
     unsigned i;
     X509 *cert;
     int length;
     unsigned char *buf;
     JNIEnv *e;
+    jbyteArray array;
+    jbyteArray bArray;
+    const char *authMethod;
+    jstring authMethodString;
+    jboolean result;
+    int r;
     tcn_get_java_env(&e);
 
     // Create the byte[][] array that holds all the certs
-    jobjectArray array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
+    array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
         cert = (X509*) sk_value(sk, i);
@@ -1125,7 +1133,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
             OPENSSL_free(buf);
             break;
         }
-        jbyteArray bArray = (*e)->NewByteArray(e, length);
+        bArray = (*e)->NewByteArray(e, length);
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
@@ -1135,13 +1143,13 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         OPENSSL_free(buf);
     }
 
-    const char *authMethod = SSL_authentication_method(ssl);
-    jstring authMethodString = (*e)->NewStringUTF(e, authMethod);
+    authMethod = SSL_authentication_method(ssl);
+    authMethodString = (*e)->NewStringUTF(e, authMethod);
 
-    jboolean result = (*e)->CallBooleanMethod(e, verifier->verifier, verifier->method, P2J(ssl), array,
+    result = (*e)->CallBooleanMethod(e, verifier->verifier, verifier->method, P2J(ssl), array,
             authMethodString);
 
-    int r = result == JNI_TRUE ? 1 : 0;
+    r = result == JNI_TRUE ? 1 : 0;
 
     // We need to delete the local references so we not leak memory as this method is called via callback.
     (*e)->DeleteLocalRef(e, authMethodString);
@@ -1153,6 +1161,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong ctx, jobject verifier)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    struct cert_verifier *ver;
 
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
@@ -1162,10 +1171,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     } else {
         jclass verifier_class = (*e)->GetObjectClass(e, verifier);
         jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)Z");
+
         if (method == NULL) {
             return;
         }
-        struct cert_verifier *ver = malloc(sizeof(struct cert_verifier));
+        ver = malloc(sizeof(struct cert_verifier));
         ver->verifier = (*e)->NewGlobalRef(e, verifier);
         ver->method = method;
 
@@ -1176,16 +1186,20 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong ctx, jbyteArray sidCtx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    int len = (*e)->GetArrayLength(e, sidCtx);
+    unsigned char *buf;
+    int res;
 
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
 
-    int len = (*e)->GetArrayLength(e, sidCtx) ;
-    unsigned char buf[len];
+    buf = malloc(len);
 
     (*e)->GetByteArrayRegion(e, sidCtx, 0, len, (jbyte*) buf);
 
-    int res = SSL_CTX_set_session_id_context(c->ctx, buf, len);
+    res = SSL_CTX_set_session_id_context(c->ctx, buf, len);
+    free(buf);
+
     if (res == 1) {
         return JNI_TRUE;
     }
