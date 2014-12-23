@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright 2014 The Netty Project
+  ~
+  ~ The Netty Project licenses this file to you under the Apache License,
+  ~ version 2.0 (the "License"); you may not use this file except in compliance
+  ~ with the License. You may obtain a copy of the License at:
+  ~
+  ~   http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+  ~ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+  ~ License for the specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.netty</groupId>
+    <artifactId>netty-parent</artifactId>
+    <version>4.0.18.Final</version>
+  </parent>
+  <artifactId>netty-tcnative</artifactId>
+  <version>1.1.32.Fork1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>Netty/TomcatNative</name>
+  <url>https://github.com/netty/netty-tcnative/</url>
+  <description>
+    A Mavenized fork of Tomcat Native which incorporates various patches
+  </description>
+
+  <scm>
+    <url>https://github.com/netty/netty-tcnative</url>
+    <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+
+  <properties>
+    <checkstyle.skip>true</checkstyle.skip>
+    <animal.sniffer.skip>true</animal.sniffer.skip>
+    <forceAutogen>true</forceAutogen>
+    <forceConfigure>true</forceConfigure>
+    <defaultJarFile>${project.build.directory}/${project.build.finalName}.jar</defaultJarFile>
+    <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}.jar</nativeJarFile>
+    <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
+    <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
+  </properties>
+
+  <build>
+    <extensions>
+      <!-- Generate os.detected.classifier property -->
+      <extension>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>1.2.3.Final</version>
+      </extension>
+    </extensions>
+
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+
+    <plugins>
+      <!-- Recent tcnative requires JDK 1.7 to build -->
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+      </plugin>
+
+      <!-- This artifact exports the classes whose names are different from the artifactId. -->
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-manifest</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>manifest</goal>
+            </goals>
+            <configuration>
+              <supportedProjectTypes>
+                <supportedProjectType>jar</supportedProjectType>
+              </supportedProjectTypes>
+              <instructions>
+                <Export-Package>org.apache.tomcat.jni.*</Export-Package>
+              </instructions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Generate the .so/.dynlib/.dll as part of the build. -->
+      <plugin>
+        <groupId>org.fusesource.hawtjni</groupId>
+        <artifactId>maven-hawtjni-plugin</artifactId>
+        <version>1.10</version>
+        <executions>
+          <execution>
+            <id>build-native-lib</id>
+            <configuration>
+              <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+              <libDirectory>${nativeLibOnlyDir}</libDirectory>
+              <forceAutogen>${forceAutogen}</forceAutogen>
+              <forceConfigure>${forceConfigure}</forceConfigure>
+              <windowsBuildTool>msbuild</windowsBuildTool>
+            </configuration>
+            <goals>
+              <goal>generate</goal>
+              <goal>build</goal>
+            </goals>
+            <phase>compile</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Build the additional JAR that contains the native library. -->
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>native-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <copy todir="${nativeJarWorkdir}">
+                  <zipfileset src="${defaultJarFile}" />
+                </copy>
+                <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                  <regexpmapper handledirsep="yes"
+                    from="^(?:[^/]+/)*([^/]+)$"
+                    to="META-INF/native/\1" />
+                </copy>
+                <jar
+                  destfile="${nativeJarFile}"
+                  manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF"
+                  basedir="${nativeJarWorkdir}" index="true"
+                  excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Override the parent POM's configuration -->
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <arguments>-P restricted-release,sonatype-oss-release</arguments>
+          <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!--
+      netty-tcnative must be released from RHEL 6.5 x86_64 or compatible so that:
+
+        1) we ship x86_64 version of epoll transport officially, and
+        2) we ensure the ABI compatibility with older GLIBC versions.
+
+           The shared library built on a distribution with newer GLIBC
+           will not run on older distributions.
+    -->
+    <profile>
+      <id>restricted-release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-release-environment</id>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireProperty>
+                      <regexMessage>
+                        Release process must be performed on linux-x86_64.
+                      </regexMessage>
+                      <property>os.detected.classifier</property>
+                      <regex>^linux-x86_64$</regex>
+                    </requireProperty>
+                    <requireFilesContent>
+                      <message>
+                        Release process must be performed on RHEL 6.5 or its derivatives.
+                      </message>
+                      <files>
+                        <file>/etc/redhat-release</file>
+                      </files>
+                      <content>release 6.5</content>
+                    </requireFilesContent>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+            <dependencies>
+              <!-- Provides the 'requireFilesContent' enforcer rule. -->
+              <dependency>
+                <groupId>com.ceilfors.maven.plugin</groupId>
+                <artifactId>enforcer-rules</artifactId>
+                <version>1.1.0</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Windows-specific configuration -->
+    <profile>
+      <id>windows</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <properties>
+        <!-- On Windows, we do not use autotools -->
+        <forceAutogen>false</forceAutogen>
+        <forceConfigure>false</forceConfigure>
+      </properties>
+      <build>
+        <plugins>
+          <!-- Make sure all required environment variables are present. -->
+          <plugin>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-msbuild-environment</id>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireEnvironmentVariable>
+                      <variableName>APR_INCLUDE_DIR</variableName>
+                    </requireEnvironmentVariable>
+                    <requireEnvironmentVariable>
+                      <variableName>APR_LIB_DIR</variableName>
+                    </requireEnvironmentVariable>
+                    <requireEnvironmentVariable>
+                      <variableName>OPENSSL_INCLUDE_DIR</variableName>
+                    </requireEnvironmentVariable>
+                    <requireEnvironmentVariable>
+                      <variableName>OPENSSL_LIB_DIR</variableName>
+                    </requireEnvironmentVariable>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
+
