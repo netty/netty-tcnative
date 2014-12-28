@@ -163,7 +163,7 @@
 
   <profiles>
     <!--
-      netty-tcnative must be released from RHEL 6.5 x86_64 or compatible so that:
+      netty-tcnative must be released from RHEL 6.6 x86_64 or compatible so that:
 
         1) we ship x86_64 version of epoll transport officially, and
         2) we ensure the ABI compatibility with older GLIBC versions.
@@ -194,12 +194,12 @@
                     </requireProperty>
                     <requireFilesContent>
                       <message>
-                        Release process must be performed on RHEL 6.5 or its derivatives.
+                        Release process must be performed on RHEL 6.6 or its derivatives.
                       </message>
                       <files>
                         <file>/etc/redhat-release</file>
                       </files>
-                      <content>release 6.5</content>
+                      <content>release 6.6</content>
                     </requireFilesContent>
                   </rules>
                 </configuration>
