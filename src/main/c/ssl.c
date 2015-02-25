@@ -1394,7 +1394,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
-        return 0;
+        return NULL;
     }
 
     UNREFERENCED(o);
@@ -1406,6 +1406,31 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
 /*** End Twitter API Additions ***/
 
 /*** Apple API Additions ***/
+
+TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS,
+                                                         jlong ssl /* SSL * */) {
+    // Only supported with openssl >= 1.0.2
+    #if OPENSSL_VERSION_NUMBER >= 0x10002000L
+        SSL *ssl_ = J2P(ssl, SSL *);
+        const unsigned char *proto;
+        unsigned int proto_len;
+
+        if (ssl_ == NULL) {
+            tcn_ThrowException(e, "ssl is null");
+            return NULL;
+        }
+
+        UNREFERENCED(o);
+
+        SSL_get0_alpn_selected(ssl_, &proto, &proto_len);
+        return tcn_new_stringn(e, proto, proto_len);
+    #else
+        UNREFERENCED(o);
+        UNREFERENCED(ssl);
+        return NULL;
+    #endif
+}
+
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
                                                   jlong ssl /* SSL * */)
 {
@@ -1966,6 +1991,13 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS, jlong ssl)
 /*** End Twitter 1:1 API addition ***/
 
 /*** Begin Apple 1:1 API addition ***/
+
+TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS, jlong ssl) {
+    UNREFERENCED(o);
+    UNREFERENCED(ssl);
+    tcn_ThrowException(e, "Not implemented");
+    return NULL;
+}
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS, jlong ssl)
 {
