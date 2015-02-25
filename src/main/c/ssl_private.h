@@ -210,11 +210,16 @@
 #define OCSP_STATUS_REVOKED   1
 #define OCSP_STATUS_UNKNOWN   2
 
+#define MAX_ALPN_NPN_PROTO_SIZE 65535
 
 /* ECC: make sure we have at least 1.0.0 */
 #if !defined(OPENSSL_NO_EC) && defined(TLSEXT_ECPOINTFORMAT_uncompressed)
 #define HAVE_ECC              1
 #endif
+
+
+#define SSL_SELECTOR_FAILURE_NO_ADVERTISE                       0
+#define SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL            1
 
 extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 
@@ -266,12 +271,18 @@ struct tcn_ssl_ctxt_t {
     int             verify_mode;
     tcn_pass_cb_t   *cb_data;
 
-    unsigned char   *next_proto_data;
-    unsigned int    next_proto_len;
-
     /* certificate verifier callback */
     jobject verifier;
     jmethodID verifier_method;
+
+    unsigned char   *next_proto_data;
+    unsigned int    next_proto_len;
+    int             next_selector_failure_behavior;
+
+    /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
+    unsigned char   *alpn_proto_data;
+    unsigned int    alpn_proto_len;
+    int             alpn_selector_failure_behavior;
 };
 
   
@@ -327,5 +338,7 @@ int         SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, int);
 int         SSL_callback_SSL_verify(int, X509_STORE_CTX *);
 int         SSL_rand_seed(const char *file);
 int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);
+int         SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int,void *);
+int         SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 
 #endif /* SSL_PRIVATE_H */

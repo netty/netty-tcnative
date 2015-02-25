@@ -231,6 +231,9 @@ public final class SSL {
     public static final long SSL_SESS_CACHE_OFF = 0x0000;
     public static final long SSL_SESS_CACHE_SERVER = 0x0002;
 
+    public static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
+    public static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
+
     /* Return OpenSSL version number */
     public static native int version();
 
@@ -562,7 +565,7 @@ public final class SSL {
 
     /**
      * SSL_get0_next_proto_negotiated
-     * @param ssl the SSL isntance (SSL *)
+     * @param ssl the SSL instance (SSL *)
      * @return
      */
     public static native String getNextProtoNegotiated(long ssl);
@@ -570,6 +573,13 @@ public final class SSL {
     /*
      * End Twitter API Additions
      */
+
+    /**
+     * SSL_get0_alpn_selected
+     * @param ssl the SSL instance (SSL *)
+     * @return
+     */
+    public static native String getAlpnSelected(long ssl);
 
     /**
      * Get the peer certificate chain or {@code null} if non was send.
