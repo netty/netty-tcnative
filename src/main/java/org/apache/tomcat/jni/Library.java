@@ -24,7 +24,7 @@ package org.apache.tomcat.jni;
 public final class Library {
 
     /* Default library names */
-    private static final String [] NAMES = {"tcnative-1", "libtcnative-1"};
+    private static final String [] NAMES = {"netty-tcnative", "libnetty-tcnative", "netty-tcnative-1", "libnetty-tcnative-1"};
     /*
      * A handle to the unique Library singleton instance.
      */
