@@ -750,6 +750,79 @@ int SSL_callback_next_protos(SSL *ssl, const unsigned char **data,
     return SSL_TLSEXT_ERR_OK;
 }
 
+/* The code here is inspired by nghttp2
+ *
+ * See https://github.com/tatsuhiro-t/nghttp2/blob/ae0100a9abfcf3149b8d9e62aae216e946b517fb/src/shrpx_ssl.cc#L244 */
+int select_next_proto(SSL *ssl, unsigned char **out, unsigned char *outlen,
+        const unsigned char *in, unsigned int inlen, unsigned char *supported_protos, int supported_protos_len, int failure_behavior) {
+
+    int i = 0;
+    unsigned char target_proto_len;
+    unsigned char *p;
+    unsigned char *end;
+    unsigned char *proto;
+    unsigned char proto_len;
+
+    while (i < inlen) {
+        target_proto_len = *in;
+        ++in;
+
+        p = supported_protos;
+        end = supported_protos + supported_protos_len;
+
+        while (p < end) {
+            proto = p + 1;
+            proto_len = *p;
+
+            if (proto + proto_len <= end && target_proto_len == proto_len &&
+                    memcmp(in, proto, proto_len) == 0) {
+
+                // We found a match, so set the output and return with OK!
+                *out = proto;
+                *outlen = proto_len;
+
+                return SSL_TLSEXT_ERR_OK;
+            }
+            // Move on to the next protocol.
+            p += 1 + proto_len;
+        }
+
+        // increment len and pointers.
+        i += target_proto_len;
+        in += target_proto_len;
+    }
+
+    if (failure_behavior == SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL) {
+         // There were no match but we just select our last protocol and hope the other peer support it.
+         //
+         // decrement the pointer again so the pointer points to the start of the protocol.
+         p -= proto_len;
+         *out = p;
+         *outlen = proto_len;
+         return SSL_TLSEXT_ERR_OK;
+    }
+    // TODO: OpenSSL currently not support to fail with fatal error. Once this changes we can also support it here.
+    //       Issue https://github.com/openssl/openssl/issues/188 has been created for this.
+    // Nothing matched so not select anything and just accept.
+    return SSL_TLSEXT_ERR_NOACK;
+}
+
+int SSL_callback_select_next_proto(SSL *ssl, unsigned char **out, unsigned char *outlen,
+                         const unsigned char *in, unsigned int inlen,
+                         void *arg) {
+    tcn_ssl_ctxt_t *ssl_ctxt = arg;
+    return select_next_proto(ssl, out, outlen, in, inlen, ssl_ctxt->next_proto_data, ssl_ctxt->next_proto_len, ssl_ctxt->next_selector_failure_behavior);
+}
+
+// Only supported with openssl >= 1.0.2
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
+        const unsigned char *in, unsigned int inlen, void *arg) {
+    tcn_ssl_ctxt_t *ssl_ctxt = arg;
+    return select_next_proto(ssl, out, outlen, in, inlen, ssl_ctxt->alpn_proto_data, ssl_ctxt->alpn_proto_len, ssl_ctxt->alpn_selector_failure_behavior);
+}
+#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
+
 #ifdef HAVE_OPENSSL_OCSP
 
 /* Function that is used to do the OCSP verification */
