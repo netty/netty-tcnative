@@ -34,6 +34,8 @@ static jclass byteArrayClass;
 static apr_status_t ssl_context_cleanup(void *data)
 {
     tcn_ssl_ctxt_t *c = (tcn_ssl_ctxt_t *)data;
+    JNIEnv *e;
+
     if (c) {
         int i;
         if (c->crl)
@@ -60,6 +62,12 @@ static apr_status_t ssl_context_cleanup(void *data)
             SSL_BIO_close(c->bio_os);
             c->bio_os = NULL;
         }
+        if (c->verifier) {
+            tcn_get_java_env(&e);
+            (*e)->DeleteGlobalRef(e, c->verifier);
+            c->verifier = NULL;
+        }
+        c->verifier_method = NULL;
     }
     return APR_SUCCESS;
 }
@@ -1116,15 +1124,7 @@ static const char* SSL_authentication_method(const SSL* ssl) {
 }
 /* Android end */
 
-
-// Struct that holds the verifier callback
-struct cert_verifier {
-    jobject verifier;
-    jmethodID method;
-};
-
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
-    struct cert_verifier *verifier = (struct cert_verifier*) arg;
     /* Get Apache context back through OpenSSL context */
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
@@ -1175,7 +1175,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     authMethod = SSL_authentication_method(ssl);
     authMethodString = (*e)->NewStringUTF(e, authMethod);
 
-    result = (*e)->CallBooleanMethod(e, verifier->verifier, verifier->method, P2J(ssl), array,
+    result = (*e)->CallBooleanMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,
             authMethodString);
 
     r = result == JNI_TRUE ? 1 : 0;
@@ -1190,7 +1190,6 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong ctx, jobject verifier)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    struct cert_verifier *ver;
 
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
@@ -1204,11 +1203,14 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
         if (method == NULL) {
             return;
         }
-        ver = malloc(sizeof(struct cert_verifier));
-        ver->verifier = (*e)->NewGlobalRef(e, verifier);
-        ver->method = method;
+        // Delete the reference to the previous specified verifier if needed.
+        if (c->verifier != NULL) {
+            (*e)->DeleteLocalRef(e, c->verifier);
+        }
+        c->verifier = (*e)->NewGlobalRef(e, verifier);
+        c->verifier_method = method;
 
-        SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, (void *) ver);
+        SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, NULL);
     }
 }
 
