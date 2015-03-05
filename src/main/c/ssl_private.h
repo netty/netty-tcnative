@@ -268,6 +268,10 @@ struct tcn_ssl_ctxt_t {
 
     unsigned char   *next_proto_data;
     unsigned int    next_proto_len;
+
+    /* certificate verifier callback */
+    jobject verifier;
+    jmethodID verifier_method;
 };
 
   
