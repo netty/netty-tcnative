@@ -1523,13 +1523,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionMisses)(TCN_STDARGS, jlong ctx)
     return 0;
 }
 
-TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionHits)(TCN_STDARGS, jlong ctx)
-{
-    UNREFERENCED_STDARGS;
-    UNREFERENCED(ctx);
-    return 0;
-}
-
 TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ctx, jbyteArray keys)
 {
     UNREFERENCED_STDARGS;
