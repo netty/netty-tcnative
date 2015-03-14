@@ -753,28 +753,29 @@ int SSL_callback_next_protos(SSL *ssl, const unsigned char **data,
  *
  * See https://github.com/tatsuhiro-t/nghttp2/blob/ae0100a9abfcf3149b8d9e62aae216e946b517fb/src/shrpx_ssl.cc#L244 */
 int select_next_proto(SSL *ssl, unsigned char **out, unsigned char *outlen,
-        const unsigned char *in, unsigned int inlen, unsigned char *supported_protos, int supported_protos_len, int failure_behavior) {
+        const unsigned char *in, unsigned int inlen, unsigned char *supported_protos,
+        unsigned int supported_protos_len, int failure_behavior) {
 
-    int i = 0;
+    unsigned int i = 0;
     unsigned char target_proto_len;
     unsigned char *p;
     unsigned char *end;
     unsigned char *proto;
     unsigned char proto_len;
 
-    while (i < inlen) {
-        target_proto_len = *in;
-        ++in;
+    while (i < supported_protos_len) {
+        target_proto_len = *supported_protos;
+        ++supported_protos;
 
-        p = supported_protos;
-        end = supported_protos + supported_protos_len;
+        p = in;
+        end = in + inlen;
 
         while (p < end) {
-            proto = p + 1;
             proto_len = *p;
+            proto = ++p;
 
             if (proto + proto_len <= end && target_proto_len == proto_len &&
-                    memcmp(in, proto, proto_len) == 0) {
+                    memcmp(supported_protos, proto, proto_len) == 0) {
 
                 // We found a match, so set the output and return with OK!
                 *out = proto;
@@ -783,12 +784,12 @@ int select_next_proto(SSL *ssl, unsigned char **out, unsigned char *outlen,
                 return SSL_TLSEXT_ERR_OK;
             }
             // Move on to the next protocol.
-            p += 1 + proto_len;
+            p += proto_len;
         }
 
         // increment len and pointers.
         i += target_proto_len;
-        in += target_proto_len;
+        supported_protos += target_proto_len;
     }
 
     if (failure_behavior == SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL) {
