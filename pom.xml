@@ -28,7 +28,14 @@
   <name>Netty/TomcatNative</name>
   <url>https://github.com/netty/netty-tcnative/</url>
   <description>
-    A Mavenized fork of Tomcat Native which incorporates various patches
+    A Mavenized fork of Tomcat Native which incorporates various patches.
+
+    Building this artifact produces a native library with a classifier matching the
+    os/arch of the build machine. The Java JNI bindings are exported with the 'java' classifier.
+
+    Prefer specifying a dependency on the shaded artifact (no classifier) which contains
+    the java bindings and prebuilt native libraries for all supported platforms.
+
   </description>
 
   <scm>
@@ -135,16 +142,41 @@
             </goals>
             <configuration>
               <target>
-                <copy todir="${nativeJarWorkdir}">
-                  <zipfileset src="${defaultJarFile}" />
-                </copy>
                 <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
                   <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
-                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
+                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/${os.detected.classifier}/\1" />
                 </copy>
-                <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                <jar destfile="${nativeJarFile}" manifest="${project.build.directory}/classes/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/INDEX.LIST"/>
                 <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
               </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- Produce a jar with a platfrom-specific classifier. -->
+            <id>default-jar</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <classifier>${os.detected.classifier}</classifier>
+            </configuration>
+          </execution>
+          <execution>
+            <!-- Also produce a jar with 'java' classifier. This can be built on any platform. -->
+            <id>java-jar</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <classifier>java</classifier>
             </configuration>
           </execution>
         </executions>
