@@ -955,8 +955,18 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobje
 TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobjectArray alpn_protos,
         jint selectorFailureBehavior)
 {
-    // Only supported with openssl >= 1.0.2
-    #if OPENSSL_VERSION_NUMBER >= 0x10002000L
+    // Only supported with GCC
+    #if defined(__GNUC__) || defined(__GNUG__)
+        if (!SSL_CTX_set_alpn_protos || !SSL_CTX_set_alpn_select_cb) {
+            UNREFERENCED_STDARGS;
+            UNREFERENCED(ctx);
+            UNREFERENCED(alpn_protos);
+            return;
+        }
+    #endif
+
+    // We can only support it when either use openssl version >= 1.0.2 or GCC as this way we can use weak linking
+    #if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
         tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
         TCN_ASSERT(ctx != 0);
