@@ -341,4 +341,16 @@ int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int
 int         SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int,void *);
 int         SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 
+
+#if defined(__GNUC__) || defined(__GNUG__)
+    // only supported with GCC, this will be used to support different openssl versions at the same time.
+    extern int SSL_CTX_set_alpn_protos(SSL_CTX *ctx, const unsigned char *protos,
+           unsigned protos_len) __attribute__((weak));
+    extern void SSL_CTX_set_alpn_select_cb(SSL_CTX *ctx, int (*cb) (SSL *ssl, const unsigned char **out,
+           unsigned char *outlen, const unsigned char *in, unsigned int inlen,
+           void *arg), void *arg) __attribute__((weak));
+    extern void SSL_get0_alpn_selected(const SSL *ssl, const unsigned char **data,
+           unsigned *len) __attribute__((weak));
+#endif
+
 #endif /* SSL_PRIVATE_H */

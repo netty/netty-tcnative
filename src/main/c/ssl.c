@@ -1409,8 +1409,18 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
 
 TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS,
                                                          jlong ssl /* SSL * */) {
-    // Only supported with openssl >= 1.0.2
-    #if OPENSSL_VERSION_NUMBER >= 0x10002000L
+    // Use weak linking with GCC as this will alow us to run the same packaged version with multiple
+    // version of openssl.
+    #if defined(__GNUC__) || defined(__GNUG__)
+        if (!SSL_get0_alpn_selected) {
+            UNREFERENCED(o);
+            UNREFERENCED(ssl);
+            return NULL;
+        }
+    #endif
+
+    // We can only support it when either use openssl version >= 1.0.2 or GCC as this way we can use weak linking
+    #if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
         SSL *ssl_ = J2P(ssl, SSL *);
         const unsigned char *proto;
         unsigned int proto_len;
