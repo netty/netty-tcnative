@@ -814,14 +814,11 @@ int SSL_callback_select_next_proto(SSL *ssl, unsigned char **out, unsigned char 
     return select_next_proto(ssl, out, outlen, in, inlen, ssl_ctxt->next_proto_data, ssl_ctxt->next_proto_len, ssl_ctxt->next_selector_failure_behavior);
 }
 
-// Only supported with openssl >= 1.0.2
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
         const unsigned char *in, unsigned int inlen, void *arg) {
     tcn_ssl_ctxt_t *ssl_ctxt = arg;
     return select_next_proto(ssl, out, outlen, in, inlen, ssl_ctxt->alpn_proto_data, ssl_ctxt->alpn_proto_len, ssl_ctxt->alpn_selector_failure_behavior);
 }
-#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
 
 #ifdef HAVE_OPENSSL_OCSP
 
