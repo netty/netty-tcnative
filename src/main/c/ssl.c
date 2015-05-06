@@ -1177,6 +1177,16 @@ TCN_IMPLEMENT_CALL(jint, SSL, getLastErrorNumber)(TCN_STDARGS) {
     return ERR_get_error();
 }
 
+static void ssl_info_callback(const SSL *ssl, int where, int ret) {
+    tcn_ssl_ctxt_t *c;
+    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
+        c = SSL_get_app_data2(ssl);
+        if (c != NULL) {
+            ++c->handshakeCount;
+        }
+    }
+}
+
 TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
                                                    jlong ctx /* tcn_ssl_ctxt_t * */,
                                                    jboolean server) {
@@ -1191,6 +1201,9 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
         tcn_ThrowException(e, "cannot create new ssl");
         return 0;
     }
+    // Add callback to keep track of handshakes.
+    SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
+
     if (server) {
         SSL_set_accept_state(ssl);
     } else {
@@ -1736,6 +1749,23 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
     return bArray;
 }
 
+TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
+{
+    tcn_ssl_ctxt_t *c;
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return -1;
+    }
+    UNREFERENCED(o);
+
+    c = SSL_get_app_data2(ssl_);
+    if (c == NULL) {
+        return 0;
+    }
+    return c->handshakeCount;
+}
+
 /*** End Apple API Additions ***/
 
 #else
@@ -2103,6 +2133,11 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
     UNREFERENCED(ssl);
     tcn_ThrowException(e, "Not implemented");
 }
-
+TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
+{
+    UNREFERENCED(o);
+    UNREFERENCED(ssl);
+    tcn_ThrowException(e, "Not implemented");
+}
 /*** End Apple API Additions ***/
 #endif

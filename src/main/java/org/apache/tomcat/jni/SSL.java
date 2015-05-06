@@ -683,4 +683,12 @@ public final class SSL {
      * @return the session as byte array representation obtained via SSL_SESSION_get_id.
      */
     public static native byte[] getSessionId(long ssl);
+
+    /**
+     * Returns the number of handshakes done for this SSL instance. This also includes renegations.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the number of handshakes done for this SSL instance.
+     */
+    public static native int getHandshakeCount(long ssl);
 }
