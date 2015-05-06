@@ -283,6 +283,9 @@ struct tcn_ssl_ctxt_t {
     unsigned char   *alpn_proto_data;
     unsigned int    alpn_proto_len;
     int             alpn_selector_failure_behavior;
+
+    /* Number of handshakes */
+    int             handshakeCount;
 };
 
   
