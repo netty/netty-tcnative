@@ -55,8 +55,8 @@ static int ssl_ocsp_request(X509 *cert, X509 *issuer);
  * SSL_get_ex_new_index() is called, so we _must_ do this at startup.
  */
 static int SSL_app_data2_idx = -1;
-
-void SSL_init_app_data2_idx(void)
+static int SSL_app_data3_idx = -1;
+void SSL_init_app_data2_3_idx(void)
 {
     int i;
 
@@ -64,13 +64,22 @@ void SSL_init_app_data2_idx(void)
         return;
     }
 
-    /* we _do_ need to call this twice */
+    /* we _do_ need to call this two times */
     for (i = 0; i <= 1; i++) {
         SSL_app_data2_idx =
             SSL_get_ex_new_index(0,
                                  "Second Application Data for SSL",
                                  NULL, NULL, NULL);
     }
+
+    if (SSL_app_data3_idx > -1) {
+        return;
+    }
+
+    SSL_app_data3_idx =
+            SSL_get_ex_new_index(0,
+                                 "Third Application Data for SSL",
+                                  NULL, NULL, NULL);
 }
 
 void *SSL_get_app_data2(SSL *ssl)
@@ -82,6 +91,16 @@ void SSL_set_app_data2(SSL *ssl, void *arg)
 {
     SSL_set_ex_data(ssl, SSL_app_data2_idx, (char *)arg);
     return;
+}
+
+void *SSL_get_app_data3(SSL *ssl)
+{
+    return SSL_get_ex_data(ssl, SSL_app_data3_idx);
+}
+
+void SSL_set_app_data3(SSL *ssl, void *arg)
+{
+    SSL_set_ex_data(ssl, SSL_app_data3_idx, arg);
 }
 
 /* Simple echo password prompting */

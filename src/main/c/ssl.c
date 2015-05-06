@@ -719,8 +719,8 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
      * low entropy seed.
      */
     SSL_rand_seed(NULL);
-    /* For SSL_get_app_data2() at request time */
-    SSL_init_app_data2_idx();
+    /* For SSL_get_app_data2() and SSL_get_app_data3() at request time */
+    SSL_init_app_data2_3_idx();
 
     SSL_TMP_KEYS_INIT(r);
     if (r) {
@@ -1178,11 +1178,11 @@ TCN_IMPLEMENT_CALL(jint, SSL, getLastErrorNumber)(TCN_STDARGS) {
 }
 
 static void ssl_info_callback(const SSL *ssl, int where, int ret) {
-    tcn_ssl_ctxt_t *c;
+    uint16_t *handshakeCount = NULL;
     if (0 != (where & SSL_CB_HANDSHAKE_START)) {
-        c = SSL_get_app_data2(ssl);
-        if (c != NULL) {
-            ++c->handshakeCount;
+        handshakeCount = (uint16_t*) SSL_get_app_data3(ssl);
+        if (handshakeCount != NULL) {
+            ++(*handshakeCount);
         }
     }
 }
@@ -1191,6 +1191,7 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
                                                    jlong ctx /* tcn_ssl_ctxt_t * */,
                                                    jboolean server) {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    uint16_t *handshakeCount = malloc(sizeof(uint16_t));
     SSL *ssl;
 
     UNREFERENCED_STDARGS;
@@ -1201,6 +1202,11 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
         tcn_ThrowException(e, "cannot create new ssl");
         return 0;
     }
+
+    // Store the handshakeCount in the SSL instance.
+    *handshakeCount = 0;
+    SSL_set_app_data3(ssl, handshakeCount);
+
     // Add callback to keep track of handshakes.
     SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
 
@@ -1313,7 +1319,14 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
                                        jlong ssl /* SSL * */) {
     UNREFERENCED_STDARGS;
 
-    SSL_free(J2P(ssl, SSL *));
+    uint16_t *handshakeCount = NULL;
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    handshakeCount = SSL_get_app_data3(ssl_);
+    if (handshakeCount != NULL) {
+        free(handshakeCount);
+    }
+    SSL_free(ssl);
 }
 
 // Make a BIO pair (network and internal) for the provided SSL * and return the network BIO
@@ -1751,7 +1764,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
 
 TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
 {
-    tcn_ssl_ctxt_t *c;
+    uint16_t *handshakeCount = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
@@ -1759,11 +1772,11 @@ TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
     }
     UNREFERENCED(o);
 
-    c = SSL_get_app_data2(ssl_);
-    if (c == NULL) {
-        return 0;
+    handshakeCount = SSL_get_app_data3(ssl_);
+    if (handshakeCount != NULL) {
+        return *handshakeCount;
     }
-    return c->handshakeCount;
+    return 0;
 }
 
 /*** End Apple API Additions ***/
