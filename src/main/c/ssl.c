@@ -534,12 +534,14 @@ static int ssl_rand_load_file(const char *file)
     if (file == NULL)
         file = RAND_file_name(buffer, sizeof(buffer));
     if (file) {
+#ifdef HAVE_SSL_RAND_EGD
         if (strncmp(file, "egd:", 4) == 0) {
             if ((n = RAND_egd(file + 4)) > 0)
                 return n;
             else
                 return -1;
         }
+#endif
         if ((n = RAND_load_file(file, -1)) > 0)
             return n;
     }
@@ -693,8 +695,10 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
                 && (ee = ssl_try_load_engine(J2S(engine))) == NULL)
                 err = APR_ENOTIMPL;
             else {
+#ifdef ENGINE_CTRL_CHIL_SET_FORKCHECK
                 if (strcmp(J2S(engine), "chil") == 0)
                     ENGINE_ctrl(ee, ENGINE_CTRL_CHIL_SET_FORKCHECK, 1, 0, 0);
+#endif
                 if (!ENGINE_set_default(ee, ENGINE_METHOD_ALL))
                     err = APR_ENOTIMPL;
             }
