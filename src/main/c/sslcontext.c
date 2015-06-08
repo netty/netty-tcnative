@@ -232,7 +232,14 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
         SSL_CTX_set_tmp_ecdh(c->ctx, ecdh);
         EC_KEY_free(ecdh);
 #endif
+
+// This method should not be used when using libressl as it will result in
+// error:14085042:SSL routines:SSL3_CTX_CTRL:called a function you should not call
+//
+// See also http://forum.nginx.org/read.php?2,256381,257336#msg-257336
+#ifndef LIBRESSL_VERSION_NUMBER
         SSL_CTX_set_tmp_rsa_callback(c->ctx, SSL_callback_tmp_RSA);
+#endif
         SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH);
     }
     /* Set default Certificate verification level
