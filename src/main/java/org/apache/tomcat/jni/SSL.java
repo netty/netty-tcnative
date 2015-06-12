@@ -691,4 +691,9 @@ public final class SSL {
      * @return the number of handshakes done for this SSL instance.
      */
     public static native int getHandshakeCount(long ssl);
+
+    /**
+     * Clear all the errors from the error queue that OpenSSL encountered on this thread.
+     */
+    public static native void clearError();
 }

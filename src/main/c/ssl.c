@@ -1781,6 +1781,13 @@ TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
     return 0;
 }
 
+
+TCN_IMPLEMENT_CALL(void, SSL, clearError)(TCN_STDARGS)
+{
+    UNREFERENCED(o);
+    ERR_clear_error();
+}
+
 /*** End Apple API Additions ***/
 
 #else
@@ -2154,5 +2161,12 @@ TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
     UNREFERENCED(ssl);
     tcn_ThrowException(e, "Not implemented");
 }
+
+TCN_IMPLEMENT_CALL(void, SSL, clearError)(TCN_STDARGS)
+{
+    UNREFERENCED(o);
+    tcn_ThrowException(e, "Not implemented");
+}
+
 /*** End Apple API Additions ***/
 #endif
