@@ -1752,9 +1752,13 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
         return NULL;
     }
     UNREFERENCED(o);
-    session = SSL_get_session(ssl);
-    session_id = SSL_SESSION_get_id(session, &len);
 
+    session = SSL_get_session(ssl_);
+    if (session == NULL) {
+        return NULL;
+    }
+
+    session_id = SSL_SESSION_get_id(session, &len);
     if (len == 0 || session_id == NULL) {
         return NULL;
     }
