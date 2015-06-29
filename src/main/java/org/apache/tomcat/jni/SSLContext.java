@@ -266,8 +266,29 @@ public final class SSLContext {
     public static native long sessionTimeouts(long ctx);
 
     /**
+     * Set TLS session keys.
+     */
+    public static void setSessionTicketKeys(long ctx, SessionTicketKey[] keys) {
+        if (keys == null || keys.length == 0) {
+            throw new IllegalArgumentException("Length of the keys should be longer than 0.");
+        }
+        byte[] binaryKeys = new byte[keys.length * SessionTicketKey.TICKET_KEY_SIZE];
+        for (int i = 0; i < keys.length; i++) {
+            SessionTicketKey key = keys[i];
+            int dstCurPos = SessionTicketKey.TICKET_KEY_SIZE * i;
+            System.arraycopy(key.getName(), 0, binaryKeys, dstCurPos, SessionTicketKey.NAME_SIZE);
+            dstCurPos += SessionTicketKey.NAME_SIZE;
+            System.arraycopy(key.getHmacKey(), 0, binaryKeys, dstCurPos, SessionTicketKey.HMAC_KEY_SIZE);
+            dstCurPos += SessionTicketKey.HMAC_KEY_SIZE;
+            System.arraycopy(key.getAesKey(), 0, binaryKeys, dstCurPos, SessionTicketKey.AES_KEY_SIZE);
+        }
+        setSessionTicketKeys(ctx, binaryKeys);
+    }
+
+    /**
      * Set TLS session keys. This allows us to share keys across TFEs.
      */
+    @Deprecated
     public static native void setSessionTicketKeys(long ctx, byte[] keys);
 
     /**
