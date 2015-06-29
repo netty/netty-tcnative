@@ -24,6 +24,7 @@
 
 #include "apr_file_io.h"
 #include "apr_thread_mutex.h"
+#include "apr_thread_rwlock.h"
 #include "apr_poll.h"
 
 #ifdef HAVE_OPENSSL
@@ -81,6 +82,14 @@ static apr_status_t ssl_context_cleanup(void *data)
             c->alpn_proto_data = NULL;
         }
         c->alpn_proto_len = 0;
+
+        apr_thread_rwlock_destroy(c->mutex);
+
+        if (c->ticket_keys) {
+            free(c->ticket_keys);
+            c->ticket_keys = NULL;
+        }
+        c->ticket_keys_len = 0;
     }
     return APR_SUCCESS;
 }
@@ -253,6 +262,8 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
     SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *)SSL_password_callback);
     SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *)(&tcn_password_callback));
     SSL_CTX_set_info_callback(c->ctx, SSL_callback_handshake);
+
+    apr_thread_rwlock_create(&c->mutex, p);
     /*
      * Let us cleanup the ssl context when the pool is destroyed
      */
@@ -1126,13 +1137,75 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCacheFull)(TCN_STDARGS, jlong ctx)
     return rv;
 }
 
-#define TICKET_KEYS_SIZE 48
+static int current_session_key(tcn_ssl_ctxt_t *c, tcn_ssl_ticket_key_t *key) {
+    int result = JNI_FALSE;
+    apr_thread_rwlock_rdlock(c->mutex);
+    if (c->ticket_keys_len > 0) {
+        *key = c->ticket_keys[0];
+        result = JNI_TRUE;
+    }
+    apr_thread_rwlock_unlock(c->mutex);
+    return result;
+}
+
+static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_ssl_ticket_key_t *key, int *is_current_key) {
+    int result = JNI_FALSE;
+    int i;
+
+    apr_thread_rwlock_rdlock(c->mutex);
+    for (i = 0; i < c->ticket_keys_len; ++i) {
+        if (memcmp(c->ticket_keys[i].key_name, key_name, 16)) {
+            *key = c->ticket_keys[i];
+            result = JNI_TRUE;
+            *is_current_key = (i == 0);
+            break;
+        }
+    }
+    apr_thread_rwlock_unlock(c->mutex);
+    return result;
+}
+
+static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned char *iv, EVP_CIPHER_CTX *ctx, HMAC_CTX *hctx, int enc) {
+    tcn_ssl_ctxt_t *c = SSL_get_app_data2(s);
+    tcn_ssl_ticket_key_t key;
+    int is_current_key;
+
+    if (enc) { /* create new session */
+        if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) <= 0) {
+            return -1; /* insufficient random */
+        }
+
+        if (current_session_key(c, &key)) {
+            memcpy(key_name, key.key_name, 16);
+
+            EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
+            HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
+            return 1;
+        }
+        return 0;
+    } else { /* retrieve session */
+        if (find_session_key(c, key_name, &key, &is_current_key)) {
+            HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
+            EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv );
+            if (!is_current_key) {
+                return 2;
+            }
+            return 1;
+        }
+        return 0;
+    }
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ctx, jbyteArray keys)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jbyte* b;
+    jbyte* key;
+    tcn_ssl_ticket_key_t* ticket_keys;
+    int i;
+    int cnt;
 
-    if ((*e)->GetArrayLength(e, keys) != TICKET_KEYS_SIZE) {
+    if (((*e)->GetArrayLength(e, keys) % SSL_SESSION_TICKET_KEY_SIZE) != 0) {
         if (c->bio_os) {
             BIO_printf(c->bio_os, "[ERROR] Session ticket keys provided were wrong size.");
         }
@@ -1142,9 +1215,29 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ct
         exit(1);
     }
 
+    cnt = (*e)->GetArrayLength(e, keys) / SSL_SESSION_TICKET_KEY_SIZE;
     b = (*e)->GetByteArrayElements(e, keys, NULL);
-    SSL_CTX_set_tlsext_ticket_keys(c->ctx, b, TICKET_KEYS_SIZE);
+
+    ticket_keys = malloc(sizeof(tcn_ssl_ticket_key_t) * cnt);
+
+    for (i = 0; i < cnt; ++i) {
+        key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
+        memcpy(ticket_keys[i].key_name, key, 16);
+        memcpy(ticket_keys[i].hmac_key, key + 16, 16);
+        memcpy(ticket_keys[i].aes_key, key + 32, 16);
+    }
+
     (*e)->ReleaseByteArrayElements(e, keys, b, 0);
+
+    apr_thread_rwlock_wrlock(c->mutex);
+    if (c->ticket_keys) {
+        free(c->ticket_keys);
+    }
+    c->ticket_keys_len = cnt;
+    c->ticket_keys = ticket_keys;
+    apr_thread_rwlock_unlock(c->mutex);
+    
+    SSL_CTX_set_tlsext_ticket_key_cb(c->ctx, ssl_tlsext_ticket_key_cb);
 }
 
 

@@ -39,6 +39,8 @@
 #define OPENSSL_NO_RC5
 #endif
 
+#include "apr_thread_rwlock.h"
+
 /* OpenSSL headers */
 #include <openssl/opensslv.h>
 #include <openssl/ssl.h>
@@ -221,6 +223,11 @@
 #define SSL_SELECTOR_FAILURE_NO_ADVERTISE                       0
 #define SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL            1
 
+#define SSL_SESSION_TICKET_KEY_NAME_LEN 16
+#define SSL_SESSION_TICKET_AES_KEY_LEN  16
+#define SSL_SESSION_TICKET_HMAC_KEY_LEN 16
+#define SSL_SESSION_TICKET_KEY_SIZE     48
+
 extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 
 typedef struct {
@@ -240,49 +247,59 @@ typedef struct {
 
 extern tcn_pass_cb_t tcn_password_callback;
 
+typedef struct {
+    unsigned char   key_name[SSL_SESSION_TICKET_KEY_NAME_LEN];
+    unsigned char   hmac_key[SSL_SESSION_TICKET_HMAC_KEY_LEN];
+    unsigned char   aes_key[SSL_SESSION_TICKET_AES_KEY_LEN];
+} tcn_ssl_ticket_key_t;
+
 struct tcn_ssl_ctxt_t {
-    apr_pool_t      *pool;
-    SSL_CTX         *ctx;
-    BIO             *bio_os;
-    BIO             *bio_is;
+    apr_pool_t              *pool;
+    SSL_CTX                 *ctx;
+    BIO                     *bio_os;
+    BIO                     *bio_is;
 
-    unsigned char   context_id[SHA_DIGEST_LENGTH];
+    unsigned char           context_id[SHA_DIGEST_LENGTH];
 
-    int             protocol;
+    int                     protocol;
     /* we are one or the other */
-    int             mode;
+    int                     mode;
 
     /* certificate revocation list */
-    X509_STORE      *crl;
+    X509_STORE              *crl;
     /* pointer to the context verify store */
-    X509_STORE      *store;
-    const char      *cert_files[SSL_AIDX_MAX];
-    const char      *key_files[SSL_AIDX_MAX];
-    X509            *certs[SSL_AIDX_MAX];
-    EVP_PKEY        *keys[SSL_AIDX_MAX];
+    X509_STORE              *store;
+    const char              *cert_files[SSL_AIDX_MAX];
+    const char              *key_files[SSL_AIDX_MAX];
+    X509                    *certs[SSL_AIDX_MAX];
+    EVP_PKEY                *keys[SSL_AIDX_MAX];
 
-    int             ca_certs;
-    int             shutdown_type;
-    char            *rand_file;
+    int                     ca_certs;
+    int                     shutdown_type;
+    char                    *rand_file;
 
-    const char      *cipher_suite;
+    const char              *cipher_suite;
     /* for client or downstream server authentication */
-    int             verify_depth;
-    int             verify_mode;
-    tcn_pass_cb_t   *cb_data;
+    int                     verify_depth;
+    int                     verify_mode;
+    tcn_pass_cb_t           *cb_data;
 
     /* certificate verifier callback */
     jobject verifier;
     jmethodID verifier_method;
 
-    unsigned char   *next_proto_data;
-    unsigned int    next_proto_len;
-    int             next_selector_failure_behavior;
+    unsigned char           *next_proto_data;
+    unsigned int            next_proto_len;
+    int                     next_selector_failure_behavior;
 
     /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
-    unsigned char   *alpn_proto_data;
-    unsigned int    alpn_proto_len;
-    int             alpn_selector_failure_behavior;
+    unsigned char           *alpn_proto_data;
+    unsigned int            alpn_proto_len;
+    int                     alpn_selector_failure_behavior;
+
+    apr_thread_rwlock_t     *mutex;
+    tcn_ssl_ticket_key_t    *ticket_keys;
+    unsigned int            ticket_keys_len;
 };
 
   
