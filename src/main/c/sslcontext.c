@@ -1283,13 +1283,17 @@ const char* SSL_CIPHER_authentication_method(const SSL_CIPHER* cipher){
         return SSL_TXT_RSA;
     case SSL_kDHr:
         return SSL_TXT_DH "_" SSL_TXT_RSA;
+#ifndef OPENSSL_IS_BORINGSSL
     case SSL_kDHd:
         return SSL_TXT_DH "_" SSL_TXT_DSS;
+#endif
     case SSL_kEDH:
         switch (cipher->algorithm_auth)
             {
+#ifndef OPENSSL_IS_BORINGSSL
         case SSL_aDSS:
             return "DHE_" SSL_TXT_DSS;
+#endif
         case SSL_aRSA:
             return "DHE_" SSL_TXT_RSA;
         case SSL_aNULL:
@@ -1297,8 +1301,10 @@ const char* SSL_CIPHER_authentication_method(const SSL_CIPHER* cipher){
         default:
             return "UNKNOWN";
             }
+#ifndef OPENSSL_IS_BORINGSSL
     case SSL_kKRB5:
         return SSL_TXT_KRB5;
+#endif
     case SSL_kECDHr:
         return SSL_TXT_ECDH "_" SSL_TXT_RSA;
     case SSL_kECDHe:
