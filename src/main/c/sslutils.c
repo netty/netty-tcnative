@@ -128,8 +128,11 @@ int SSL_password_prompt(tcn_pass_cb_t *data)
     else {
 #ifdef WIN32
         rv = WIN32_SSL_password_prompt(data);
-#else
+#elif !defined(OPENSSL_IS_BORINGSSL)
         EVP_read_pw_string(data->password, SSL_MAX_PASSWORD_LEN,
+                           data->prompt, 0);
+#else
+        des_read_pw_string(data->password, SSL_MAX_PASSWORD_LEN,
                            data->prompt, 0);
 #endif
         rv = (int)strlen(data->password);
@@ -440,7 +443,7 @@ int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file,
     unsigned long err;
     int n;
 
-    if ((bio = BIO_new(BIO_s_file_internal())) == NULL)
+    if ((bio = BIO_new(BIO_s_file())) == NULL)
         return -1;
     if (BIO_read_filename(bio, file) <= 0) {
         BIO_free(bio);
@@ -744,7 +747,10 @@ void SSL_callback_handshake(const SSL *ssl, int where, int rc)
         int state = SSL_get_state(ssl);
 
         if (state == SSL3_ST_SR_CLNT_HELLO_A
-            || state == SSL23_ST_SR_CLNT_HELLO_A) {
+#ifndef OPENSSL_IS_BORINGSSL
+                || SSL23_ST_SR_CLNT_HELLO_A
+#endif
+                ) {
             con->reneg_state = RENEG_ABORT;
             /* XXX: rejecting client initiated renegotiation
              */

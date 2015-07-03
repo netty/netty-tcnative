@@ -451,7 +451,6 @@ static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
 /*
  * Dynamic locking and unlocking function
  */
-
 static void ssl_dyn_lock_function(int mode, struct CRYPTO_dynlock_value *l,
                            const char *file, int line)
 {
@@ -531,8 +530,11 @@ static int ssl_rand_load_file(const char *file)
         file = ssl_global_rand_file;
     if (file && (strcmp(file, "builtin") == 0))
         return -1;
+// BoringSsl doesn't support RAND_file_name, but RAND_status() returns 1 anyways
+#ifndef OPENSSL_IS_BORINGSSL
     if (file == NULL)
         file = RAND_file_name(buffer, sizeof(buffer));
+#endif
     if (file) {
 #ifdef HAVE_SSL_RAND_EGD
         if (strncmp(file, "egd:", 4) == 0) {
@@ -555,9 +557,9 @@ static int ssl_rand_load_file(const char *file)
  */
 static int ssl_rand_save_file(const char *file)
 {
+#ifndef OPENSSL_IS_BORINGSSL
     char buffer[APR_PATH_MAX];
     int n;
-
     if (file == NULL)
         file = RAND_file_name(buffer, sizeof(buffer));
     else if ((n = RAND_egd(file)) > 0) {
@@ -567,6 +569,10 @@ static int ssl_rand_save_file(const char *file)
         return 0;
     else
         return 1;
+#else
+    // BoringSsl doesn't have RAND_file_name/RAND_write_file and RAND_egd always return 255
+    return 0;
+#endif
 }
 
 int SSL_rand_seed(const char *file)
@@ -659,16 +665,19 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
         TCN_FREE_CSTRING(engine);
         return (jint)APR_SUCCESS;
     }
+#ifndef OPENSSL_IS_BORINGSSL
     if (SSLeay() < 0x0090700L) {
         TCN_FREE_CSTRING(engine);
         tcn_ThrowAPRException(e, APR_EINVAL);
         ssl_initialized = 0;
         return (jint)APR_EINVAL;
     }
+
     /* We must register the library in full, to ensure our configuration
      * code can successfully test the SSL environment.
      */
     CRYPTO_malloc_init();
+#endif
     ERR_load_crypto_strings();
     SSL_load_error_strings();
     SSL_library_init();
@@ -676,7 +685,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 #if HAVE_ENGINE_LOAD_BUILTIN_ENGINES
     ENGINE_load_builtin_engines();
 #endif
-#if OPENSSL_VERSION_NUMBER >= 0x00907001
+#if OPENSSL_VERSION_NUMBER >= 0x00907001 && !defined(OPENSSL_IS_BORINGSSL)
     OPENSSL_load_builtin_modules();
 #endif
 
