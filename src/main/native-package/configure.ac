@@ -58,7 +58,7 @@ AC_SUBST(LDFLAGS)
 ## -----------------------------------------------------
 ## Generate the files
 ## -----------------------------------------------------
-AM_INIT_AUTOMAKE([subdir-objects no-dependencies -Wall -Werror foreign])
+AM_INIT_AUTOMAKE([subdir-objects no-dependencies -Wall foreign])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
