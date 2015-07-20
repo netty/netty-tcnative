@@ -463,6 +463,23 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
     return rv;
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jlong ctx,
+                                                                  jlong chain,
+                                                                  jboolean skipfirst)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    BIO *b = J2P(chain, BIO *);
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+    if (b == NULL)
+        return JNI_FALSE;
+    if (SSL_CTX_use_certificate_chain_bio(c->ctx, b, skipfirst) > 0)  {
+        return JNI_TRUE;
+    }
+    return JNI_FALSE;
+}
+
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificate)(TCN_STDARGS,
                                                            jlong ctx,
                                                            jstring file,
@@ -686,12 +703,32 @@ static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
         key = PEM_read_bio_PrivateKey(bio, NULL,
                     (pem_password_cb *)SSL_password_callback,
                     (void *)cb_data);
-        if (key)
+        if (key != NULL)
             break;
         cb_data->password[0] = '\0';
         BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
     }
     BIO_free(bio);
+    return key;
+}
+
+static EVP_PKEY *load_pem_key_bio(tcn_ssl_ctxt_t *c, const BIO *bio)
+{
+    EVP_PKEY *key = NULL;
+    tcn_pass_cb_t *cb_data = c->cb_data;
+    int i;
+
+    if (cb_data == NULL)
+        cb_data = &tcn_password_callback;
+    for (i = 0; i < 3; i++) {
+        key = PEM_read_bio_PrivateKey(bio, NULL,
+                    (pem_password_cb *)SSL_password_callback,
+                    (void *)cb_data);
+        if (key)
+            break;
+        cb_data->password[0] = '\0';
+        BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
+    }
     return key;
 }
 
@@ -720,6 +757,25 @@ static X509 *load_pem_cert(tcn_ssl_ctxt_t *c, const char *file)
         cert = d2i_X509_bio(bio, NULL);
     }
     BIO_free(bio);
+    return cert;
+}
+
+static X509 *load_pem_cert_bio(tcn_ssl_ctxt_t *c, const BIO *bio)
+{
+    X509 *cert = NULL;
+    tcn_pass_cb_t *cb_data = c->cb_data;
+
+    if (cb_data == NULL)
+        cb_data = &tcn_password_callback;
+    cert = PEM_read_bio_X509_AUX(bio, NULL,
+                (pem_password_cb *)SSL_password_callback,
+                (void *)cb_data);
+    if (cert == NULL &&
+       (ERR_GET_REASON(ERR_peek_last_error()) == PEM_R_NO_START_LINE)) {
+        ERR_clear_error();
+        BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
+        cert = d2i_X509_bio(bio, NULL);
+    }
     return cert;
 }
 
@@ -869,6 +925,85 @@ cleanup:
     TCN_FREE_CSTRING(password);
     return rv;
 }
+
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong ctx,
+                                                         jlong cert, jlong key,
+                                                         jstring password, jint idx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    BIO *cert_bio = J2P(cert, BIO *);
+    BIO *key_bio = J2P(key, BIO *);
+
+    jboolean rv = JNI_TRUE;
+    TCN_ALLOC_CSTRING(password);
+    const char *p;
+    char err[256];
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+
+    if (idx < 0 || idx >= SSL_AIDX_MAX) {
+        /* TODO: Throw something */
+        rv = JNI_FALSE;
+        goto cleanup;
+    }
+    if (J2S(password)) {
+        if (!c->cb_data)
+            c->cb_data = &tcn_password_callback;
+        strncpy(c->cb_data->password, J2S(password), SSL_MAX_PASSWORD_LEN);
+        c->cb_data->password[SSL_MAX_PASSWORD_LEN-1] = '\0';
+    }
+    if (!key)
+        key = cert;
+    if (!cert || !key) {
+        tcn_Throw(e, "No Certificate file specified or invalid file format");
+        rv = JNI_FALSE;
+        goto cleanup;
+    }
+
+    if ((c->keys[idx] = load_pem_key_bio(c, key_bio)) == NULL) {
+        ERR_error_string(ERR_get_error(), err);
+        ERR_clear_error();
+        tcn_Throw(e, "Unable to load certificate key (%s)",err);
+        rv = JNI_FALSE;
+        goto cleanup;
+    }
+    if ((c->certs[idx] = load_pem_cert_bio(c, cert_bio)) == NULL) {
+        ERR_error_string(ERR_get_error(), err);
+        ERR_clear_error();
+        tcn_Throw(e, "Unable to load certificate (%s) ", err);
+        rv = JNI_FALSE;
+        goto cleanup;
+    }
+
+    if (SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
+        ERR_error_string(ERR_get_error(), err);
+        ERR_clear_error();
+        tcn_Throw(e, "Error setting certificate (%s)", err);
+        rv = JNI_FALSE;
+        goto cleanup;
+    }
+    if (SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
+        ERR_error_string(ERR_get_error(), err);
+        ERR_clear_error();
+        tcn_Throw(e, "Error setting private key (%s)", err);
+        rv = JNI_FALSE;
+        goto cleanup;
+    }
+    if (SSL_CTX_check_private_key(c->ctx) <= 0) {
+        ERR_error_string(ERR_get_error(), err);
+        ERR_clear_error();
+
+        tcn_Throw(e, "Private key does not match the certificate public key (%s)",
+                  err);
+        rv = JNI_FALSE;
+        goto cleanup;
+    }
+cleanup:
+    TCN_FREE_CSTRING(password);
+    return rv;
+}
+
 
 // Convert protos to wire format
 static int initProtocols(JNIEnv *e, const tcn_ssl_ctxt_t *c, unsigned char **proto_data,
@@ -1545,6 +1680,17 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
     return JNI_FALSE;
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jlong ctx,
+                                                                  jlong chain,
+                                                                  jboolean skipfirst)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(chain);
+    UNREFERENCED(skipfirst);
+    return JNI_FALSE;
+}
+
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificate)(TCN_STDARGS,
                                                            jlong ctx,
                                                            jstring file,
@@ -1595,6 +1741,18 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     return JNI_FALSE;
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong ctx,
+                                                         jlong cert, jlong key,
+                                                         jstring password, jint idx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(cert);
+    UNREFERENCED(key);
+    UNREFERENCED(password);
+    UNREFERENCED(idx);
+    return JNI_FALSE;
+}
 TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobjectArray next_protos,
         jint selectorFailureBehavior)
 {

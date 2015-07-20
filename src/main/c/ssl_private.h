@@ -350,6 +350,7 @@ RSA        *SSL_callback_tmp_RSA(SSL *, int, int);
 DH         *SSL_callback_tmp_DH(SSL *, int, int);
 void        SSL_callback_handshake(const SSL *, int, int);
 int         SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, int);
+int         SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, int);
 int         SSL_callback_SSL_verify(int, X509_STORE_CTX *);
 int         SSL_rand_seed(const char *file);
 int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);

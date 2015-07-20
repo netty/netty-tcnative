@@ -436,7 +436,6 @@ int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file,
                                   int skipfirst)
 {
     BIO *bio;
-    X509 *x509;
     unsigned long err;
     int n;
 
@@ -446,6 +445,18 @@ int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file,
         BIO_free(bio);
         return -1;
     }
+    n = SSL_CTX_use_certificate_chain_bio(ctx, bio, skipfirst);
+    BIO_free(bio);
+    return n;
+}
+
+int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio,
+                                  int skipfirst)
+{
+    X509 *x509;
+    unsigned long err;
+    int n;
+
     /* optionally skip a leading server certificate */
     if (skipfirst) {
         if ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) == NULL) {
@@ -461,9 +472,8 @@ int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file,
     /* create new extra chain by loading the certs */
     n = 0;
     while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
-        if (!SSL_CTX_add_extra_chain_cert(ctx, x509)) {
+        if (SSL_CTX_add_extra_chain_cert(ctx, x509) != 1) {
             X509_free(x509);
-            BIO_free(bio);
             return -1;
         }
         n++;
@@ -472,12 +482,10 @@ int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file,
     if ((err = ERR_peek_error()) > 0) {
         if (!(   ERR_GET_LIB(err) == ERR_LIB_PEM
               && ERR_GET_REASON(err) == PEM_R_NO_START_LINE)) {
-            BIO_free(bio);
             return -1;
         }
         while (ERR_get_error() > 0) ;
     }
-    BIO_free(bio);
     return n;
 }
 
