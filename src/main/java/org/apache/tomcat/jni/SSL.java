@@ -319,6 +319,12 @@ public final class SSL {
             throws Exception;
 
     /**
+     * Initialize new in-memory BIO that is located in the secure heap.
+     * @return New BIO handle
+     */
+    public static native long newMemBIO() throws Exception;
+
+    /**
      * Close BIO and dereference callback object
      * @param bio BIO to close and destroy.
      * @return APR Status code

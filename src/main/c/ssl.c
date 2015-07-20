@@ -1052,6 +1052,21 @@ static BIO_METHOD *BIO_jbs()
     return(&jbs_methods);
 }
 
+
+TCN_IMPLEMENT_CALL(jlong, SSL, newMemBIO)(TCN_STDARGS)
+{
+    BIO *bio = NULL;
+
+    UNREFERENCED(o);
+
+    // TODO: Use BIO_s_secmem() once included in stable release
+    if ((bio = BIO_new(BIO_s_mem())) == NULL) {
+        tcn_ThrowException(e, "Create BIO failed");
+        return (jlong) NULL;
+    }
+    return P2J(bio);
+}
+
 TCN_IMPLEMENT_CALL(jlong, SSL, newBIO)(TCN_STDARGS, jlong pool,
                                        jobject callback)
 {
@@ -1091,6 +1106,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, newBIO)(TCN_STDARGS, jlong pool,
 init_failed:
     return 0;
 }
+
 
 TCN_IMPLEMENT_CALL(jint, SSL, closeBIO)(TCN_STDARGS, jlong bio)
 {
@@ -1880,6 +1896,12 @@ TCN_IMPLEMENT_CALL(jlong, SSL, newBIO)(TCN_STDARGS, jlong pool,
     UNREFERENCED_STDARGS;
     UNREFERENCED(pool);
     UNREFERENCED(callback);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSL, newMemBIO)(TCN_STDARGS)
+{
+    UNREFERENCED_STDARGS;
     return 0;
 }
 
