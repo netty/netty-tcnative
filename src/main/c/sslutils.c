@@ -463,7 +463,6 @@ int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio,
     /* optionally skip a leading server certificate */
     if (skipfirst) {
         if ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) == NULL) {
-            BIO_free(bio);
             return -1;
         }
         X509_free(x509);
