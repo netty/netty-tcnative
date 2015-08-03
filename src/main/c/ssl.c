@@ -665,7 +665,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
         TCN_FREE_CSTRING(engine);
         return (jint)APR_SUCCESS;
     }
-#ifndef OPENSSL_IS_BORINGSSL
+
     if (SSLeay() < 0x0090700L) {
         TCN_FREE_CSTRING(engine);
         tcn_ThrowAPRException(e, APR_EINVAL);
@@ -673,11 +673,13 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
         return (jint)APR_EINVAL;
     }
 
+#ifndef OPENSSL_IS_BORINGSSL
     /* We must register the library in full, to ensure our configuration
      * code can successfully test the SSL environment.
      */
     CRYPTO_malloc_init();
 #endif
+
     ERR_load_crypto_strings();
     SSL_load_error_strings();
     SSL_library_init();
