@@ -270,13 +270,13 @@ static int ssl_tmp_key_init_dh(int bits, int idx)
 TCN_IMPLEMENT_CALL(jint, SSL, version)(TCN_STDARGS)
 {
     UNREFERENCED_STDARGS;
-    return OPENSSL_VERSION_NUMBER;
+    return (jint) SSLeay();
 }
 
 TCN_IMPLEMENT_CALL(jstring, SSL, versionString)(TCN_STDARGS)
 {
     UNREFERENCED(o);
-    return AJP_TO_JSTRING(OPENSSL_VERSION_TEXT);
+    return AJP_TO_JSTRING(SSLeay_version(SSLEAY_VERSION));
 }
 
 /*
