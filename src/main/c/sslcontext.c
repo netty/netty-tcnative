@@ -1331,7 +1331,7 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
     }
 }
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ctx, jbyteArray keys)
+TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong ctx, jbyteArray keys)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jbyte* b;
@@ -1339,16 +1339,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ct
     tcn_ssl_ticket_key_t* ticket_keys;
     int i;
     int cnt;
-
-    if (((*e)->GetArrayLength(e, keys) % SSL_SESSION_TICKET_KEY_SIZE) != 0) {
-        if (c->bio_os) {
-            BIO_printf(c->bio_os, "[ERROR] Session ticket keys provided were wrong size.");
-        }
-        else {
-            fprintf(stderr, "[ERROR] Session ticket keys provided were wrong size.");
-        }
-        exit(1);
-    }
 
     cnt = (*e)->GetArrayLength(e, keys) / SSL_SESSION_TICKET_KEY_SIZE;
     b = (*e)->GetByteArrayElements(e, keys, NULL);
@@ -1906,7 +1896,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionMisses)(TCN_STDARGS, jlong ctx)
     return 0;
 }
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys)(TCN_STDARGS, jlong ctx, jbyteArray keys)
+TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong ctx, jbyteArray keys)
 {
     UNREFERENCED_STDARGS;
     UNREFERENCED(ctx);
