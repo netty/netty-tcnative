@@ -234,6 +234,9 @@ public final class SSL {
     public static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
     public static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
 
+    public static final int SSL_ST_CONNECT = 0x1000;
+    public static final int SSL_ST_ACCEPT =  0x2000;
+
     /* Return OpenSSL version number */
     public static native int version();
 
@@ -702,4 +705,19 @@ public final class SSL {
      * Clear all the errors from the error queue that OpenSSL encountered on this thread.
      */
     public static native void clearError();
+
+    /**
+     * Call SSL_renegotiate.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the result of the operation
+     */
+    public static native int renegotiate(long ssl);
+
+    /**
+     * Call SSL_set_state.
+     *
+     * @param ssl the SSL instance (SSL *)
+     */
+    public static native void setState(long ssl, int state);
 }
