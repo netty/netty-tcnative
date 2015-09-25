@@ -1820,6 +1820,34 @@ TCN_IMPLEMENT_CALL(void, SSL, clearError)(TCN_STDARGS)
     ERR_clear_error();
 }
 
+TCN_IMPLEMENT_CALL(jint, SSL, renegotiate)(TCN_STDARGS,
+                                           jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    return SSL_renegotiate(ssl_);
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS,
+                                           jlong ssl, /* SSL * */
+                                           jint state) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return;
+    }
+
+    UNREFERENCED(o);
+
+    SSL_set_state(ssl_, state);
+}
+
+
 /*** End Apple API Additions ***/
 
 #else
@@ -2206,5 +2234,17 @@ TCN_IMPLEMENT_CALL(void, SSL, clearError)(TCN_STDARGS)
     tcn_ThrowException(e, "Not implemented");
 }
 
+TCN_IMPLEMENT_CALL(jint, SSL, renegotiate)(TCN_STDARGS, jlong ssl) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS, jlong ssl, jint state) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  UNREFERENCED(state);
+  tcn_ThrowException(e, "Not implemented");
+}
 /*** End Apple API Additions ***/
 #endif
