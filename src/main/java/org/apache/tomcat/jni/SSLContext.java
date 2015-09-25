@@ -328,14 +328,23 @@ public final class SSLContext {
             dstCurPos += SessionTicketKey.HMAC_KEY_SIZE;
             System.arraycopy(key.getAesKey(), 0, binaryKeys, dstCurPos, SessionTicketKey.AES_KEY_SIZE);
         }
-        setSessionTicketKeys(ctx, binaryKeys);
+        setSessionTicketKeys0(ctx, binaryKeys);
     }
 
     /**
      * Set TLS session keys. This allows us to share keys across TFEs.
      */
     @Deprecated
-    public static native void setSessionTicketKeys(long ctx, byte[] keys);
+    public static void setSessionKeys(long ctx, byte[] keys) {
+        if (keys.length % SessionTicketKey.TICKET_KEY_SIZE != 0) {
+            throw new IllegalArgumentException("Session ticket keys provided were wrong size. keys.length % " + SessionTicketKey.TICKET_KEY_SIZE + " must be 0");
+        }
+        setSessionTicketKeys0(ctx, keys);
+    }
+    /**
+     * Set TLS session keys. This allows us to share keys across TFEs.
+     */
+    private static native void setSessionTicketKeys0(long ctx, byte[] keys);
 
     /**
      * Set File and Directory of concatenated PEM-encoded CA Certificates
