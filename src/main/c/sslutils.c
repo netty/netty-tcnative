@@ -131,9 +131,6 @@ int SSL_password_prompt(tcn_pass_cb_t *data)
 #elif !defined(OPENSSL_IS_BORINGSSL)
         EVP_read_pw_string(data->password, SSL_MAX_PASSWORD_LEN,
                            data->prompt, 0);
-#else
-        des_read_pw_string(data->password, SSL_MAX_PASSWORD_LEN,
-                           data->prompt, 0);
 #endif
         rv = (int)strlen(data->password);
     }
