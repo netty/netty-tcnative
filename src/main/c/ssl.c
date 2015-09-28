@@ -302,7 +302,7 @@ static apr_status_t ssl_init_cleanup(void *data)
     /*
      * Try to kill the internals of the SSL library.
      */
-#if OPENSSL_VERSION_NUMBER >= 0x00907001
+#if OPENSSL_VERSION_NUMBER >= 0x00907001 && !defined(OPENSSL_IS_BORINGSSL)
     /* Corresponds to OPENSSL_load_builtin_modules():
      * XXX: borrowed from apps.h, but why not CONF_modules_free()
      * which also invokes CONF_modules_finish()?
