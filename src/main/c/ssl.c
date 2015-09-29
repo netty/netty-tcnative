@@ -523,7 +523,6 @@ static int ssl_rand_choosenum(int l, int h)
 
 static int ssl_rand_load_file(const char *file)
 {
-    char buffer[APR_PATH_MAX];
     int n;
 
     if (file == NULL)
@@ -532,8 +531,10 @@ static int ssl_rand_load_file(const char *file)
         return -1;
 // BoringSsl doesn't support RAND_file_name, but RAND_status() returns 1 anyways
 #ifndef OPENSSL_IS_BORINGSSL
-    if (file == NULL)
+    if (file == NULL) {
+        char buffer[APR_PATH_MAX];
         file = RAND_file_name(buffer, sizeof(buffer));
+    }
 #endif
     if (file) {
 #ifdef HAVE_SSL_RAND_EGD
@@ -1210,7 +1211,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, getLastErrorNumber)(TCN_STDARGS) {
 static void ssl_info_callback(const SSL *ssl, int where, int ret) {
     int *handshakeCount = NULL;
     if (0 != (where & SSL_CB_HANDSHAKE_START)) {
-        handshakeCount = (int*) SSL_get_app_data3(ssl);
+        handshakeCount = (int*) SSL_get_app_data3((SSL*) ssl);
         if (handshakeCount != NULL) {
             ++(*handshakeCount);
         }
@@ -1463,7 +1464,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
     UNREFERENCED(o);
 
     SSL_get0_next_proto_negotiated(ssl_, &proto, &proto_len);
-    return tcn_new_stringn(e, proto, proto_len);
+    return tcn_new_stringn(e, (char*) proto, proto_len);
 }
 
 /*** End Twitter API Additions ***/
@@ -1496,7 +1497,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS,
         UNREFERENCED(o);
 
         SSL_get0_alpn_selected(ssl_, &proto, &proto_len);
-        return tcn_new_stringn(e, proto, proto_len);
+        return tcn_new_stringn(e, (char*) proto, proto_len);
     #else
         UNREFERENCED(o);
         UNREFERENCED(ssl);
@@ -1528,7 +1529,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     // Get a stack of all certs in the chain.
     sk = SSL_get_peer_cert_chain(ssl_);
 
-    len = sk_num(sk);
+    len = sk_num((_STACK*) sk);
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
         return NULL;
@@ -1537,7 +1538,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
-        cert = (X509*) sk_value(sk, i);
+        cert = (X509*) sk_value((_STACK*) sk, i);
 
         buf = NULL;
         length = i2d_X509(cert, &buf);
@@ -1616,7 +1617,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
 
     UNREFERENCED(o);
 
-    return SSL_get_time(ssl_);
+    return SSL_get_time(ssl_->session);
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
@@ -1705,7 +1706,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     int len;
     jobjectArray array;
     SSL_CIPHER *cipher;
-    char *name;
+    const char *name;
     int i;
     jstring c_name;
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -1718,7 +1719,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     }
 
     sk = SSL_get_ciphers(ssl_);
-    len = sk_num(sk);
+    len = sk_num((_STACK*) sk);
 
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
@@ -1729,7 +1730,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     array = (*e)->NewObjectArray(e, len, stringClass, NULL);
 
     for (i = 0; i < len; i++) {
-        cipher = (SSL_CIPHER*) sk_value(sk, i);
+        cipher = (SSL_CIPHER*) sk_value((_STACK*) sk, i);
         name = SSL_CIPHER_get_name(cipher);
 
         c_name = (*e)->NewStringUTF(e, name);
@@ -1769,8 +1770,8 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
 TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
 {
 
-    int len;
-    char *session_id;
+    unsigned int len;
+    const unsigned char *session_id;
     SSL_SESSION *session;
     jbyteArray bArray;
     SSL *ssl_ = J2P(ssl, SSL *);

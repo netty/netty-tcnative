@@ -721,13 +721,13 @@ static EVP_PKEY *load_pem_key_bio(tcn_ssl_ctxt_t *c, const BIO *bio)
     if (cb_data == NULL)
         cb_data = &tcn_password_callback;
     for (i = 0; i < 3; i++) {
-        key = PEM_read_bio_PrivateKey(bio, NULL,
+        key = PEM_read_bio_PrivateKey((BIO*) bio, NULL,
                     (pem_password_cb *)SSL_password_callback,
                     (void *)cb_data);
         if (key)
             break;
         cb_data->password[0] = '\0';
-        BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
+        BIO_ctrl((BIO*) bio, BIO_CTRL_RESET, 0, NULL);
     }
     return key;
 }
@@ -767,14 +767,14 @@ static X509 *load_pem_cert_bio(tcn_ssl_ctxt_t *c, const BIO *bio)
 
     if (cb_data == NULL)
         cb_data = &tcn_password_callback;
-    cert = PEM_read_bio_X509_AUX(bio, NULL,
+    cert = PEM_read_bio_X509_AUX((BIO*) bio, NULL,
                 (pem_password_cb *)SSL_password_callback,
                 (void *)cb_data);
     if (cert == NULL &&
        (ERR_GET_REASON(ERR_peek_last_error()) == PEM_R_NO_START_LINE)) {
         ERR_clear_error();
-        BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
-        cert = d2i_X509_bio(bio, NULL);
+        BIO_ctrl((BIO*) bio, BIO_CTRL_RESET, 0, NULL);
+        cert = d2i_X509_bio((BIO*) bio, NULL);
     }
     return cert;
 }
@@ -1005,7 +1005,7 @@ cleanup:
 
 
 // Convert protos to wire format
-static int initProtocols(JNIEnv *e, const tcn_ssl_ctxt_t *c, unsigned char **proto_data,
+static int initProtocols(JNIEnv *e, unsigned char **proto_data,
             unsigned int *proto_len, jobjectArray protos) {
     int i;
     unsigned char *p_data;
@@ -1092,7 +1092,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobje
     TCN_ASSERT(ctx != 0);
     UNREFERENCED(o);
 
-    if (initProtocols(e, c->pool, &c->next_proto_data, &c->next_proto_len, next_protos) == 0) {
+    if (initProtocols(e, &c->next_proto_data, &c->next_proto_len, next_protos) == 0) {
         c->next_selector_failure_behavior = selectorFailureBehavior;
 
         // depending on if it's client mode or not we need to call different functions.
@@ -1124,7 +1124,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobj
         TCN_ASSERT(ctx != 0);
         UNREFERENCED(o);
 
-        if (initProtocols(e, c->pool, &c->alpn_proto_data, &c->alpn_proto_len, alpn_protos) == 0) {
+        if (initProtocols(e, &c->alpn_proto_data, &c->alpn_proto_len, alpn_protos) == 0) {
             c->alpn_selector_failure_behavior = selectorFailureBehavior;
 
             // depending on if it's client mode or not we need to call different functions.
@@ -1360,7 +1360,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     c->ticket_keys_len = cnt;
     c->ticket_keys = ticket_keys;
     apr_thread_rwlock_unlock(c->mutex);
-    
+
     SSL_CTX_set_tlsext_ticket_key_cb(c->ctx, ssl_tlsext_ticket_key_cb);
 }
 
@@ -1400,7 +1400,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
  * Adapted from Android:
  * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
  */
-const char* SSL_CIPHER_authentication_method(const SSL_CIPHER* cipher){
+const char* cipher_authentication_method(const SSL_CIPHER* cipher){
 #ifndef OPENSSL_IS_BORINGSSL
     switch (cipher->algorithm_mkey)
         {
@@ -1450,14 +1450,14 @@ const char* SSL_CIPHER_authentication_method(const SSL_CIPHER* cipher){
 
 }
 
-static const char* SSL_authentication_method(const SSL* ssl) {
+static const char* authentication_method(const SSL* ssl) {
 {
     switch (ssl->version)
         {
         case SSL2_VERSION:
             return SSL_TXT_RSA;
         default:
-            return SSL_CIPHER_authentication_method(ssl->s3->tmp.new_cipher);
+            return cipher_authentication_method(ssl->s3->tmp.new_cipher);
         }
     }
 }
@@ -1472,7 +1472,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     // Get a stack of all certs in the chain
     STACK_OF(X509) *sk = ctx->untrusted;
 
-    int len = sk_num(sk);
+    int len = sk_num((_STACK*) sk);
     unsigned i;
     X509 *cert;
     int length;
@@ -1490,7 +1490,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
-        cert = (X509*) sk_value(sk, i);
+        cert = (X509*) sk_value((_STACK*) sk, i);
 
         buf = NULL;
         length = i2d_X509(cert, &buf);
@@ -1511,7 +1511,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         OPENSSL_free(buf);
     }
 
-    authMethod = SSL_authentication_method(ssl);
+    authMethod = authentication_method(ssl);
     authMethodString = (*e)->NewStringUTF(e, authMethod);
 
     result = (*e)->CallBooleanMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,

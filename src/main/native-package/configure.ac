@@ -28,7 +28,7 @@ AC_CONFIG_HEADERS([src/config.h])
 AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
 
-${CFLAGS="-O3"}
+${CFLAGS="-O3 -Werror"}
 
 ## -----------------------------------------------
 ## Application Checks
