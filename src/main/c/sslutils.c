@@ -436,7 +436,6 @@ int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file,
                                   int skipfirst)
 {
     BIO *bio;
-    unsigned long err;
     int n;
 
     if ((bio = BIO_new(BIO_s_file())) == NULL)
@@ -752,7 +751,7 @@ void SSL_callback_handshake(const SSL *ssl, int where, int rc)
 
         if (state == SSL3_ST_SR_CLNT_HELLO_A
 #ifndef OPENSSL_IS_BORINGSSL
-                || SSL23_ST_SR_CLNT_HELLO_A
+                || state == SSL23_ST_SR_CLNT_HELLO_A
 #endif
                 ) {
             con->reneg_state = RENEG_ABORT;
@@ -782,14 +781,14 @@ int SSL_callback_next_protos(SSL *ssl, const unsigned char **data,
 /* The code here is inspired by nghttp2
  *
  * See https://github.com/tatsuhiro-t/nghttp2/blob/ae0100a9abfcf3149b8d9e62aae216e946b517fb/src/shrpx_ssl.cc#L244 */
-int select_next_proto(SSL *ssl, unsigned char **out, unsigned char *outlen,
+int select_next_proto(SSL *ssl, const unsigned char **out, unsigned char *outlen,
         const unsigned char *in, unsigned int inlen, unsigned char *supported_protos,
         unsigned int supported_protos_len, int failure_behavior) {
 
     unsigned int i = 0;
     unsigned char target_proto_len;
     unsigned char *p;
-    unsigned char *end;
+    const unsigned char *end;
     unsigned char *proto;
     unsigned char proto_len;
 
@@ -797,8 +796,8 @@ int select_next_proto(SSL *ssl, unsigned char **out, unsigned char *outlen,
         target_proto_len = *supported_protos;
         ++supported_protos;
 
-        p = in;
-        end = in + inlen;
+        p = (unsigned char*) in;
+        end = p + inlen;
 
         while (p < end) {
             proto_len = *p;
@@ -841,7 +840,7 @@ int SSL_callback_select_next_proto(SSL *ssl, unsigned char **out, unsigned char 
                          const unsigned char *in, unsigned int inlen,
                          void *arg) {
     tcn_ssl_ctxt_t *ssl_ctxt = arg;
-    return select_next_proto(ssl, out, outlen, in, inlen, ssl_ctxt->next_proto_data, ssl_ctxt->next_proto_len, ssl_ctxt->next_selector_failure_behavior);
+    return select_next_proto(ssl, (const unsigned char**) out, outlen, in, inlen, ssl_ctxt->next_proto_data, ssl_ctxt->next_proto_len, ssl_ctxt->next_selector_failure_behavior);
 }
 
 int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
