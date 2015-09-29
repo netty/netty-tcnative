@@ -936,7 +936,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
 
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(password);
-    const char *p;
     char err[256];
 
     UNREFERENCED(o);
