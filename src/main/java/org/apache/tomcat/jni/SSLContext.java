@@ -335,7 +335,7 @@ public final class SSLContext {
      * Set TLS session keys. This allows us to share keys across TFEs.
      */
     @Deprecated
-    public static void setSessionKeys(long ctx, byte[] keys) {
+    public static void setSessionTicketKeys(long ctx, byte[] keys) {
         if (keys.length % SessionTicketKey.TICKET_KEY_SIZE != 0) {
             throw new IllegalArgumentException("Session ticket keys provided were wrong size. keys.length % " + SessionTicketKey.TICKET_KEY_SIZE + " must be 0");
         }
