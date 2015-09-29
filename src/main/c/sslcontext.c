@@ -1288,7 +1288,8 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
 
     apr_thread_rwlock_rdlock(c->mutex);
     for (i = 0; i < c->ticket_keys_len; ++i) {
-        if (memcmp(c->ticket_keys[i].key_name, key_name, 16)) {
+        // Check if we have a match for tickets.
+        if (memcmp(c->ticket_keys[i].key_name, key_name, 16) == 0) {
             *key = c->ticket_keys[i];
             result = JNI_TRUE;
             *is_current_key = (i == 0);
@@ -1305,17 +1306,18 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
     int is_current_key;
 
     if (enc) { /* create new session */
-        if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) <= 0) {
-            return -1; /* insufficient random */
-        }
-
         if (current_session_key(c, &key)) {
+            if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) <= 0) {
+                return -1; /* insufficient random */
+            }
+
             memcpy(key_name, key.key_name, 16);
 
             EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
             HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
             return 1;
         }
+        // No ticket configured
         return 0;
     } else { /* retrieve session */
         if (find_session_key(c, key_name, &key, &is_current_key)) {
@@ -1326,6 +1328,7 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
             }
             return 1;
         }
+        // No ticket
         return 0;
     }
 }
