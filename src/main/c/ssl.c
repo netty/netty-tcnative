@@ -1757,6 +1757,48 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
     return SSL_get_time(ssl_->session);
 }
 
+
+TCN_IMPLEMENT_CALL(jlong, SSL, getTimeout)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    if (ssl_->session == NULL) {
+        // BoringSSL does not protect against a NULL session. OpenSSL
+        // returns 0 if the session is NULL, so do that here.
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    return SSL_get_timeout(ssl_->session);
+}
+
+
+TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+    if (ssl_->session == NULL) {
+        // BoringSSL does not protect against a NULL session. OpenSSL
+        // returns 0 if the session is NULL, so do that here.
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    return SSL_set_timeout(ssl_->session, seconds);
+}
+
+
 TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
                                                 jint level, jint depth)
 {
@@ -2315,6 +2357,23 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
 {
   UNREFERENCED(o);
   UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSL, getTimeout)(TCN_STDARGS, jlong ssl)
+{
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  tcn_ThrowException(e, "Not implemented");
+  return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds)
+{
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  UNREFERENCED(seconds);
   tcn_ThrowException(e, "Not implemented");
   return 0;
 }

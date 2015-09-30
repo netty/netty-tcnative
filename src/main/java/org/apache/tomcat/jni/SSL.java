@@ -612,6 +612,21 @@ public final class SSL {
     public static native long getTime(long ssl);
 
     /**
+     * SSL_get_timeout
+     * @param ssl the SSL instance (SSL *)
+     * @return returns the timeout for the session ssl The time is given in seconds since the Epoch
+     */
+    public static native long getTimeout(long ssl);
+
+    /**
+     * SSL_set_timeout
+     * @param ssl the SSL instance (SSL *)
+     * @param seconds timeout in seconds
+     * @return returns the timeout for the session ssl before this call. The time is given in seconds since the Epoch
+     */
+    public static native long setTimeout(long ssl, long seconds);
+
+    /**
      * Set Type of Client Certificate verification and Maximum depth of CA Certificates
      * in Client Certificate verification.
      * <br />
