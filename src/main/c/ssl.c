@@ -2160,7 +2160,6 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS, jlong ssl)
 TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
 {
   UNREFERENCED(o);
-  UNREFERENCED(ssl);
   tcn_ThrowException(e, "Not implemented");
   return NULL;
 }
