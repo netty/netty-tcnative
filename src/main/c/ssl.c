@@ -1615,6 +1615,12 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
         return 0;
     }
 
+    if (ssl_->session == NULL) {
+        // BoringSSL does not protect against a NULL session. OpenSSL
+        // returns 0 if the session is NULL, so do that here.
+        return 0;
+    }
+
     UNREFERENCED(o);
 
     return SSL_get_time(ssl_->session);
