@@ -1345,7 +1345,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToBIO)(TCN_STDARGS,
         return 0;
     }
     if (w == NULL) {
-        tcn_ThrowException(e, "buffer is null");
+        tcn_ThrowException(e, "wbuf is null");
         return 0;
     }
 
@@ -1368,7 +1368,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, readFromBIO)(TCN_STDARGS,
         return 0;
     }
     if (r == NULL) {
-        tcn_ThrowException(e, "buffer is null");
+        tcn_ThrowException(e, "rbuf is null");
         return 0;
     }
 
@@ -1390,7 +1390,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToSSL)(TCN_STDARGS,
         return 0;
     }
     if (w == NULL) {
-        tcn_ThrowException(e, "buffer is null");
+        tcn_ThrowException(e, "wbuf is null");
         return 0;
     }
 
@@ -1412,7 +1412,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, readFromSSL)(TCN_STDARGS,
         return 0;
     }
     if (r == NULL) {
-        tcn_ThrowException(e, "buffer is null");
+        tcn_ThrowException(e, "rbuf is null");
         return 0;
     }
 
