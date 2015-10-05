@@ -1284,7 +1284,6 @@ TCN_IMPLEMENT_CALL(void, SSL, setBIO)(TCN_STDARGS,
     UNREFERENCED_STDARGS;
 
     SSL_set_bio(ssl_, r, w);
-    return;
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, getError)(TCN_STDARGS,
@@ -1498,14 +1497,11 @@ TCN_IMPLEMENT_CALL(void, SSL, freeBIO)(TCN_STDARGS,
                                        jlong bio /* BIO * */) {
     BIO *bio_ = J2P(bio, BIO *);
 
-    if (bio_ == NULL) {
-        tcn_ThrowException(e, "bio is null");
-        return;
-    }
-
     UNREFERENCED_STDARGS;
 
-    BIO_free(bio_);
+    if (bio_ != NULL) {
+        BIO_free(bio_);
+    }
 }
 
 // Send CLOSE_NOTIFY to peer
@@ -1531,7 +1527,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getCipherForSSL)(TCN_STDARGS,
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
-        return AJP_TO_JSTRING("");
+        return NULL;
     }
 
     UNREFERENCED_STDARGS;
