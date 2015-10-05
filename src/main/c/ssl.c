@@ -1227,8 +1227,6 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
                                                    jlong ctx /* tcn_ssl_ctxt_t * */,
                                                    jboolean server) {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    int *handshakeCount = malloc(sizeof(int));
-    SSL *ssl;
 
     if (c == NULL) {
         tcn_ThrowException(e, "ssl ctx is null");
@@ -1241,7 +1239,8 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
 
     UNREFERENCED_STDARGS;
 
-    ssl = SSL_new(c->ctx);
+    int *handshakeCount = malloc(sizeof(int));
+    SSL *ssl = SSL_new(c->ctx);
     if (ssl == NULL) {
         tcn_ThrowException(e, "cannot create new ssl");
         return 0;
@@ -1498,6 +1497,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO)(TCN_STDARGS,
 TCN_IMPLEMENT_CALL(void, SSL, freeBIO)(TCN_STDARGS,
                                        jlong bio /* BIO * */) {
     BIO *bio_ = J2P(bio, BIO *);
+
     if (bio_ == NULL) {
         tcn_ThrowException(e, "bio is null");
         return;
@@ -1883,9 +1883,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
                                                          jstring ciphers)
 {
-    jboolean rv = JNI_TRUE;
     SSL *ssl_ = J2P(ssl, SSL *);
-    TCN_ALLOC_CSTRING(ciphers);
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
@@ -1894,15 +1892,20 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
 
     UNREFERENCED(o);
 
+    TCN_ALLOC_CSTRING(ciphers);
+
     if (!J2S(ciphers)) {
         return JNI_FALSE;
     }
+
+    jboolean rv = JNI_TRUE;
     if (!SSL_set_cipher_list(ssl_, J2S(ciphers))) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
         rv = JNI_FALSE;
     }
+
     TCN_FREE_CSTRING(ciphers);
     return rv;
 }
