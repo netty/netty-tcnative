@@ -1543,7 +1543,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getVersion)(TCN_STDARGS,
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
-        return AJP_TO_JSTRING("");
+        return NULL;
     }
 
     UNREFERENCED_STDARGS;
