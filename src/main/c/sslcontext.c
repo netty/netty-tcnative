@@ -130,6 +130,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
             ctx = SSL_CTX_new(TLSv1_server_method());
         else
             ctx = SSL_CTX_new(TLSv1_method());
+#ifndef OPENSSL_NO_SSL3
     } else if (protocol == SSL_PROTOCOL_SSLV3) {
         if (mode == SSL_MODE_CLIENT)
             ctx = SSL_CTX_new(SSLv3_client_method());
@@ -137,6 +138,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
             ctx = SSL_CTX_new(SSLv3_server_method());
         else
             ctx = SSL_CTX_new(SSLv3_method());
+#endif
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L) && !defined(OPENSSL_NO_SSL2)
     } else if (protocol == SSL_PROTOCOL_SSLV2) {
         if (mode == SSL_MODE_CLIENT)
@@ -154,6 +156,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
     } else if (protocol & SSL_PROTOCOL_TLSV1_1) {
         /* requested but not supported */
 #endif
+#ifndef OPENSSL_NO_SSL3
     } else {
         if (mode == SSL_MODE_CLIENT)
             ctx = SSL_CTX_new(SSLv23_client_method());
@@ -161,6 +164,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
             ctx = SSL_CTX_new(SSLv23_server_method());
         else
             ctx = SSL_CTX_new(SSLv23_method());
+#endif
     }
 
     if (!ctx) {
