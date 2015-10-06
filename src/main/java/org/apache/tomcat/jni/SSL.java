@@ -237,11 +237,38 @@ public final class SSL {
     public static final int SSL_ST_CONNECT = 0x1000;
     public static final int SSL_ST_ACCEPT =  0x2000;
 
+    /**
+     * The actual release that is used and implement the OPENSSL API / ABI
+     */
+    public enum Release {
+        OPENSSL,
+        LIBRESSL,
+        BORINGSSL,
+    }
+
     /* Return OpenSSL version number */
     public static native int version();
 
     /* Return OpenSSL version string */
     public static native String versionString();
+
+    /**
+     * Returns the {@link Release} against which tcnative was compiled.
+     */
+    public static Release release() {
+        switch (release0()) {
+            case 0:
+                return Release.OPENSSL;
+            case 1:
+                return Release.LIBRESSL;
+            case 2:
+                return Release.BORINGSSL;
+            default:
+                throw new java.lang.Error();
+        }
+    }
+
+    private static native int release0();
 
     /**
      * Initialize OpenSSL support.

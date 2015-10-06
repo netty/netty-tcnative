@@ -2036,6 +2036,17 @@ TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS,
     SSL_set_state(ssl_, state);
 }
 
+TCN_IMPLEMENT_CALL(jint, SSL, release0)(TCN_STDARGS)
+{
+    UNREFERENCED_STDARGS;
+    #ifdef LIBRESSL_VERSION_NUMBER
+        return 1;
+    #elif defined(OPENSSL_IS_BORINGSSL)
+        return 2;
+    #else
+        return 0;
+    #endif
+}
 
 /*** End Apple API Additions ***/
 
@@ -2451,5 +2462,12 @@ TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS, jlong ssl, jint state) {
   UNREFERENCED(state);
   tcn_ThrowException(e, "Not implemented");
 }
+
+TCN_IMPLEMENT_CALL(jint, SSL, release0)(TCN_STDARGS)
+{
+    UNREFERENCED_STDARGS;
+    tcn_ThrowException(e, "Not implemented");
+}
+
 /*** End Apple API Additions ***/
 #endif
