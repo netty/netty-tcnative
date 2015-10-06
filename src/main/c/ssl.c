@@ -561,10 +561,12 @@ static int ssl_rand_save_file(const char *file)
 #ifndef OPENSSL_IS_BORINGSSL
     char buffer[APR_PATH_MAX];
     int n;
-    if (file == NULL)
+    if (file == NULL) {
         file = RAND_file_name(buffer, sizeof(buffer));
-    else if ((n = RAND_egd(file)) > 0) {
+#ifdef HAVE_SSL_RAND_EGD
+    } else if ((n = RAND_egd(file)) > 0) {
         return 0;
+#endif
     }
     if (file == NULL || !RAND_write_file(file))
         return 0;
