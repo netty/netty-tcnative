@@ -1228,6 +1228,8 @@ static void ssl_info_callback(const SSL *ssl, int where, int ret) {
 TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
                                                    jlong ctx /* tcn_ssl_ctxt_t * */,
                                                    jboolean server) {
+    SSL *ssl = NULL;
+    int *handshakeCount = NULL;
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     if (c == NULL) {
@@ -1241,8 +1243,8 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
 
     UNREFERENCED_STDARGS;
 
-    int *handshakeCount = malloc(sizeof(int));
-    SSL *ssl = SSL_new(c->ctx);
+    handshakeCount = malloc(sizeof(int));
+    ssl = SSL_new(c->ctx);
     if (ssl == NULL) {
         tcn_ThrowException(e, "cannot create new ssl");
         return 0;
@@ -1455,12 +1457,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setShutdown)(TCN_STDARGS,
 // Free the SSL * and its associated internal BIO
 TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
                                        jlong ssl /* SSL * */) {
+    int *handshakeCount = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
         return;
     }
-    int *handshakeCount = SSL_get_app_data3(ssl_);
+    handshakeCount = SSL_get_app_data3(ssl_);
 
     UNREFERENCED_STDARGS;
 
@@ -1923,6 +1926,8 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
                                                          jstring ciphers)
 {
+    jboolean rv = JNI_TRUE;
+    TCN_ALLOC_CSTRING(ciphers);
     SSL *ssl_ = J2P(ssl, SSL *);
 
     if (ssl_ == NULL) {
@@ -1932,13 +1937,10 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
 
     UNREFERENCED(o);
 
-    TCN_ALLOC_CSTRING(ciphers);
-
     if (!J2S(ciphers)) {
         return JNI_FALSE;
     }
 
-    jboolean rv = JNI_TRUE;
     if (!SSL_set_cipher_list(ssl_, J2S(ciphers))) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
