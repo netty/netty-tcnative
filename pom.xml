@@ -21,7 +21,7 @@
     <artifactId>netty-parent</artifactId>
     <version>4.0.18.Final</version>
   </parent>
-  <artifactId>netty-tcnative</artifactId>
+  <artifactId>${artifactIdToUse}</artifactId>
   <version>1.1.33.Fork11-SNAPSHOT</version>
   <packaging>jar</packaging>
 
@@ -39,6 +39,7 @@
   </scm>
 
   <properties>
+    <artifactIdToUse>netty-tcnative</artifactIdToUse>
     <checkstyle.skip>true</checkstyle.skip>
     <animal.sniffer.skip>true</animal.sniffer.skip>
     <forceAutogen>true</forceAutogen>
@@ -47,6 +48,7 @@
     <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}.jar</nativeJarFile>
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
+    <maven-hawtjni-plugin-version>1.11</maven-hawtjni-plugin-version>
   </properties>
 
   <build>
@@ -103,7 +105,7 @@
       <plugin>
         <groupId>org.fusesource.hawtjni</groupId>
         <artifactId>maven-hawtjni-plugin</artifactId>
-        <version>1.10</version>
+        <version>${maven-hawtjni-plugin-version}</version>
         <executions>
           <execution>
             <id>build-native-lib</id>
@@ -123,10 +125,29 @@
         </executions>
       </plugin>
 
-      <!-- Build the additional JAR that contains the native library. -->
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>
+          <!--
+            Fedora-based systems use a different soname for OpenSSL than other linux distributions.
+            Use a custom classifier ending in "-fedora" when building on fedora-based systems.
+          -->
+          <execution>
+            <phase>initialize</phase>
+            <configuration>
+              <exportAntProperties>true</exportAntProperties>
+              <target>
+                <condition property="classifier_to_use" value="${os.detected.classifier}-fedora" else="${os.detected.classifier}">
+                  <isset property="os.detected.release.like.fedora" />
+                </condition>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+
+          <!-- Build the additional JAR that contains the native library. -->
           <execution>
             <id>native-jar</id>
             <phase>package</phase>
@@ -176,35 +197,100 @@
           </execution>
         </executions>
       </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <!--
-          Fedora-based systems use a different soname for OpenSSL than other linux distributions.
-          Use a custom classifier ending in "-fedora" when building on fedora-based systems.
-        -->
-        <executions>
-          <execution>
-            <phase>initialize</phase>
-            <configuration>
-              <exportAntProperties>true</exportAntProperties>
-              <target>
-                <condition property="classifier_to_use" value="${os.detected.classifier}-fedora" else="${os.detected.classifier}">
-                  <isset property="os.detected.release.like.fedora" />
-                </condition>
-              </target>
-            </configuration>
-            <goals>
-              <goal>run</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
   <profiles>
+    <!-- Build distribution statically linked to BoringSSL -->
+    <profile>
+      <id>boringssl</id>
+
+      <properties>
+        <artifactIdToUse>netty-tcnative-boringssl</artifactIdToUse>
+        <boringSslHome>${project.build.directory}/boringssl</boringSslHome>
+        <checkoutDirectory>${boringSslHome}</checkoutDirectory>
+        <boringSslBuildDir>${boringSslHome}/build</boringSslBuildDir>
+      </properties>
+
+      <build>
+        <plugins>
+          <!-- Download the BoringSSL source -->
+          <plugin>
+            <artifactId>maven-scm-plugin</artifactId>
+            <version>1.9.4</version>
+            <executions>
+              <execution>
+                <id>get-boringssl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:git:https://boringssl.googlesource.com/boringssl</developerConnectionUrl>
+                  <scmVersion>chromium-stable</scmVersion>
+                  <scmVersionType>branch</scmVersionType>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Build BoringSSL -->
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>make-boring-ssl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target name="makeBoringSsl">
+                    <mkdir dir="${boringSslBuildDir}" />
+                    <exec executable="cmake" failonerror="true" dir="${boringSslBuildDir}" resolveexecutable="true">
+                      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                      <arg value="-GNinja" />
+                      <arg value=".." />
+                    </exec>
+                    <exec executable="ninja" failonerror="true" dir="${boringSslBuildDir}" resolveexecutable="true"/>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Configure the distribution statically linked against BoringSSL -->
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>maven-hawtjni-plugin</artifactId>
+            <version>${maven-hawtjni-plugin-version}</version>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <configuration>
+                  <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+                  <libDirectory>${nativeLibOnlyDir}</libDirectory>
+                  <forceAutogen>${forceAutogen}</forceAutogen>
+                  <forceConfigure>${forceConfigure}</forceConfigure>
+                  <windowsBuildTool>msbuild</windowsBuildTool>
+                  <configureArgs>
+                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringSslHome}/include</configureArg>
+                    <configureArg>LDFLAGS=-L${boringSslBuildDir}/ssl -L${boringSslBuildDir}/crypto -L${boringSslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                  </configureArgs>
+                </configuration>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!--
       netty-tcnative must be released from RHEL 6.6 x86_64 or compatible so that:
 
