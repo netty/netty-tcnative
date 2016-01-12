@@ -1067,7 +1067,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, newMemBIO)(TCN_STDARGS)
     // TODO: Use BIO_s_secmem() once included in stable release
     if ((bio = BIO_new(BIO_s_mem())) == NULL) {
         tcn_ThrowException(e, "Create BIO failed");
-        return (jlong) NULL;
+        return 0;
     }
     return P2J(bio);
 }
