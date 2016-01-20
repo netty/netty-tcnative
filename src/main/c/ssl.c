@@ -1870,6 +1870,21 @@ TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
     SSL_set_options(ssl_, opt);
 }
 
+TCN_IMPLEMENT_CALL(void, SSL, clearOptions)(TCN_STDARGS, jlong ssl,
+                                                 jint opt)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return;
+    }
+
+    UNREFERENCED_STDARGS;
+
+    SSL_clear_options(ssl_, opt);
+}
+
 TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
 {
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -2391,6 +2406,15 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl,
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
+                                                 jint opt)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ssl);
+    UNREFERENCED(opt);
+    tcn_ThrowException(e, "Not implemented");
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, clearOptions)(TCN_STDARGS, jlong ssl,
                                                  jint opt)
 {
     UNREFERENCED_STDARGS;
