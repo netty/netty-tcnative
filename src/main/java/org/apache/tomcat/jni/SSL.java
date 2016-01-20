@@ -670,6 +670,13 @@ public final class SSL {
     public static native void setOptions(long ssl, int options);
 
     /**
+     * Clear OpenSSL Option.
+     * @param ssl the SSL instance (SSL *)
+     * @param options  See SSL.SSL_OP_* for option flags.
+     */
+    public static native void clearOptions(long ssl, int options);
+
+    /**
      * Get OpenSSL Option.
      * @param ssl the SSL instance (SSL *)
      * @return options  See SSL.SSL_OP_* for option flags.
