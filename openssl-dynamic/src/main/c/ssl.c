@@ -227,26 +227,35 @@ static const jint supported_ssl_opts = 0
 
 static int ssl_tmp_key_init_rsa(int bits, int idx)
 {
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
-    if (!(SSL_temp_keys[idx] =
-          RSA_generate_key(bits, RSA_F4, NULL, NULL))) {
-#ifdef OPENSSL_FIPS
-        /**
-         * With FIPS mode short RSA keys cannot be
-         * generated.
-         */
-        if (bits < 1024)
-            return 0;
-        else
-#endif
-        return 1;
-    }
-    else {
+#if defined(OPENSSL_FIPS)
+    /**
+     * Short RSA keys cannot be generated in FIPS mode.
+     */
+    if (bits < 1024) {
+        SSL_temp_keys[idx] = NULL;
         return 0;
     }
-#else
-    return 0;
 #endif
+
+    BIGNUM *e = BN_new();
+    RSA *rsa = RSA_new();
+    int ret = 1;
+
+    if (e == NULL ||
+        rsa == NULL ||
+        !BN_set_word(e, RSA_F4) ||
+        RSA_generate_key_ex(rsa, bits, e, NULL) != 1) {
+        goto err;
+    }
+
+    SSL_temp_keys[idx] = rsa;
+    rsa = NULL;
+    ret = 0;
+
+err:
+    BN_free(e);
+    RSA_free(rsa);
+    return ret;
 }
 
 static int ssl_tmp_key_init_dh(int bits, int idx)
@@ -744,6 +753,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 
     SSL_TMP_KEYS_INIT(r);
     if (r) {
+        ERR_clear_error();
         TCN_FREE_CSTRING(engine);
         ssl_init_cleanup(NULL);
         tcn_ThrowAPRException(e, APR_ENOTIMPL);
