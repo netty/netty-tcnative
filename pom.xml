@@ -110,6 +110,7 @@
           <execution>
             <id>build-native-lib</id>
             <configuration>
+              <name>netty-tcnative</name>
               <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
               <libDirectory>${nativeLibOnlyDir}</libDirectory>
               <forceAutogen>${forceAutogen}</forceAutogen>
@@ -207,60 +208,96 @@
 
       <properties>
         <artifactIdToUse>netty-tcnative-boringssl</artifactIdToUse>
-        <boringSslHome>${project.build.directory}/boringssl</boringSslHome>
-        <checkoutDirectory>${boringSslHome}</checkoutDirectory>
-        <boringSslBuildDir>${boringSslHome}/build</boringSslBuildDir>
+        <boringsslHome>${project.build.directory}/boringssl</boringsslHome>
+        <boringsslBuildDir>${boringsslHome}/build</boringsslBuildDir>
+        <boringsslBranch>chromium-stable</boringsslBranch>
+        <aprHome>${project.build.directory}/apr</aprHome>
+        <aprTag>1.5.2</aprTag>
       </properties>
 
       <build>
         <plugins>
-          <!-- Download the BoringSSL source -->
           <plugin>
             <artifactId>maven-scm-plugin</artifactId>
             <version>1.9.4</version>
             <executions>
+              <!-- Download the BoringSSL source -->
               <execution>
-                <id>get-boringssl</id>
+                <id>checkout-boringssl</id>
                 <phase>generate-sources</phase>
                 <goals>
                   <goal>checkout</goal>
                 </goals>
                 <configuration>
+                  <checkoutDirectory>${boringsslHome}</checkoutDirectory>
                   <connectionType>developerConnection</connectionType>
                   <developerConnectionUrl>scm:git:https://boringssl.googlesource.com/boringssl</developerConnectionUrl>
-                  <scmVersion>chromium-stable</scmVersion>
+                  <scmVersion>${boringsslBranch}</scmVersion>
                   <scmVersionType>branch</scmVersionType>
+                </configuration>
+              </execution>
+              <!-- Download the APR source -->
+              <execution>
+                <id>checkout-apr</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <checkoutDirectory>${aprHome}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:svn:http://svn.apache.org/repos/asf/apr/apr</developerConnectionUrl>
+                  <scmVersion>${aprTag}</scmVersion>
+                  <scmVersionType>tag</scmVersionType>
                 </configuration>
               </execution>
             </executions>
           </plugin>
 
-          <!-- Build BoringSSL -->
           <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
+              <!-- Build the BoringSSL static libs -->
               <execution>
-                <id>make-boring-ssl</id>
+                <id>build-boringssl</id>
                 <phase>generate-sources</phase>
                 <goals>
                   <goal>run</goal>
                 </goals>
                 <configuration>
-                  <target name="makeBoringSsl">
-                    <mkdir dir="${boringSslBuildDir}" />
-                    <exec executable="cmake" failonerror="true" dir="${boringSslBuildDir}" resolveexecutable="true">
+                  <target name="build-boringssl">
+                    <mkdir dir="${boringsslBuildDir}" />
+                    <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
                       <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                       <arg value="-GNinja" />
                       <arg value=".." />
                     </exec>
-                    <exec executable="ninja" failonerror="true" dir="${boringSslBuildDir}" resolveexecutable="true" />
+                    <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                  </target>
+                </configuration>
+              </execution>
+              <!-- Build the APR static lib -->
+              <execution>
+                <id>build-apr</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target name="build-apr">
+                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
+                      <!-- Only create the static library to force static linkage -->
+                      <arg value="--disable-shared" />
+                    </exec>
+                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
                   </target>
                 </configuration>
               </execution>
             </executions>
           </plugin>
 
-          <!-- Configure the distribution statically linked against BoringSSL -->
+          <!-- Configure the distribution statically linked against BoringSSL and APR -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
             <artifactId>maven-hawtjni-plugin</artifactId>
@@ -269,14 +306,17 @@
               <execution>
                 <id>build-native-lib</id>
                 <configuration>
+                  <name>netty-tcnative</name>
                   <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
                   <libDirectory>${nativeLibOnlyDir}</libDirectory>
                   <forceAutogen>${forceAutogen}</forceAutogen>
                   <forceConfigure>${forceConfigure}</forceConfigure>
                   <windowsBuildTool>msbuild</windowsBuildTool>
                   <configureArgs>
-                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringSslHome}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringSslBuildDir}/ssl -L${boringSslBuildDir}/crypto -L${boringSslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                    <configureArg>--with-ssl=no</configureArg>
+                    <configureArg>--with-apr=${aprHome}</configureArg>
+                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslHome}/include</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
