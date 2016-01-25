@@ -1745,13 +1745,15 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
 TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
 {
     SSL *ssl_ = J2P(ssl, SSL *);
+    SSL_SESSION *session = NULL;
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
         return 0;
     }
 
-    if (ssl_->session == NULL) {
+    session = SSL_get_session(ssl_);
+    if (session == NULL) {
         // BoringSSL does not protect against a NULL session. OpenSSL
         // returns 0 if the session is NULL, so do that here.
         return 0;
@@ -1759,20 +1761,22 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
 
     UNREFERENCED(o);
 
-    return SSL_get_time(ssl_->session);
+    return SSL_get_time(session);
 }
 
 
 TCN_IMPLEMENT_CALL(jlong, SSL, getTimeout)(TCN_STDARGS, jlong ssl)
 {
     SSL *ssl_ = J2P(ssl, SSL *);
+    SSL_SESSION *session = NULL;
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
         return 0;
     }
 
-    if (ssl_->session == NULL) {
+    session = SSL_get_session(ssl_);
+    if (session == NULL) {
         // BoringSSL does not protect against a NULL session. OpenSSL
         // returns 0 if the session is NULL, so do that here.
         return 0;
@@ -1780,19 +1784,22 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTimeout)(TCN_STDARGS, jlong ssl)
 
     UNREFERENCED(o);
 
-    return SSL_get_timeout(ssl_->session);
+    return SSL_get_timeout(session);
 }
 
 
 TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds)
 {
     SSL *ssl_ = J2P(ssl, SSL *);
+    SSL_SESSION *session = NULL;
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
         return 0;
     }
-    if (ssl_->session == NULL) {
+
+    session = SSL_get_session(ssl_);
+    if (session == NULL) {
         // BoringSSL does not protect against a NULL session. OpenSSL
         // returns 0 if the session is NULL, so do that here.
         return 0;
@@ -1800,7 +1807,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds
 
     UNREFERENCED(o);
 
-    return SSL_set_timeout(ssl_->session, seconds);
+    return SSL_set_timeout(session, seconds);
 }
 
 
