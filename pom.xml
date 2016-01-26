@@ -49,6 +49,11 @@
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
     <maven-hawtjni-plugin-version>1.11</maven-hawtjni-plugin-version>
+    <maven-scm-plugin-version>1.9.4</maven-scm-plugin-version>
+    <ant-commons-net-version>1.9.6</ant-commons-net-version>
+    <aprHome>${project.build.directory}/apr</aprHome>
+    <aprTag>1.5.2</aprTag>
+    <aprDeveloperConnectionUrl>scm:svn:http://svn.apache.org/repos/asf/apr/apr</aprDeveloperConnectionUrl>
   </properties>
 
   <build>
@@ -204,22 +209,20 @@
   <profiles>
     <!-- Build distribution statically linked to BoringSSL -->
     <profile>
-      <id>boringssl</id>
+      <id>boringssl-static</id>
 
       <properties>
-        <artifactIdToUse>netty-tcnative-boringssl</artifactIdToUse>
+        <artifactIdToUse>netty-tcnative-boringssl-static</artifactIdToUse>
         <boringsslHome>${project.build.directory}/boringssl</boringsslHome>
         <boringsslBuildDir>${boringsslHome}/build</boringsslBuildDir>
         <boringsslBranch>chromium-stable</boringsslBranch>
-        <aprHome>${project.build.directory}/apr</aprHome>
-        <aprTag>1.5.2</aprTag>
       </properties>
 
       <build>
         <plugins>
           <plugin>
             <artifactId>maven-scm-plugin</artifactId>
-            <version>1.9.4</version>
+            <version>${maven-scm-plugin-version}</version>
             <executions>
               <!-- Download the BoringSSL source -->
               <execution>
@@ -246,7 +249,7 @@
                 <configuration>
                   <checkoutDirectory>${aprHome}</checkoutDirectory>
                   <connectionType>developerConnection</connectionType>
-                  <developerConnectionUrl>scm:svn:http://svn.apache.org/repos/asf/apr/apr</developerConnectionUrl>
+                  <developerConnectionUrl>${aprDeveloperConnectionUrl}</developerConnectionUrl>
                   <scmVersion>${aprTag}</scmVersion>
                   <scmVersionType>tag</scmVersionType>
                 </configuration>
@@ -317,6 +320,264 @@
                     <configureArg>--with-apr=${aprHome}</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslHome}/include</configureArg>
                     <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                  </configureArgs>
+                </configuration>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Build distribution statically linked to LibreSSL -->
+    <profile>
+      <id>libressl-static</id>
+
+      <properties>
+        <artifactIdToUse>netty-tcnative-libressl-static</artifactIdToUse>
+        <libresslFile>libressl-${libresslVersion}.tar.gz</libresslFile>
+        <libresslBuildDir>${project.build.directory}/libressl-${libresslVersion}/build-ninja</libresslBuildDir>
+      </properties>
+
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-scm-plugin</artifactId>
+            <version>${maven-scm-plugin-version}</version>
+            <executions>
+              <!-- Download the APR source -->
+              <execution>
+                <id>checkout-apr</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <checkoutDirectory>${aprHome}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>${aprDeveloperConnectionUrl}</developerConnectionUrl>
+                  <scmVersion>${aprTag}</scmVersion>
+                  <scmVersionType>tag</scmVersionType>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <!-- Build the LibreSSL static libs -->
+              <execution>
+                <id>build-libressl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target name="build-libressl">
+                    <ftp action="get"
+                       server="ftp.openbsd.org"
+                       remotedir="/pub/OpenBSD/LibreSSL/"
+                       userid="anonymous"
+                       password="anonymous"
+                       verbose="yes">
+                       <fileset dir="${project.build.directory}">
+                         <include name="**/${libresslFile}"/>
+                       </fileset>
+                     </ftp>
+                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                      <arg value="xfvz" />
+                      <arg value="${libresslFile}" />
+                    </exec>
+                    <mkdir dir="${libresslBuildDir}" />
+                    <exec executable="cmake" failonerror="true" dir="${libresslBuildDir}" resolveexecutable="true">
+                      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                      <arg value="-GNinja" />
+                      <arg value=".." />
+                    </exec>
+                    <exec executable="ninja" failonerror="true" dir="${libresslBuildDir}" resolveexecutable="true" />
+                  </target>
+                </configuration>
+              </execution>
+              <!-- Build the APR static lib -->
+              <execution>
+                <id>build-apr</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target name="build-apr">
+                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
+                      <arg value="--disable-shared" />
+                    </exec>
+                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+            <dependencies>
+              <dependency>
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant-commons-net</artifactId>
+                <version>${ant-commons-net-version}</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+
+          <!-- Configure the distribution statically linked against LibreSSL and APR -->
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>maven-hawtjni-plugin</artifactId>
+            <version>${maven-hawtjni-plugin-version}</version>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <configuration>
+                  <name>netty-tcnative</name>
+                  <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+                  <libDirectory>${nativeLibOnlyDir}</libDirectory>
+                  <forceAutogen>${forceAutogen}</forceAutogen>
+                  <forceConfigure>${forceConfigure}</forceConfigure>
+                  <windowsBuildTool>msbuild</windowsBuildTool>
+                  <configureArgs>
+                    <configureArg>--with-ssl=no</configureArg>
+                    <configureArg>--with-apr=${aprHome}</configureArg>
+                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${libresslBuildDir}/include</configureArg>
+                    <configureArg>LDFLAGS=-L${libresslBuildDir}/ssl -L${libresslBuildDir}/crypto -L${libresslBuildDir}/tls -ltls -lssl -lcrypto</configureArg>
+                  </configureArgs>
+                </configuration>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Build distribution statically linked to OpenSSL -->
+    <profile>
+      <id>openssl-static</id>
+
+      <properties>
+        <artifactIdToUse>netty-tcnative-openssl-static</artifactIdToUse>
+        <opensslFile>openssl-${opensslVersion}.tar.gz</opensslFile>
+        <opensslBuildDir>${project.build.directory}/openssl-${opensslVersion}</opensslBuildDir>
+      </properties>
+
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-scm-plugin</artifactId>
+            <version>${maven-scm-plugin-version}</version>
+            <executions>
+              <!-- Download the APR source -->
+              <execution>
+                <id>checkout-apr</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <checkoutDirectory>${aprHome}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>${aprDeveloperConnectionUrl}</developerConnectionUrl>
+                  <scmVersion>${aprTag}</scmVersion>
+                  <scmVersionType>tag</scmVersionType>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <!-- Build the OpenSSL static libs -->
+              <execution>
+                <id>build-openssl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target name="build-openssl">
+                    <ftp action="get"
+                       server="ftp.openssl.org"
+                       remotedir="/source/"
+                       userid="anonymous"
+                       password="anonymous"
+                       verbose="yes">
+                       <fileset dir="${project.build.directory}">
+                         <include name="**/${opensslFile}"/>
+                       </fileset>
+                     </ftp>
+                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                      <arg value="xfvz" />
+                      <arg value="${opensslFile}" />
+                    </exec>
+                    <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                      <arg value="no-shared" />
+                    </exec>
+                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true"/>
+                  </target>
+                </configuration>
+              </execution>
+              <!-- Build the APR static lib -->
+              <execution>
+                <id>build-apr</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target name="build-apr">
+                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
+                      <!-- Only create the static library to force static linkage -->
+                      <arg value="--disable-shared" />
+                    </exec>
+                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+               <dependencies>
+                 <dependency>
+                   <groupId>org.apache.ant</groupId>
+                   <artifactId>ant-commons-net</artifactId>
+                   <version>${ant-commons-net-version}</version>
+                 </dependency>
+              </dependencies>
+          </plugin>
+
+          <!-- Configure the distribution statically linked against OpenSSL and APR -->
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>maven-hawtjni-plugin</artifactId>
+            <version>${maven-hawtjni-plugin-version}</version>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <configuration>
+                  <name>netty-tcnative</name>
+                  <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+                  <libDirectory>${nativeLibOnlyDir}</libDirectory>
+                  <forceAutogen>${forceAutogen}</forceAutogen>
+                  <forceConfigure>${forceConfigure}</forceConfigure>
+                  <windowsBuildTool>msbuild</windowsBuildTool>
+                  <configureArgs>
+                    <configureArg>--with-ssl=${opensslBuildDir}</configureArg>
+                    <configureArg>--with-apr=${aprHome}</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
