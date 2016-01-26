@@ -30,6 +30,8 @@
 #ifdef HAVE_OPENSSL
 #include "ssl_private.h"
 
+static const char* UNKNOWN_AUTH_METHOD = "UNKNOWN";
+
 static jclass byteArrayClass;
 
 static apr_status_t ssl_context_cleanup(void *data)
@@ -1428,7 +1430,7 @@ const char* cipher_authentication_method(const SSL_CIPHER* cipher){
         case SSL_aNULL:
             return SSL_TXT_DH "_anon";
         default:
-            return "UNKNOWN";
+            return UNKNOWN_AUTH_METHOD;
             }
     case SSL_kKRB5:
         return SSL_TXT_KRB5;
@@ -1446,10 +1448,10 @@ const char* cipher_authentication_method(const SSL_CIPHER* cipher){
         case SSL_aNULL:
             return SSL_TXT_ECDH "_anon";
         default:
-            return "UNKNOWN";
+            return UNKNOWN_AUTH_METHOD;
             }
     default:
-        return "UNKNOWN";
+        return UNKNOWN_AUTH_METHOD;
     }
 #else
     return SSL_CIPHER_get_kx_name(cipher);
@@ -1459,12 +1461,19 @@ const char* cipher_authentication_method(const SSL_CIPHER* cipher){
 
 static const char* authentication_method(const SSL* ssl) {
 {
+    const STACK_OF(SSL_CIPHER) *ciphers = NULL;
+
     switch (ssl->version)
         {
         case SSL2_VERSION:
             return SSL_TXT_RSA;
         default:
-            return cipher_authentication_method(ssl->s3->tmp.new_cipher);
+            ciphers = SSL_get_ciphers(ssl);
+            if (ciphers == NULL || sk_num((_STACK*) ciphers) <= 0) {
+                // No cipher available so return UNKNOWN.
+                return UNKNOWN_AUTH_METHOD;
+            }
+            return cipher_authentication_method(sk_value((_STACK*) ciphers, 0));
         }
     }
 }
