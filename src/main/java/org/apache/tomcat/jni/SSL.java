@@ -742,4 +742,12 @@ public final class SSL {
      * @param ssl the SSL instance (SSL *)
      */
     public static native void setState(long ssl, int state);
+
+    /**
+     * Call SSL_set_tlsext_host_name
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @param hostname the hostname
+     */
+    public static native void setTlsExtHostName(long ssl, String hostname);
 }

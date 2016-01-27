@@ -2060,6 +2060,24 @@ TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS,
     SSL_set_state(ssl_, state);
 }
 
+TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName)(TCN_STDARGS, jlong ssl, jstring hostname) {
+    TCN_ALLOC_CSTRING(hostname);
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+    } else {
+        UNREFERENCED(o);
+
+        if (SSL_set_tlsext_host_name(ssl_, J2S(hostname)) != 1) {
+            char err[256];
+            ERR_error_string(ERR_get_error(), err);
+            tcn_Throw(e, "Unable to set TLS servername extension (%s)", err);
+        }
+    }
+
+    TCN_FREE_CSTRING(hostname);
+}
 
 /*** End Apple API Additions ***/
 
@@ -2484,5 +2502,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS, jlong ssl, jint state) {
   UNREFERENCED(state);
   tcn_ThrowException(e, "Not implemented");
 }
+
+TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName)(TCN_STDARGS, jlong ssl, jstring hostname) {
+  UNREFERENCED(o);
+  UNREFERENCED(ssl);
+  UNREFERENCED(hostname);
+  tcn_ThrowException(e, "Not implemented");
+}
+
 /*** End Apple API Additions ***/
 #endif
