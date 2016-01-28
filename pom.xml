@@ -292,6 +292,7 @@
                     <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
                       <!-- Only create the static library to force static linkage -->
                       <arg value="--disable-shared" />
+                      <arg value="CFLAGS=-fPIC" />
                     </exec>
                     <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
                   </target>
@@ -416,6 +417,7 @@
                     <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
                     <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
                       <arg value="--disable-shared" />
+                      <arg value="CFLAGS=-fPIC" />
                     </exec>
                     <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
                   </target>
@@ -545,6 +547,7 @@
                     <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
                       <!-- Only create the static library to force static linkage -->
                       <arg value="--disable-shared" />
+                      <arg value="CFLAGS=-fPIC" />
                     </exec>
                     <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
                   </target>
