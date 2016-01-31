@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="debug|Win32">
       <Configuration>debug</Configuration>
@@ -21,25 +21,30 @@
   <PropertyGroup Label="Globals">
     <ProjectName>netty-tcnative</ProjectName>
     <RootNamespace>netty-tcnative</RootNamespace>
+    <ProjectGuid>{42EB387C-0D16-471E-8859-C2CF31F8094D}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -78,7 +83,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -91,7 +96,7 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;Ws2_32.lib;libapr-1.lib;ssleay32MD.lib;libeay32MD.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;Ws2_32.lib;libapr-1.lib;ssleay32.lib;libeay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OPENSSL_LIB_DIR);$(APR_LIB_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -106,7 +111,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN64;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -119,7 +124,7 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;Ws2_32.lib;libapr-1.lib;ssleay32MD.lib;libeay32MD.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;Ws2_32.lib;libapr-1.lib;ssleay32.lib;libeay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OPENSSL_LIB_DIR);$(APR_LIB_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -133,7 +138,7 @@
       <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;$(APR_INCLUDE_DIR);$(APR_INCLUDE_DIR)\arch\win32;$(OPENSSL_INCLUDE_DIR);$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;_DEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -147,7 +152,7 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;Ws2_32.lib;libapr-1.lib;ssleay32MD.lib;libeay32MD.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;Ws2_32.lib;libapr-1.lib;ssleay32.lib;libeay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OPENSSL_LIB_DIR);$(APR_LIB_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -159,7 +164,7 @@
       <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;$(APR_INCLUDE_DIR);$(APR_INCLUDE_DIR)\arch\win32;$(OPENSSL_INCLUDE_DIR);$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN64;_DEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -173,7 +178,7 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;Ws2_32.lib;libapr-1.lib;ssleay32MD.lib;libeay32MD.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;Ws2_32.lib;libapr-1.lib;ssleay32.lib;libeay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OPENSSL_LIB_DIR);$(APR_LIB_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -181,39 +186,38 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include=".\src\address.c"/>
-    <ClCompile Include=".\src\bb.c"/>
-    <ClCompile Include=".\src\dir.c"/>
-    <ClCompile Include=".\src\error.c"/>
-    <ClCompile Include=".\src\file.c"/>
-    <ClCompile Include=".\src\info.c"/>
-    <ClCompile Include=".\src\jnilib.c"/>
-    <ClCompile Include=".\src\lock.c"/>
-    <ClCompile Include=".\src\misc.c"/>
-    <ClCompile Include=".\src\mmap.c"/>
-    <ClCompile Include=".\src\multicast.c"/>
-    <ClCompile Include=".\src\network.c"/>
-    <ClCompile Include=".\src\os.c"/>
-    <ClCompile Include=".\src\os_unix_system.c"/>
-    <ClCompile Include=".\src\os_unix_uxpipe.c"/>
-    <ClCompile Include=".\src\os_win32_ntpipe.c"/>
-    <ClCompile Include=".\src\os_win32_registry.c"/>
-    <ClCompile Include=".\src\os_win32_system.c"/>
-    <ClCompile Include=".\src\poll.c"/>
-    <ClCompile Include=".\src\pool.c"/>
-    <ClCompile Include=".\src\proc.c"/>
-    <ClCompile Include=".\src\shm.c"/>
-    <ClCompile Include=".\src\ssl.c"/>
-    <ClCompile Include=".\src\sslcontext.c"/>
-    <ClCompile Include=".\src\sslinfo.c"/>
-    <ClCompile Include=".\src\sslnetwork.c"/>
-    <ClCompile Include=".\src\sslutils.c"/>
-    <ClCompile Include=".\src\stdlib.c"/>
-    <ClCompile Include=".\src\thread.c"/>
-    <ClCompile Include=".\src\user.c"/>
+    <ClCompile Include=".\src\address.c" />
+    <ClCompile Include=".\src\bb.c" />
+    <ClCompile Include=".\src\dir.c" />
+    <ClCompile Include=".\src\error.c" />
+    <ClCompile Include=".\src\file.c" />
+    <ClCompile Include=".\src\info.c" />
+    <ClCompile Include=".\src\jnilib.c" />
+    <ClCompile Include=".\src\lock.c" />
+    <ClCompile Include=".\src\misc.c" />
+    <ClCompile Include=".\src\mmap.c" />
+    <ClCompile Include=".\src\multicast.c" />
+    <ClCompile Include=".\src\network.c" />
+    <ClCompile Include=".\src\os.c" />
+    <ClCompile Include=".\src\os_unix_system.c" />
+    <ClCompile Include=".\src\os_unix_uxpipe.c" />
+    <ClCompile Include=".\src\os_win32_ntpipe.c" />
+    <ClCompile Include=".\src\os_win32_registry.c" />
+    <ClCompile Include=".\src\os_win32_system.c" />
+    <ClCompile Include=".\src\poll.c" />
+    <ClCompile Include=".\src\pool.c" />
+    <ClCompile Include=".\src\proc.c" />
+    <ClCompile Include=".\src\shm.c" />
+    <ClCompile Include=".\src\ssl.c" />
+    <ClCompile Include=".\src\sslcontext.c" />
+    <ClCompile Include=".\src\sslinfo.c" />
+    <ClCompile Include=".\src\sslnetwork.c" />
+    <ClCompile Include=".\src\sslutils.c" />
+    <ClCompile Include=".\src\stdlib.c" />
+    <ClCompile Include=".\src\thread.c" />
+    <ClCompile Include=".\src\user.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
-
