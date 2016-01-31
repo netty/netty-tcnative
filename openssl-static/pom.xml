@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright 2014 The Netty Project
+  ~
+  ~ The Netty Project licenses this file to you under the Apache License,
+  ~ version 2.0 (the "License"); you may not use this file except in compliance
+  ~ with the License. You may obtain a copy of the License at:
+  ~
+  ~   http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+  ~ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+  ~ License for the specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.netty</groupId>
+    <artifactId>netty-tcnative-parent</artifactId>
+    <version>1.1.33.Fork13-SNAPSHOT</version>
+  </parent>
+  <artifactId>netty-tcnative-openssl-static</artifactId>
+  <packaging>jar</packaging>
+
+  <name>Netty/TomcatNative [OpenSSL - Static]</name>
+  <description>
+    A Mavenized fork of Tomcat Native which incorporates various patches. This artifact is statically linked
+    to OpenSSL and Apache APR.
+  </description>
+
+  <properties>
+    <opensslBuildDir>${project.build.directory}/openssl-${opensslVersion}</opensslBuildDir>
+    <linkStatic>true</linkStatic>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <!-- Download and extract the OpenSSL archive -->
+          <execution>
+            <id>get-openssl</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <ftp action="get"
+                     server="ftp.openssl.org"
+                     remotedir="source"
+                     userid="anonymous"
+                     password="anonymous"
+                     passive="yes"
+                     verbose="yes">
+                  <fileset dir="${project.build.directory}">
+                    <include name="**/openssl-${opensslVersion}.tar.gz"/>
+                  </fileset>
+                </ftp>
+                <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}" />
+                <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                  <arg line="xfvz openssl-${opensslVersion}.tar"/>
+                </exec>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Configure the distribution statically linked against OpenSSL and APR -->
+      <plugin>
+        <groupId>org.fusesource.hawtjni</groupId>
+        <artifactId>maven-hawtjni-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>build-native-lib</id>
+            <goals>
+              <goal>generate</goal>
+              <goal>build</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <name>netty-tcnative</name>
+              <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+              <libDirectory>${nativeLibOnlyDir}</libDirectory>
+              <forceAutogen>${forceAutogen}</forceAutogen>
+              <forceConfigure>${forceConfigure}</forceConfigure>
+              <windowsBuildTool>msbuild</windowsBuildTool>
+              <configureArgs>
+                <configureArg>--with-ssl=${sslHome}</configureArg>
+                <configureArg>--with-apr=${aprHome}</configureArg>
+              </configureArgs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>build-openssl-windows</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-openssl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <!-- Build for the correct platform -->
+                    <pathconvert property="sslHomePath" targetos="windows">
+                      <path location="${sslHome}"/>
+                    </pathconvert>
+                    <if>
+                      <equals arg1="${archBits}" arg2="32" />
+                      <then>
+                        <echo message="Building OpenSSL for Win32" />
+                        <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg line="Configure VC-WIN32 --prefix=${sslHomePath}" />
+                        </exec>
+                        <exec executable="${opensslBuildDir}/ms/do_ms.bat" failonerror="true" dir="${opensslBuildDir}" />
+                        <exec executable="${opensslBuildDir}/ms/do_nasm.bat" failonerror="true" dir="${opensslBuildDir}" />
+                        <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg line="-f ms\nt.mak all install" />
+                        </exec>
+                      </then>
+                      <else>
+                        <echo message="Building OpenSSL for Win64" />
+                        <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg line="Configure VC-WIN64A --prefix=${sslHome}" />
+                        </exec>
+                        <exec executable="${opensslBuildDir}/ms/do_win64a.bat" failonerror="true" dir="${opensslBuildDir}" />
+                        <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg line="-f ms\nt.mak all install" />
+                        </exec>
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>build-openssl-linux-mac</id>
+      <activation>
+        <os>
+          <family>!windows</family>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-openssl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <mkdir dir="${sslHome}" />
+                    <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                      <arg line="no-shared --prefix=${sslHome} --openssldir=${sslHome}"/>
+                    </exec>
+                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true"/>
+                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                      <arg line="install" />
+                    </exec>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
