@@ -237,6 +237,15 @@ public final class SSL {
     public static final int SSL_ST_CONNECT = 0x1000;
     public static final int SSL_ST_ACCEPT =  0x2000;
 
+    public static final int SSL_MODE_ENABLE_PARTIAL_WRITE           = 0x00000001;
+    public static final int SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER     = 0x00000002;
+    public static final int SSL_MODE_AUTO_RETRY                     = 0x00000004;
+    public static final int SSL_MODE_NO_AUTO_CHAIN                  = 0x00000008;
+    public static final int SSL_MODE_RELEASE_BUFFERS                = 0x00000010;
+    public static final int SSL_MODE_SEND_CLIENTHELLO_TIME          = 0x00000020;
+    public static final int SSL_MODE_SEND_SERVERHELLO_TIME          = 0x00000040;
+    public static final int SSL_MODE_SEND_FALLBACK_SCSV             = 0x00000080;
+
     /* Return OpenSSL version number */
     public static native int version();
 
