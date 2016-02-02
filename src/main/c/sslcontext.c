@@ -1591,6 +1591,27 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong
     }
     return JNI_FALSE;
 }
+
+TCN_IMPLEMENT_CALL(jint, SSLContext, setMode)(TCN_STDARGS, jlong ctx, jint mode)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+
+    return (jint) SSL_CTX_set_mode(c->ctx, mode);
+}
+
+
+TCN_IMPLEMENT_CALL(jint, SSLContext, getMode)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+
+    return (jint) SSL_CTX_get_mode(c->ctx);
+}
 #else
 /* OpenSSL is not supported.
  * Create empty stubs.
@@ -1924,11 +1945,27 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     UNREFERENCED(ctx);
     UNREFERENCED(verifier);
 }
+
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong ctx, jbyteArray sidCtx)
 {
     UNREFERENCED_STDARGS;
     UNREFERENCED(ctx);
     UNREFERENCED(sidCtx);
     return JNI_FALSE;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSLContext, setMode)(TCN_STDARGS, jlong ctx, jint mode)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(mode);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSLContext, getMode)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
 }
 #endif

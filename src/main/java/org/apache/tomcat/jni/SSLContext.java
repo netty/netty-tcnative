@@ -494,4 +494,22 @@ public final class SSLContext {
      * @return {@code true} if success, {@code false} otherwise.
      */
     public static native boolean setSessionIdContext(long ctx, byte[] sidCtx);
+
+    /**
+     * Call SSL_CTX_set_mode
+     *
+     * @param ctx context to use
+     * @param mode the mode
+     * @return the set mode.
+     */
+    public static native int setMode(long ctx, int mode);
+
+    /**
+     * Call SSL_CTX_get_mode
+     *
+     * @param ctx context to use
+     * @return the mode.
+     */
+    public static native int getMode(long ctx);
+
 }
