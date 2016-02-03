@@ -22,7 +22,7 @@
     <version>4.0.18.Final</version>
   </parent>
   <artifactId>${artifactIdToUse}</artifactId>
-  <version>1.1.33.Fork12-SNAPSHOT</version>
+  <version>1.1.33.Fork12</version>
   <packaging>jar</packaging>
 
   <name>Netty/TomcatNative</name>
@@ -35,7 +35,7 @@
     <url>https://github.com/netty/netty-tcnative</url>
     <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>netty-tcnative-1.1.33.Fork12</tag>
   </scm>
 
   <properties>
@@ -288,13 +288,13 @@
                 </goals>
                 <configuration>
                   <target name="build-apr">
-                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true" />
                     <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
                       <!-- Only create the static library to force static linkage -->
                       <arg value="--disable-shared" />
                       <arg value="CFLAGS=-fPIC" />
                     </exec>
-                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true" />
                   </target>
                 </configuration>
               </execution>
@@ -381,14 +381,9 @@
                 </goals>
                 <configuration>
                   <target name="build-libressl">
-                    <ftp action="get"
-                       server="ftp.openbsd.org"
-                       remotedir="/pub/OpenBSD/LibreSSL/"
-                       userid="anonymous"
-                       password="anonymous"
-                       verbose="yes">
+                    <ftp action="get" server="ftp.openbsd.org" remotedir="/pub/OpenBSD/LibreSSL/" userid="anonymous" password="anonymous" verbose="yes">
                        <fileset dir="${project.build.directory}">
-                         <include name="**/${libresslFile}"/>
+                         <include name="**/${libresslFile}" />
                        </fileset>
                      </ftp>
                     <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
@@ -414,12 +409,12 @@
                 </goals>
                 <configuration>
                   <target name="build-apr">
-                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true" />
                     <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
                       <arg value="--disable-shared" />
                       <arg value="CFLAGS=-fPIC" />
                     </exec>
-                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true" />
                   </target>
                 </configuration>
               </execution>
@@ -513,14 +508,9 @@
                 </goals>
                 <configuration>
                   <target name="build-openssl">
-                    <ftp action="get"
-                       server="ftp.openssl.org"
-                       remotedir="/source/"
-                       userid="anonymous"
-                       password="anonymous"
-                       verbose="yes">
+                    <ftp action="get" server="ftp.openssl.org" remotedir="/source/" userid="anonymous" password="anonymous" verbose="yes">
                        <fileset dir="${project.build.directory}">
-                         <include name="**/${opensslFile}"/>
+                         <include name="**/${opensslFile}" />
                        </fileset>
                      </ftp>
                     <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
@@ -530,7 +520,7 @@
                     <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                       <arg value="no-shared" />
                     </exec>
-                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true"/>
+                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
                   </target>
                 </configuration>
               </execution>
@@ -543,13 +533,13 @@
                 </goals>
                 <configuration>
                   <target name="build-apr">
-                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="buildconf" failonerror="true" dir="${aprHome}" resolveexecutable="true" />
                     <exec executable="configure" failonerror="true" dir="${aprHome}" resolveexecutable="true">
                       <!-- Only create the static library to force static linkage -->
                       <arg value="--disable-shared" />
                       <arg value="CFLAGS=-fPIC" />
                     </exec>
-                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true"/>
+                    <exec executable="make" failonerror="true" dir="${aprHome}" resolveexecutable="true" />
                   </target>
                 </configuration>
               </execution>
