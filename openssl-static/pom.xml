@@ -60,10 +60,14 @@
                     <include name="**/openssl-${opensslVersion}.tar.gz"/>
                   </fileset>
                 </ftp>
-                <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}" />
-                <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
-                  <arg line="xfvz openssl-${opensslVersion}.tar"/>
-                </exec>
+                <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz"
+                        dest="${project.build.directory}/" />
+                <untar src="${project.build.directory}/openssl-${opensslVersion}.tar"
+                       dest="${project.build.directory}/" />
+                <!-- The untar task does not preserve permissions. Make everything executable. -->
+                <chmod perm="ug+wx" type="file">
+                  <fileset dir="${opensslBuildDir}/" includes="**/*" />
+                </chmod>
               </target>
             </configuration>
           </execution>
@@ -132,10 +136,12 @@
                       <equals arg1="${archBits}" arg2="32" />
                       <then>
                         <echo message="Building OpenSSL for Win32" />
-                        <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                        <exec executable="perl" failonerror="true" dir="${opensslBuildDir}"
+                              resolveexecutable="true">
                           <arg line="Configure VC-WIN32 --prefix=${sslHomePath}" />
                         </exec>
-                        <exec executable="${opensslBuildDir}/ms/do_ms.bat" failonerror="true" dir="${opensslBuildDir}" />
+                        <exec executable="${opensslBuildDir}/ms/do_ms.bat" failonerror="true"
+                              dir="${opensslBuildDir}" />
                         <exec executable="${opensslBuildDir}/ms/do_nasm.bat" failonerror="true" dir="${opensslBuildDir}" />
                         <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                           <arg line="-f ms\nt.mak all install" />
@@ -182,11 +188,11 @@
                   <target>
                     <mkdir dir="${sslHome}" />
                     <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg line="no-shared --prefix=${sslHome} --openssldir=${sslHome}"/>
+                      <arg line="-fPIC no-shared --prefix=${sslHome} --openssldir=${sslHome}"/>
                     </exec>
                     <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true"/>
                     <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg line="install" />
+                      <arg value="install" />
                     </exec>
                   </target>
                 </configuration>

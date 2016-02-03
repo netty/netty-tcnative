@@ -57,7 +57,7 @@
     <aprHome>${project.build.directory}/apr</aprHome>
     <sslHome>${project.build.directory}/ssl</sslHome>
     <archBits>64</archBits>
-    <linkStatic>true</linkStatic>
+    <linkStatic>false</linkStatic>
   </properties>
 
   <build>
@@ -180,15 +180,27 @@
             </goals>
             <configuration>
               <target>
-                <copy todir="${nativeJarWorkdir}">
-                  <zipfileset src="${defaultJarFile}" />
-                </copy>
-                <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
-                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
-                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
-                </copy>
-                <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
-                <attachartifact file="${nativeJarFile}" classifier="${classifier}" type="jar" />
+                <!-- Add the ant tasks from ant-contrib -->
+                <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                <if>
+                  <equals arg1="${project.artifactId}" arg2="netty-tcnative-parent" />
+                  <then/>
+                  <else>
+                    <copy todir="${nativeJarWorkdir}">
+                      <zipfileset src="${defaultJarFile}" />
+                    </copy>
+                    <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                      <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                      <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
+                    </copy>
+                    <jar destfile="${nativeJarFile}"
+                         manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF"
+                         basedir="${nativeJarWorkdir}"
+                         index="true"
+                         excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                    <attachartifact file="${nativeJarFile}" classifier="${classifier}" type="jar" />
+                  </else>
+                </if>
               </target>
             </configuration>
           </execution>

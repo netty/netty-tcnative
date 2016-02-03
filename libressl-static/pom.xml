@@ -59,10 +59,8 @@
               <forceConfigure>${forceConfigure}</forceConfigure>
               <windowsBuildTool>msbuild</windowsBuildTool>
               <configureArgs>
-                <configureArg>--with-ssl=no</configureArg>
+                <configureArg>--with-ssl=${sslHome}</configureArg>
                 <configureArg>--with-apr=${aprHome}</configureArg>
-                <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${libresslBuildDir}/include</configureArg>
-                <configureArg>LDFLAGS=-L${libresslBuildDir}/ssl -L${libresslBuildDir}/crypto -L${libresslBuildDir}/tls -ltls -lssl -lcrypto</configureArg>
               </configureArgs>
             </configuration>
           </execution>
@@ -116,9 +114,7 @@
                     <mkdir dir="${libresslBuildDir}"/>
                     <exec executable="cmake" failonerror="true" dir="${libresslBuildDir}"
                           resolveexecutable="true">
-                      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE"/>
-                      <arg value="-GNinja"/>
-                      <arg value=".."/>
+                      <arg line="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -GNinja .."/>
                     </exec>
                   </target>
                 </configuration>
@@ -154,15 +150,16 @@
                          verbose="on"/>
                     <exec executable="tar" failonerror="true" dir="${project.build.directory}/"
                           resolveexecutable="true">
-                      <arg value="xfvz"/>
+                      <arg value="xfv"/>
                       <arg value="${libresslArchive}"/>
                     </exec>
-                    <mkdir dir="${libresslBuildDir}"/>
-                    <exec executable="cmake" failonerror="true" dir="${libresslBuildDir}"
-                          resolveexecutable="true">
-                      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE"/>
-                      <arg value="-GNinja"/>
-                      <arg value=".."/>
+                    <mkdir dir="${sslHome}" />
+                    <exec executable="configure" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
+                      <arg line="--disable-shared --prefix=${sslHome} CFLAGS=-fPIC" />
+                    </exec>
+                    <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true" />
+                    <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
+                      <arg line="install" />
                     </exec>
                   </target>
                 </configuration>
