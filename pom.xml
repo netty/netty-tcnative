@@ -368,6 +368,7 @@
                          dest="${project.build.directory}/${aprTarGzFile}"
                          verbose="on" />
                     <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
+                    <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
                     <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                       <arg line="xfvz ${aprTarGzFile}" />
                     </exec>

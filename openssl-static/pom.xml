@@ -37,43 +37,6 @@
 
   <build>
     <plugins>
-      <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <!-- Download and extract the OpenSSL archive -->
-          <execution>
-            <id>get-openssl</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target>
-                <ftp action="get"
-                     server="ftp.openssl.org"
-                     remotedir="source"
-                     userid="anonymous"
-                     password="anonymous"
-                     passive="yes"
-                     verbose="yes">
-                  <fileset dir="${project.build.directory}">
-                    <include name="**/openssl-${opensslVersion}.tar.gz"/>
-                  </fileset>
-                </ftp>
-                <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz"
-                        dest="${project.build.directory}/" />
-                <untar src="${project.build.directory}/openssl-${opensslVersion}.tar"
-                       dest="${project.build.directory}/" />
-                <!-- The untar task does not preserve permissions. Make everything executable. -->
-                <chmod perm="ug+wx" type="file">
-                  <fileset dir="${opensslBuildDir}/" includes="**/*" />
-                </chmod>
-              </target>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
       <!-- Configure the distribution statically linked against OpenSSL and APR -->
       <plugin>
         <groupId>org.fusesource.hawtjni</groupId>
@@ -136,6 +99,23 @@
                     <!-- Add the ant tasks from ant-contrib -->
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
+                    <!-- Download the openssl source. -->
+                    <ftp action="get"
+                         server="ftp.openssl.org"
+                         remotedir="source"
+                         userid="anonymous"
+                         password="anonymous"
+                         passive="yes"
+                         verbose="yes">
+                      <fileset dir="${project.build.directory}">
+                        <include name="**/openssl-${opensslVersion}.tar.gz"/>
+                      </fileset>
+                    </ftp>
+                    <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz"
+                            dest="${project.build.directory}/" />
+                    <untar src="${project.build.directory}/openssl-${opensslVersion}.tar"
+                           dest="${project.build.directory}/" />
+
                     <!-- Build for the correct platform -->
                     <pathconvert property="sslHomePath" targetos="windows">
                       <path location="${sslHome}"/>
@@ -194,6 +174,23 @@
                 </goals>
                 <configuration>
                   <target>
+                    <!-- Download the openssl source. -->
+                    <ftp action="get"
+                         server="ftp.openssl.org"
+                         remotedir="source"
+                         userid="anonymous"
+                         password="anonymous"
+                         passive="yes"
+                         verbose="yes">
+                      <fileset dir="${project.build.directory}">
+                        <include name="**/openssl-${opensslVersion}.tar.gz"/>
+                      </fileset>
+                    </ftp>
+                    <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
+                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                      <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
+                    </exec>
+
                     <mkdir dir="${sslHome}" />
                     <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                       <arg line="-fPIC no-shared --prefix=${sslHome} --openssldir=${sslHome}"/>
