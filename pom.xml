@@ -97,6 +97,11 @@
           <version>2.8.2</version>
         </plugin>
         <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>buildnumber-maven-plugin</artifactId>
+          <version>1.4</version>
+        </plugin>
+        <plugin>
           <artifactId>maven-antrun-plugin</artifactId>
           <version>1.8</version>
           <dependencies>

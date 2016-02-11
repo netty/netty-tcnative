@@ -63,6 +63,36 @@
         </executions>
       </plugin>
 
+      <!-- Determine the commit ID of the source code. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+            <configuration>
+              <scmDirectory>${boringsslCheckoutDir}</scmDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Add the commit ID and branch to the manifest. -->
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <instructions>
+            <Apr-Version>${aprVersion}</Apr-Version>
+            <BoringSSL-Revision>${buildNumber}</BoringSSL-Revision>
+            <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
+          </instructions>
+        </configuration>
+      </plugin>
+
       <!-- Build the BoringSSL static libs -->
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
