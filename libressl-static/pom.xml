@@ -67,6 +67,18 @@
         </executions>
       </plugin>
 
+      <!-- Add the LibreSSL version to the manifest. -->
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <instructions>
+            <Apr-Version>${aprVersion}</Apr-Version>
+            <LibreSSL-Version>${libresslVersion}</LibreSSL-Version>
+          </instructions>
+        </configuration>
+      </plugin>
+
       <!-- Don't deploy to Maven central -->
       <plugin>
         <artifactId>maven-deploy-plugin</artifactId>

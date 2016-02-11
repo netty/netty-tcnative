@@ -37,6 +37,18 @@
 
   <build>
     <plugins>
+      <!-- Add the OpenSSL version to the manifest. -->
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <instructions>
+            <Apr-Version>${aprVersion}</Apr-Version>
+            <OpenSSL-Version>${opensslVersion}</OpenSSL-Version>
+          </instructions>
+        </configuration>
+      </plugin>
+
       <!-- Configure the distribution statically linked against OpenSSL and APR -->
       <plugin>
         <groupId>org.fusesource.hawtjni</groupId>
