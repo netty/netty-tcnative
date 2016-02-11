@@ -322,15 +322,6 @@ public final class SSL {
     public static native void randSet(String filename);
 
     /**
-     * Initialize new BIO
-     * @param pool The pool to use.
-     * @param callback BIOCallback to use
-     * @return new BIO handle
-     */
-     public static native long newBIO(long pool, BIOCallback callback)
-            throws Exception;
-
-    /**
      * Initialize new in-memory BIO that is located in the secure heap.
      * @return New BIO handle
      */
