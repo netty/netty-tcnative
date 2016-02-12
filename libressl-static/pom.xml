@@ -80,6 +80,38 @@
           </instructions>
         </configuration>
       </plugin>
+
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <!-- Build the additional JAR that contains the native library. -->
+          <execution>
+            <id>native-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <copy todir="${nativeJarWorkdir}">
+                  <zipfileset src="${defaultJarFile}"/>
+                </copy>
+                <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native"/>
+                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$"
+                                to="META-INF/native/\1"/>
+                </copy>
+                <jar destfile="${nativeJarFile}"
+                     manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF"
+                     basedir="${nativeJarWorkdir}"
+                     index="true"
+                     excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST"/>
+                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 

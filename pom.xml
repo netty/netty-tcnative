@@ -46,8 +46,7 @@
     <opensslDynamicDir>../openssl-dynamic</opensslDynamicDir>
     <vsStaticTemplateFile>../vs2010.vcxproj.static.template</vsStaticTemplateFile>
     <defaultJarFile>${project.build.directory}/${project.build.finalName}.jar</defaultJarFile>
-    <classifier>${os.detected.classifier}</classifier>
-    <nativeJarFile>${project.build.directory}/${project.build.finalName}-${classifier}.jar</nativeJarFile>
+    <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}}.jar</nativeJarFile>
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
     <aprVersion>1.5.2</aprVersion>
@@ -184,40 +183,6 @@
                       filtering="true"
                       overwrite="true"
                       verbose="true" />
-              </target>
-            </configuration>
-          </execution>
-
-          <!-- Build the additional JAR that contains the native library. -->
-          <execution>
-            <id>native-jar</id>
-            <phase>package</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target>
-                <!-- Add the ant tasks from ant-contrib -->
-                <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
-                <if>
-                  <equals arg1="${project.artifactId}" arg2="netty-tcnative-parent" />
-                  <then/>
-                  <else>
-                    <copy todir="${nativeJarWorkdir}">
-                      <zipfileset src="${defaultJarFile}" />
-                    </copy>
-                    <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
-                      <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
-                      <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
-                    </copy>
-                    <jar destfile="${nativeJarFile}"
-                         manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF"
-                         basedir="${nativeJarWorkdir}"
-                         index="true"
-                         excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
-                    <attachartifact file="${nativeJarFile}" classifier="${classifier}" type="jar" />
-                  </else>
-                </if>
               </target>
             </configuration>
           </execution>
