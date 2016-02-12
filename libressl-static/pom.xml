@@ -35,6 +35,8 @@
     <libresslBuildDir>${libresslCheckoutDir}/build-ninja</libresslBuildDir>
     <libresslArchive>libressl-${libresslVersion}.tar.gz</libresslArchive>
     <linkStatic>true</linkStatic>
+    <!-- Don't deploy this artifact to Maven Central -->
+    <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
   <build>
@@ -76,14 +78,6 @@
             <Apr-Version>${aprVersion}</Apr-Version>
             <LibreSSL-Version>${libresslVersion}</LibreSSL-Version>
           </instructions>
-        </configuration>
-      </plugin>
-
-      <!-- Don't deploy to Maven central -->
-      <plugin>
-        <artifactId>maven-deploy-plugin</artifactId>
-        <configuration>
-          <skip>true</skip>
         </configuration>
       </plugin>
     </plugins>
