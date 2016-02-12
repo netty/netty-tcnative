@@ -49,9 +49,16 @@
             <configuration>
               <exportAntProperties>true</exportAntProperties>
               <target>
-                <condition property="classifier" value="${os.detected.classifier}-fedora" else="${os.detected.classifier}">
+                <!-- Add the ant tasks from ant-contrib -->
+                <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                <!-- On Fedora-like systems, update the classifier -->
+                <if>
                   <isset property="os.detected.release.like.fedora" />
-                </condition>
+                  <then>
+                    <property name="classifier" value="${os.detected.classifier}-fedora" />
+                    <property name="nativeJarFile" value="${project.build.directory}/${project.build.finalName}-${classifier}.jar" />
+                  </then>
+                </if>
               </target>
             </configuration>
             <goals>
