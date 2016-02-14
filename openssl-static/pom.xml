@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>1.1.33.Fork13-SNAPSHOT</version>
+    <version>1.1.33.Fork13</version>
   </parent>
   <artifactId>netty-tcnative-openssl-static</artifactId>
   <packaging>jar</packaging>
@@ -92,19 +92,14 @@
             <configuration>
               <target>
                 <copy todir="${nativeJarWorkdir}">
-                  <zipfileset src="${defaultJarFile}"/>
+                  <zipfileset src="${defaultJarFile}" />
                 </copy>
                 <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
-                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native"/>
-                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$"
-                                to="META-INF/native/\1"/>
+                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
                 </copy>
-                <jar destfile="${nativeJarFile}"
-                     manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF"
-                     basedir="${nativeJarWorkdir}"
-                     index="true"
-                     excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST"/>
-                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar"/>
+                <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
               </target>
             </configuration>
           </execution>
@@ -138,36 +133,26 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <!-- Download the openssl source. -->
-                    <ftp action="get"
-                         server="ftp.openssl.org"
-                         remotedir="source"
-                         userid="anonymous"
-                         password="anonymous"
-                         passive="yes"
-                         verbose="yes">
+                    <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
                       <fileset dir="${project.build.directory}">
-                        <include name="**/openssl-${opensslVersion}.tar.gz"/>
+                        <include name="**/openssl-${opensslVersion}.tar.gz" />
                       </fileset>
                     </ftp>
-                    <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz"
-                            dest="${project.build.directory}/" />
-                    <untar src="${project.build.directory}/openssl-${opensslVersion}.tar"
-                           dest="${project.build.directory}/" />
+                    <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/" />
+                    <untar src="${project.build.directory}/openssl-${opensslVersion}.tar" dest="${project.build.directory}/" />
 
                     <!-- Build for the correct platform -->
                     <pathconvert property="sslHomePath" targetos="windows">
-                      <path location="${sslHome}"/>
+                      <path location="${sslHome}" />
                     </pathconvert>
                     <if>
                       <equals arg1="${archBits}" arg2="32" />
                       <then>
                         <echo message="Building OpenSSL for Win32" />
-                        <exec executable="perl" failonerror="true" dir="${opensslBuildDir}"
-                              resolveexecutable="true">
+                        <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                           <arg line="Configure VC-WIN32 --prefix=${sslHomePath}" />
                         </exec>
-                        <exec executable="${opensslBuildDir}/ms/do_ms.bat" failonerror="true"
-                              dir="${opensslBuildDir}" />
+                        <exec executable="${opensslBuildDir}/ms/do_ms.bat" failonerror="true" dir="${opensslBuildDir}" />
                         <exec executable="${opensslBuildDir}/ms/do_nasm.bat" failonerror="true" dir="${opensslBuildDir}" />
                         <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                           <arg line="-f ms\nt.mak all install" />
@@ -213,15 +198,9 @@
                 <configuration>
                   <target>
                     <!-- Download the openssl source. -->
-                    <ftp action="get"
-                         server="ftp.openssl.org"
-                         remotedir="source"
-                         userid="anonymous"
-                         password="anonymous"
-                         passive="yes"
-                         verbose="yes">
+                    <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
                       <fileset dir="${project.build.directory}">
-                        <include name="**/openssl-${opensslVersion}.tar.gz"/>
+                        <include name="**/openssl-${opensslVersion}.tar.gz" />
                       </fileset>
                     </ftp>
                     <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
@@ -231,9 +210,9 @@
 
                     <mkdir dir="${sslHome}" />
                     <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg line="-fPIC no-shared --prefix=${sslHome} --openssldir=${sslHome}"/>
+                      <arg line="-fPIC no-shared --prefix=${sslHome} --openssldir=${sslHome}" />
                     </exec>
-                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true"/>
+                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
                     <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                       <arg value="install" />
                     </exec>

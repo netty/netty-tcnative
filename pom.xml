@@ -22,7 +22,7 @@
     <version>4.0.18.Final</version>
   </parent>
   <artifactId>netty-tcnative-parent</artifactId>
-  <version>1.1.33.Fork13-SNAPSHOT</version>
+  <version>1.1.33.Fork13</version>
   <packaging>pom</packaging>
 
   <name>Netty/TomcatNative [Parent]</name>
@@ -35,7 +35,7 @@
     <url>https://github.com/netty/netty-tcnative</url>
     <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>netty-tcnative-1.1.33.Fork13</tag>
   </scm>
 
   <properties>
@@ -178,11 +178,7 @@
                 <filter token="SSL_INCLUDE_DIRS" value="${sslIncludeDirsWindowsPath}" />
                 <filter token="SSL_LIB_DIR" value="${sslLibDirsWindowsPath}" />
                 <filter token="SSL_LIBS" value="${msvcSslLibs}" />
-                <copy file="${vsStaticTemplateFile}"
-                      tofile="src/main/native-package/vs2010.vcxproj"
-                      filtering="true"
-                      overwrite="true"
-                      verbose="true" />
+                <copy file="${vsStaticTemplateFile}" tofile="src/main/native-package/vs2010.vcxproj" filtering="true" overwrite="true" verbose="true" />
               </target>
             </configuration>
           </execution>
@@ -280,21 +276,15 @@
                 <configuration>
                   <target name="build-apr" if="${linkStatic}">
                     <property name="aprArchiveFile" value="apr-${aprVersion}-win32-src.zip" />
-                    <get src="http://www.us.apache.org/dist/apr/${aprArchiveFile}"
-                         dest="${project.build.directory}/${aprArchiveFile}"
-                         verbose="on" />
-                    <unzip src="${project.build.directory}/${aprArchiveFile}"
-                           dest="${project.build.directory}" />
+                    <get src="http://www.us.apache.org/dist/apr/${aprArchiveFile}" dest="${project.build.directory}/${aprArchiveFile}" verbose="on" />
+                    <unzip src="${project.build.directory}/${aprArchiveFile}" dest="${project.build.directory}" />
                     <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
                       <equals arg1="${archBits}" arg2="32" />
                     </condition>
                     <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
                     <!-- Using retry since nmake fails occasionally when creating tempfile.bat -->
                     <retry retrycount="3">
-                      <exec executable="nmake"
-                            failonerror="true"
-                            dir="${aprBuildDir}"
-                            resolveexecutable="true">
+                      <exec executable="nmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
                         <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />
                       </exec>
                     </retry>
@@ -334,9 +324,7 @@
                   <target if="${linkStatic}">
                     <property name="aprTarGzFile" value="apr-${aprVersion}.tar.gz" />
                     <property name="aprTarFile" value="apr-${aprVersion}.tar" />
-                    <get src="http://www.us.apache.org/dist/apr/${aprTarGzFile}"
-                         dest="${project.build.directory}/${aprTarGzFile}"
-                         verbose="on" />
+                    <get src="http://www.us.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
                     <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
                     <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
                     <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
