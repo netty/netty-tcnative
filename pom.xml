@@ -216,7 +216,7 @@
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
         <configuration>
-          <arguments>-P restricted-release,sonatype-oss-release</arguments>
+          <arguments>-P restricted-release,sonatype-oss-release -DskipAll=true</arguments>
           <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
           <autoVersionSubmodules>true</autoVersionSubmodules>
         </configuration>
@@ -413,15 +413,28 @@
           </plugin>
         </plugins>
       </build>
+      <modules>
+        <!-- When doing a release we only want to deploy dynamic openssl version and the static boring one. -->
+        <module>openssl-dynamic</module>
+        <module>boringssl-static</module>
+      </modules>
+    </profile>
+    <profile>
+      <!-- This profile will bild all modules -->
+      <id>all</id>
+      <activation>
+        <property>
+          <name>!skipAll</name>
+        </property>
+      </activation>
+      <modules>
+        <module>openssl-dynamic</module>
+        <module>openssl-static</module>
+        <module>boringssl-static</module>
+
+        <!-- Re-enable this once we get LibreSSL buiding on windows -->
+        <!-- <module>libressl-static</module> -->
+      </modules>
     </profile>
   </profiles>
-
-  <modules>
-    <module>openssl-dynamic</module>
-    <module>openssl-static</module>
-    <module>boringssl-static</module>
-
-    <!-- Re-enable this once we get LibreSSL buiding on windows -->
-    <!-- <module>libressl-static</module> -->
-  </modules>
 </project>
