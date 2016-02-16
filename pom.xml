@@ -101,6 +101,10 @@
           <version>1.4</version>
         </plugin>
         <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>2.10</version>
+        </plugin>
+        <plugin>
           <artifactId>maven-antrun-plugin</artifactId>
           <version>1.8</version>
           <dependencies>
@@ -212,7 +216,8 @@
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
         <configuration>
-          <arguments>-P restricted-release,sonatype-oss-release -DskipAll=true</arguments>
+          <!-- Specifying a profile here will disable the all profile, since it's activeByDefault -->
+          <arguments>-Prestricted-release,sonatype-oss-release -DmoduleSelector=none</arguments>
           <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
           <autoVersionSubmodules>true</autoVersionSubmodules>
         </configuration>
@@ -407,12 +412,16 @@
         <module>boringssl-static</module>
       </modules>
     </profile>
+
+    <!--
+      Profile for building all modules. This is enabled by default so if any profile is manually specified,
+      this will be disabled automatically.
+    -->
     <profile>
-      <!-- This profile will bild all modules -->
       <id>all</id>
       <activation>
         <property>
-          <name>!skipAll</name>
+          <name>!moduleSelector</name>
         </property>
       </activation>
       <modules>
@@ -422,6 +431,22 @@
 
         <!-- Re-enable this once we get LibreSSL buiding on windows -->
         <!-- <module>libressl-static</module> -->
+      </modules>
+    </profile>
+
+    <!--
+      Profile for building uber jars for all platforms.
+    -->
+    <profile>
+      <id>uber</id>
+      <activation>
+        <property>
+          <name>moduleSelector</name>
+          <value>uber</value>
+        </property>
+      </activation>
+      <modules>
+        <module>boringssl-static</module>
       </modules>
     </profile>
   </profiles>
