@@ -1551,8 +1551,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     jbyteArray bArray;
     const char *authMethod;
     jstring authMethodString;
-    jboolean result;
-    int r;
+    jint result;
     tcn_get_java_env(&e);
 
     // Create the byte[][] array that holds all the certs
@@ -1583,15 +1582,17 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     authMethod = authentication_method(ssl);
     authMethodString = (*e)->NewStringUTF(e, authMethod);
 
-    result = (*e)->CallBooleanMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,
+    result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,
             authMethodString);
 
-    r = result == JNI_TRUE ? 1 : 0;
+    // Set the correct error so it will be included in the alert.
+    X509_STORE_CTX_set_error(ctx, result);
 
     // We need to delete the local references so we not leak memory as this method is called via callback.
     (*e)->DeleteLocalRef(e, authMethodString);
     (*e)->DeleteLocalRef(e, array);
-    return r;
+
+    return result == X509_V_OK ? 1 : 0;
 }
 
 
@@ -1606,7 +1607,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
         SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
     } else {
         jclass verifier_class = (*e)->GetObjectClass(e, verifier);
-        jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)Z");
+        jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)I");
 
         if (method == NULL) {
             return;
