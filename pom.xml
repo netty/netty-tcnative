@@ -46,7 +46,7 @@
     <opensslDynamicDir>../openssl-dynamic</opensslDynamicDir>
     <vsStaticTemplateFile>../vs2010.vcxproj.static.template</vsStaticTemplateFile>
     <defaultJarFile>${project.build.directory}/${project.build.finalName}.jar</defaultJarFile>
-    <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}}.jar</nativeJarFile>
+    <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}.jar</nativeJarFile>
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
     <aprVersion>1.5.2</aprVersion>
