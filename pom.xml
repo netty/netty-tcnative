@@ -52,7 +52,7 @@
     <aprVersion>1.5.2</aprVersion>
     <boringsslBranch>chromium-stable</boringsslBranch>
     <libresslVersion>2.3.2</libresslVersion>
-    <opensslVersion>1.0.2f</opensslVersion>
+    <opensslVersion>1.0.2g</opensslVersion>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprBuildDir>${project.build.directory}/apr-${aprVersion}</aprBuildDir>
     <archBits>64</archBits>
