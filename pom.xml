@@ -389,7 +389,7 @@
                       <files>
                         <file>/etc/redhat-release</file>
                       </files>
-                      <content>release 6.6</content>
+                      <content>release 6.7</content>
                     </requireFilesContent>
                   </rules>
                 </configuration>
