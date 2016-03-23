@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>1.1.33.Fork15-SNAPSHOT</version>
+    <version>1.1.33.Fork15</version>
   </parent>
   <artifactId>netty-tcnative-boringssl-static</artifactId>
   <packaging>jar</packaging>
@@ -306,15 +306,15 @@
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/osx-x86_64/META-INF/native" />
-                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-osx-x86_64.*"/>
+                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-osx-x86_64.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-x86_64/META-INF/native" />
-                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-linux-x86_64.*"/>
+                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-linux-x86_64.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/windows-x86_64/META-INF/native" />
-                      <globmapper from="netty-tcnative.*" to="netty-tcnative-windows-x86_64.*"/>
+                      <globmapper from="netty-tcnative.*" to="netty-tcnative-windows-x86_64.*" />
                     </copy>
                   </target>
                 </configuration>
