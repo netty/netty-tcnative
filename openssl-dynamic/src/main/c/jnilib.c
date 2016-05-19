@@ -195,7 +195,11 @@ char *tcn_strdup(JNIEnv *env, jstring jstr)
 
     cjstr = (const char *)((*env)->GetStringUTFChars(env, jstr, 0));
     if (cjstr) {
+#ifdef WIN32
+        result = _strdup(cjstr);
+#else
         result = strdup(cjstr);
+#endif
         (*env)->ReleaseStringUTFChars(env, jstr, cjstr);
     }
     return result;
