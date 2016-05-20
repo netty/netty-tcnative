@@ -137,13 +137,8 @@
 
                     <mkdir dir="${boringsslBuildDir}" />
 
-                    <!-- Determine if we're on windows -->
-                    <condition property="isWindows" else="false">
-                      <os family="windows" />
-                    </condition>
-
                     <if>
-                      <equals arg1="${isWindows}" arg2="true" />
+                      <equals arg1="${os.detected.name}" arg2="windows" />
                       <then>
                         <!-- On Windows, build with /MT for static linking -->
                         <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
@@ -180,6 +175,19 @@
                 </goals>
                 <configuration>
                   <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <!-- Strip on linux. See https://github.com/netty/netty-tcnative/issues/129 -->
+                    <if>
+                      <equals arg1="${os.detected.name}" arg2="linux" />
+                      <then>
+                        <exec executable="strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
+                          <arg value="libnetty-tcnative.so" />
+                        </exec>
+                      </then>
+                    </if>
+
                     <copy todir="${nativeJarWorkdir}">
                       <zipfileset src="${defaultJarFile}" />
                     </copy>
