@@ -86,7 +86,7 @@
       <PreprocessorDefinitions>APR_DECLARE_STATIC;WIN32_LEAN_AND_MEAN;WIN32;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>
@@ -96,13 +96,14 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;Rpcrt4.lib;Psapi.lib;Shlwapi.lib;Ws2_32.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>oldnames.lib;libcmt.lib;mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
@@ -114,7 +115,7 @@
       <PreprocessorDefinitions>APR_DECLARE_STATIC;WIN32_LEAN_AND_MEAN;WIN64;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>
@@ -124,13 +125,14 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;Rpcrt4.lib;Psapi.lib;Shlwapi.lib;Ws2_32.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>oldnames.lib;libcmt.lib;mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX64</TargetMachine>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -143,7 +145,7 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -152,11 +154,12 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;Rpcrt4.lib;Psapi.lib;Shlwapi.lib;Ws2_32.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>oldnames.lib;libcmt.lib;mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
@@ -169,7 +172,7 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -178,11 +181,12 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;Rpcrt4.lib;Psapi.lib;Shlwapi.lib;Ws2_32.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>oldnames.lib;libcmt.lib;mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
