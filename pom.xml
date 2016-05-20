@@ -287,7 +287,10 @@
                       <equals arg1="${archBits}" arg2="32" />
                     </condition>
                     <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
-                    <!-- Using retry since nmake fails occasionally when creating tempfile.bat -->
+                    <!-- On Windows, force building APR with /MT for static linking -->
+                    <replace dir="${aprBuildDir}" token="/MD" value="/MT">
+                      <include name="*.mak"/>
+                    </replace>
                     <retry retrycount="3">
                       <exec executable="nmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
                         <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />

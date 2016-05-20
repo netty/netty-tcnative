@@ -132,14 +132,40 @@
                 </goals>
                 <configuration>
                   <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
                     <mkdir dir="${boringsslBuildDir}" />
-                    <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
-                      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
-                      <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                      <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
-                      <arg value="-GNinja" />
-                      <arg value=".." />
-                    </exec>
+
+                    <!-- Determine if we're on windows -->
+                    <condition property="isWindows" else="false">
+                      <os family="windows" />
+                    </condition>
+
+                    <if>
+                      <equals arg1="${isWindows}" arg2="true" />
+                      <then>
+                        <!-- On Windows, build with /MT for static linking -->
+                        <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=/MT" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=/MT" />
+                          <arg value="-GNinja" />
+                          <arg value=".." />
+                        </exec>
+                      </then>
+                      <else>
+                        <!-- On *nix, add ASM flags to disable executable stack -->
+                        <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
+                          <arg value="-GNinja" />
+                          <arg value=".." />
+                        </exec>
+                      </else>
+                    </if>
                     <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
                   </target>
                 </configuration>
@@ -188,6 +214,7 @@
                   <forceAutogen>${forceAutogen}</forceAutogen>
                   <forceConfigure>${forceConfigure}</forceConfigure>
                   <windowsBuildTool>msbuild</windowsBuildTool>
+                  <!-- <verbose>true</verbose> -->
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
                     <configureArg>--with-apr=${aprHome}</configureArg>
