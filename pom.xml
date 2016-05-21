@@ -22,7 +22,7 @@
     <version>4.0.18.Final</version>
   </parent>
   <artifactId>netty-tcnative-parent</artifactId>
-  <version>1.1.33.Fork17-SNAPSHOT</version>
+  <version>1.1.33.Fork17</version>
   <packaging>pom</packaging>
 
   <name>Netty/TomcatNative [Parent]</name>
@@ -35,7 +35,7 @@
     <url>https://github.com/netty/netty-tcnative</url>
     <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>netty-tcnative-1.1.33.Fork17</tag>
   </scm>
 
   <properties>
@@ -289,7 +289,7 @@
                     <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
                     <!-- On Windows, force building APR with /MT for static linking -->
                     <replace dir="${aprBuildDir}" token="/MD" value="/MT">
-                      <include name="*.mak"/>
+                      <include name="*.mak" />
                     </replace>
                     <retry retrycount="3">
                       <exec executable="nmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
