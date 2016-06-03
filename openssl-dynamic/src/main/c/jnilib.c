@@ -34,6 +34,10 @@ extern void sp_network_dump_statistics();
 extern void ssl_network_dump_statistics();
 #endif
 
+#ifndef TCN_JNI_VERSION
+#define TCN_JNI_VERSION JNI_VERSION_1_4
+#endif
+
 apr_pool_t *tcn_global_pool = NULL;
 static JavaVM     *tcn_global_vm = NULL;
 
@@ -46,14 +50,14 @@ static jmethodID jString_getBytes;
 int tcn_parent_pid = 0;
 
 /* Called by the JVM when APR_JAVA is loaded */
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
+JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved) 
 {
     JNIEnv *env;
     apr_version_t apv;
     int apvn;
 
     UNREFERENCED(reserved);
-    if ((*vm)->GetEnv(vm, (void **)&env, JNI_VERSION_1_4)) {
+    if ((*vm)->GetEnv(vm, (void **)&env, TCN_JNI_VERSION)) {
         return JNI_ERR;
     }
     tcn_global_vm = vm;
@@ -94,18 +98,23 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
     tcn_parent_pid = getppid();
 #endif
 
-    return  JNI_VERSION_1_4;
+    return  TCN_JNI_VERSION;  
 }
 
+/* Called by the JVM when APR_JAVA is loaded */
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
+{
+  return JNI_OnLoad_netty_tcnative(vm, reserved);
+}
 
 /* Called by the JVM before the APR_JAVA is unloaded */
-JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
+JNIEXPORT void JNICALL JNI_OnUnload_netty_tcnative(JavaVM *vm, void *reserved)
 {
     JNIEnv *env;
 
     UNREFERENCED(reserved);
 
-    if ((*vm)->GetEnv(vm, (void **)&env, JNI_VERSION_1_2)) {
+    if ((*vm)->GetEnv(vm, (void **)&env, TCN_JNI_VERSION)) {
         return;
     }
     if (tcn_global_pool) {
@@ -114,6 +123,12 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
         TCN_UNLOAD_CLASS(env, jAinfo_class);
         apr_terminate();
     }
+}
+
+/* Called by the JVM before the APR_JAVA is unloaded */
+JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
+{
+    JNI_OnUnload_netty_tcnative(vm, reserved);
 }
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
@@ -478,7 +493,7 @@ JavaVM * tcn_get_java_vm()
 jint tcn_get_java_env(JNIEnv **env)
 {
     if ((*tcn_global_vm)->GetEnv(tcn_global_vm, (void **)env,
-                                 JNI_VERSION_1_4)) {
+                                 TCN_JNI_VERSION)) {
         return JNI_ERR;
     }
     return JNI_OK;
