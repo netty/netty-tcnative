@@ -312,7 +312,21 @@ public final class SSLContext {
     public static native long sessionTimeouts(long ctx);
 
     /**
-     * Set TLS session keys.
+     * TLS session ticket key resumption statistics.
+     */
+    public static native long sessionTicketKeyNew(long ctx);
+    public static native long sessionTicketKeyResume(long ctx);
+    public static native long sessionTicketKeyRenew(long ctx);
+    public static native long sessionTicketKeyFail(long ctx);
+
+    /**
+     * Set TLS session ticket keys.
+     *
+     * <p> The first key in the list is the primary key. Tickets dervied from the other keys
+     * in the list will be accepted but updated to a new ticket using the primary key. This
+     * is useful for implementing ticket key rotation.
+     *
+     * @see <a href="https://tools.ietf.org/html/rfc5077">RFC 5077</a>
      */
     public static void setSessionTicketKeys(long ctx, SessionTicketKey[] keys) {
         if (keys == null || keys.length == 0) {
@@ -332,7 +346,9 @@ public final class SSLContext {
     }
 
     /**
-     * Set TLS session keys. This allows us to share keys across TFEs.
+     * Set TLS session keys.
+     *
+     * @deprecated  prefer {@link #setSessionTicketKeys(long, SessionTicketKey[])}
      */
     @Deprecated
     public static void setSessionTicketKeys(long ctx, byte[] keys) {
@@ -342,7 +358,7 @@ public final class SSLContext {
         setSessionTicketKeys0(ctx, keys);
     }
     /**
-     * Set TLS session keys. This allows us to share keys across TFEs.
+     * Set TLS session keys.
      */
     private static native void setSessionTicketKeys0(long ctx, byte[] keys);
 

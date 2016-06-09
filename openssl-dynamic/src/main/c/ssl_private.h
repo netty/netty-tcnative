@@ -40,6 +40,7 @@
 #endif
 
 #include "apr_thread_rwlock.h"
+#include "apr_atomic.h"
 
 /* OpenSSL headers */
 #include <openssl/opensslv.h>
@@ -302,9 +303,20 @@ struct tcn_ssl_ctxt_t {
     apr_thread_rwlock_t     *mutex;
     tcn_ssl_ticket_key_t    *ticket_keys;
     unsigned int            ticket_keys_len;
+
+    /* TLS ticket key session resumption statistics */
+
+    // The client did not present a ticket and we issued a new one.
+    apr_uint32_t            ticket_keys_new;
+    // The client presented a ticket derived from the primary key
+    apr_uint32_t            ticket_keys_resume;
+    // The client presented a ticket derived from an older key, and we upgraded to the primary key.
+    apr_uint32_t            ticket_keys_renew;
+    // The client presented a ticket that did not match any key in the list.
+    apr_uint32_t            ticket_keys_fail;
 };
 
-  
+
 typedef struct {
     apr_pool_t     *pool;
     tcn_ssl_ctxt_t *ctx;

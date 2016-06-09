@@ -26,6 +26,7 @@
 #include "apr_thread_mutex.h"
 #include "apr_thread_rwlock.h"
 #include "apr_poll.h"
+#include "apr_atomic.h"
 
 #ifdef HAVE_OPENSSL
 #include "ssl_private.h"
@@ -1330,6 +1331,34 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCacheFull)(TCN_STDARGS, jlong ctx)
     return rv;
 }
 
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyNew)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = apr_atomic_read32(&c->ticket_keys_new);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyResume)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = apr_atomic_read32(&c->ticket_keys_resume);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyRenew)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = apr_atomic_read32(&c->ticket_keys_renew);
+    return rv;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyFail)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    jlong rv = apr_atomic_read32(&c->ticket_keys_fail);
+    return rv;
+}
+
 static int current_session_key(tcn_ssl_ctxt_t *c, tcn_ssl_ticket_key_t *key) {
     int result = JNI_FALSE;
     apr_thread_rwlock_rdlock(c->mutex);
@@ -1360,36 +1389,43 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
 }
 
 static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned char *iv, EVP_CIPHER_CTX *ctx, HMAC_CTX *hctx, int enc) {
-    tcn_ssl_ctxt_t *c = SSL_get_app_data2(s);
-    tcn_ssl_ticket_key_t key;
-    int is_current_key;
+     tcn_ssl_ctxt_t *c = SSL_get_app_data2(s);
+     tcn_ssl_ticket_key_t key;
+     int is_current_key;
 
-    if (enc) { /* create new session */
-        if (current_session_key(c, &key)) {
-            if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) <= 0) {
-                return -1; /* insufficient random */
-            }
+     if (enc) { /* create new session */
+         if (current_session_key(c, &key)) {
+             if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) <= 0) {
+                 return -1; /* insufficient random */
+             }
 
-            memcpy(key_name, key.key_name, 16);
+             memcpy(key_name, key.key_name, 16);
 
-            EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
-            HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
-            return 1;
-        }
-        // No ticket configured
-        return 0;
-    } else { /* retrieve session */
-        if (find_session_key(c, key_name, &key, &is_current_key)) {
-            HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
-            EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv );
-            if (!is_current_key) {
-                return 2;
-            }
-            return 1;
-        }
-        // No ticket
-        return 0;
-    }
+             EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
+             HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
+             apr_atomic_inc32(&c->ticket_keys_new);
+             return 1;
+         }
+         // No ticket configured
+         return 0;
+     } else { /* retrieve session */
+         if (find_session_key(c, key_name, &key, &is_current_key)) {
+             HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
+             EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv );
+             if (!is_current_key) {
+                 // The ticket matched a key in the list, and we want to upgrade it to the current
+                 // key.
+                 apr_atomic_inc32(&c->ticket_keys_renew);
+                 return 2;
+             }
+             // The ticket matched the current key.
+             apr_atomic_inc32(&c->ticket_keys_resume);
+             return 1;
+         }
+         // No matching ticket.
+         apr_atomic_inc32(&c->ticket_keys_fail);
+         return 0;
+     }
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong ctx, jbyteArray keys)
@@ -1980,6 +2016,34 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCacheFull)(TCN_STDARGS, jlong ctx)
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionMisses)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyNew)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyResume)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyRenew)(TCN_STDARGS, jlong ctx)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyFail)(TCN_STDARGS, jlong ctx)
 {
     UNREFERENCED_STDARGS;
     UNREFERENCED(ctx);
