@@ -17,6 +17,11 @@ package org.apache.tomcat.jni;
 
 /**
  * Is called during handshake and hooked into openssl via {@code SSL_CTX_set_cert_verify_callback}.
+ *
+ * IMPORTANT: Implementations of this interface should be static as it is stored as a global reference via JNI. This
+ *            means if you use an inner / anonymous class to implement this and also depend on the finalizer of the
+ *            class to free up the SSLContext the finalizer will never run as the object is never GC, due the hard
+ *            reference to the enclosing class. This will most likely result in a memory leak.
  */
 public interface CertificateVerifier {
 
