@@ -79,14 +79,6 @@ public class Error extends Exception {
     public static native int osError();
 
     /**
-     * Get the last platform socket error.
-     * @return the last socket error, folded into apr_status_t, on all platforms
-     * This retrieves errno or calls a GetLastSocketError() style function,
-     *      and folds it with APR_FROM_OS_ERROR.
-     */
-    public static native int netosError();
-
-    /**
      * Return a human readable string describing the specified error.
      * @param statcode The error code the get a string for.
      * @return The error string.
