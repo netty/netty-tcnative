@@ -108,8 +108,6 @@
         (E) = (E)
 
 #define TCN_CLASS_PATH  "org/apache/tomcat/jni/"
-#define TCN_FINFO_CLASS TCN_CLASS_PATH "FileInfo"
-#define TCN_AINFO_CLASS TCN_CLASS_PATH "Sockaddr"
 #define TCN_ERROR_CLASS TCN_CLASS_PATH "Error"
 #define TCN_PARENT_IDE  "TCN_PARENT_ID"
 
@@ -194,7 +192,6 @@ jobjectArray    tcn_new_arrays(JNIEnv *env, size_t len);
 char           *tcn_get_string(JNIEnv *, jstring);
 char           *tcn_strdup(JNIEnv *, jstring);
 char           *tcn_pstrdup(JNIEnv *, jstring, apr_pool_t *);
-apr_status_t    tcn_load_finfo_class(JNIEnv *, jclass);
 apr_status_t    tcn_load_ainfo_class(JNIEnv *, jclass);
 
 #define J2S(V)  c##V

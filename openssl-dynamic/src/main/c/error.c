@@ -148,12 +148,6 @@ TCN_IMPLEMENT_CALL(jint, Error, osError)(TCN_STDARGS)
     return (jint)apr_get_os_error();
 }
 
-TCN_IMPLEMENT_CALL(jint, Error, netosError)(TCN_STDARGS)
-{
-    UNREFERENCED_STDARGS;
-    return (jint)apr_get_netos_error();
-}
-
 TCN_IMPLEMENT_CALL(jstring, Error, strerror)(TCN_STDARGS, jint err)
 {
     char serr[512] = {0};
@@ -169,80 +163,4 @@ TCN_IMPLEMENT_CALL(jstring, Error, strerror)(TCN_STDARGS, jint err)
         jerr = AJP_TO_JSTRING(serr);
     }
     return jerr;
-}
-
-TCN_IMPLEMENT_CALL(jboolean, Status, is)(TCN_STDARGS, jint err, jint idx)
-{
-#define APR_IS(I, E) case I: if (E(err)) return JNI_TRUE; break
-#define APR_ISX(I, E, T) case I: if (E(err) || (err == T)) return JNI_TRUE; break
-
-    UNREFERENCED_STDARGS;
-    switch (idx) {
-        APR_IS(1,  APR_STATUS_IS_ENOSTAT);
-        APR_IS(2,  APR_STATUS_IS_ENOPOOL);
-        /* empty slot: +3 */
-        APR_IS(4,  APR_STATUS_IS_EBADDATE);
-        APR_IS(5,  APR_STATUS_IS_EINVALSOCK);
-        APR_IS(6,  APR_STATUS_IS_ENOPROC);
-        APR_IS(7,  APR_STATUS_IS_ENOTIME);
-        APR_IS(8,  APR_STATUS_IS_ENODIR);
-        APR_IS(9,  APR_STATUS_IS_ENOLOCK);
-        APR_IS(10, APR_STATUS_IS_ENOPOLL);
-        APR_IS(11, APR_STATUS_IS_ENOSOCKET);
-        APR_IS(12, APR_STATUS_IS_ENOTHREAD);
-        APR_IS(13, APR_STATUS_IS_ENOTHDKEY);
-        APR_IS(14, APR_STATUS_IS_EGENERAL);
-        APR_IS(15, APR_STATUS_IS_ENOSHMAVAIL);
-        APR_IS(16, APR_STATUS_IS_EBADIP);
-        APR_IS(17, APR_STATUS_IS_EBADMASK);
-        /* empty slot: +18 */
-        APR_IS(19, APR_STATUS_IS_EDSOOPEN);
-        APR_IS(20, APR_STATUS_IS_EABSOLUTE);
-        APR_IS(21, APR_STATUS_IS_ERELATIVE);
-        APR_IS(22, APR_STATUS_IS_EINCOMPLETE);
-        APR_IS(23, APR_STATUS_IS_EABOVEROOT);
-        APR_IS(24, APR_STATUS_IS_EBADPATH);
-        APR_IS(25, APR_STATUS_IS_EPATHWILD);
-        APR_IS(26, APR_STATUS_IS_ESYMNOTFOUND);
-        APR_IS(27, APR_STATUS_IS_EPROC_UNKNOWN);
-        APR_IS(28, APR_STATUS_IS_ENOTENOUGHENTROPY);
-
-
-        /* APR_Error */
-        APR_IS(51, APR_STATUS_IS_INCHILD);
-        APR_IS(52, APR_STATUS_IS_INPARENT);
-        APR_IS(53, APR_STATUS_IS_DETACH);
-        APR_IS(54, APR_STATUS_IS_NOTDETACH);
-        APR_IS(55, APR_STATUS_IS_CHILD_DONE);
-        APR_IS(56, APR_STATUS_IS_CHILD_NOTDONE);
-        APR_ISX(57, APR_STATUS_IS_TIMEUP, TCN_TIMEUP);
-        APR_IS(58, APR_STATUS_IS_INCOMPLETE);
-        /* empty slot: +9 */
-        /* empty slot: +10 */
-        /* empty slot: +11 */
-        APR_IS(62, APR_STATUS_IS_BADCH);
-        APR_IS(63, APR_STATUS_IS_BADARG);
-        APR_IS(64, APR_STATUS_IS_EOF);
-        APR_IS(65, APR_STATUS_IS_NOTFOUND);
-        /* empty slot: +16 */
-        /* empty slot: +17 */
-        /* empty slot: +18 */
-        APR_IS(69, APR_STATUS_IS_ANONYMOUS);
-        APR_IS(70, APR_STATUS_IS_FILEBASED);
-        APR_IS(71, APR_STATUS_IS_KEYBASED);
-        APR_IS(72, APR_STATUS_IS_EINIT);
-        APR_IS(73, APR_STATUS_IS_ENOTIMPL);
-        APR_IS(74, APR_STATUS_IS_EMISMATCH);
-        APR_IS(75, APR_STATUS_IS_EBUSY);
-        /* Socket errors */
-        APR_ISX(90, APR_STATUS_IS_EAGAIN, TCN_EAGAIN);
-        APR_ISX(91, TCN_STATUS_IS_ETIMEDOUT, TCN_ETIMEDOUT);
-        APR_IS(92, APR_STATUS_IS_ECONNABORTED);
-        APR_IS(93, APR_STATUS_IS_ECONNRESET);
-        APR_ISX(94, APR_STATUS_IS_EINPROGRESS, TCN_EINPROGRESS);
-        APR_ISX(95, APR_STATUS_IS_EINTR, TCN_EINTR);
-        APR_IS(96, APR_STATUS_IS_ENOTSOCK);
-        APR_IS(97, APR_STATUS_IS_EINVAL);
-    }
-    return JNI_FALSE;
 }
