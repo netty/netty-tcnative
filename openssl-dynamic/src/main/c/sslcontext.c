@@ -33,6 +33,7 @@
 static const char* UNKNOWN_AUTH_METHOD = "UNKNOWN";
 
 static jclass byteArrayClass;
+extern apr_pool_t *tcn_global_pool;
 
 static apr_status_t ssl_context_cleanup(void *data)
 {
@@ -97,10 +98,9 @@ static apr_status_t ssl_context_cleanup(void *data)
 }
 
 /* Initialize server context */
-TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
-                                            jint protocol, jint mode)
+TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mode)
 {
-    apr_pool_t *p = J2P(pool, apr_pool_t *);
+    apr_pool_t *p = NULL;
     tcn_ssl_ctxt_t *c = NULL;
     SSL_CTX *ctx = NULL;
     jclass clazz;
@@ -219,18 +219,21 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
         }
 #endif
         tcn_Throw(e, "Unsupported SSL protocol (%d)", protocol);
-        goto init_failed;
+        goto cleanup;
     }
 
     if (!ctx) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Failed to initialize SSL_CTX (%s)", err);
-        goto init_failed;
+        goto cleanup;
     }
+
+    TCN_THROW_IF_ERR(apr_pool_create(&p, tcn_global_pool), p);
+
     if ((c = apr_pcalloc(p, sizeof(tcn_ssl_ctxt_t))) == NULL) {
         tcn_ThrowAPRException(e, apr_get_os_error());
-        goto init_failed;
+        goto cleanup;
     }
 
     c->protocol = protocol;
@@ -336,7 +339,10 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
     byteArrayClass = (jclass) (*e)->NewGlobalRef(e, clazz);
 
     return P2J(c);
-init_failed:
+cleanup:
+    if (p != NULL) {
+        apr_pool_destroy(p);
+    }
     return 0;
 }
 
@@ -346,7 +352,9 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, free)(TCN_STDARGS, jlong ctx)
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
     /* Run and destroy the cleanup callback */
-    return apr_pool_cleanup_run(c->pool, c, ssl_context_cleanup);
+    int result = apr_pool_cleanup_run(c->pool, c, ssl_context_cleanup);
+    apr_pool_destroy(c->pool);
+    return result;
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setContextId)(TCN_STDARGS, jlong ctx,
