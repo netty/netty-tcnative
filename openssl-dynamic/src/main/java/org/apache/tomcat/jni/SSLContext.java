@@ -26,7 +26,6 @@ public final class SSLContext {
 
     /**
      * Initialize new SSL context
-     * @param pool The pool to use.
      * @param protocol The SSL protocol to use. It can be any combination of
      * the following:
      * <PRE>
@@ -44,7 +43,7 @@ public final class SSLContext {
      * SSL_MODE_COMBINED
      * </PRE>
      */
-    public static native long make(long pool, int protocol, int mode)
+    public static native long make(int protocol, int mode)
         throws Exception;
 
     /**
