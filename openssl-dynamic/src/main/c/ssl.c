@@ -668,18 +668,25 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
         return (jint)APR_SUCCESS;
     }
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     if (SSLeay() < 0x0090700L) {
         TCN_FREE_CSTRING(engine);
         tcn_ThrowAPRException(e, APR_EINVAL);
         ssl_initialized = 0;
         return (jint)APR_EINVAL;
     }
+#endif
 
 #ifndef OPENSSL_IS_BORINGSSL
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+
     /* We must register the library in full, to ensure our configuration
      * code can successfully test the SSL environment.
      */
     CRYPTO_malloc_init();
+#else
+    OPENSSL_malloc_init();
+#endif
 #endif
 
     ERR_load_crypto_strings();
