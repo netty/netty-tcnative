@@ -619,7 +619,11 @@ static int ssl_verify_CRL(int ok, X509_STORE_CTX *ctx, tcn_ssl_ctxt_t *c)
             X509_REVOKED *revoked =
                 sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
             ASN1_INTEGER *sn = revoked->serialNumber;
+#else
+            ASN1_INTEGER *sn = X509_REVOKED_get0_serialNumber(revoked);
+#endif
 
             if (!ASN1_INTEGER_cmp(sn, X509_get_serialNumber(cert))) {
                 X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_REVOKED);
@@ -749,9 +753,14 @@ void SSL_callback_handshake(const SSL *ssl, int where, int rc)
     if ((where & SSL_CB_ACCEPT_LOOP) && con->reneg_state == RENEG_REJECT) {
         int state = SSL_get_state(ssl);
 
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
         if (state == SSL3_ST_SR_CLNT_HELLO_A
 #ifndef OPENSSL_IS_BORINGSSL
                 || state == SSL23_ST_SR_CLNT_HELLO_A
+#endif
+#else
+        if (state == TLS_ST_SR_CLNT_HELLO
 #endif
                 ) {
             con->reneg_state = RENEG_ABORT;
