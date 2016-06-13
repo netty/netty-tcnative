@@ -138,6 +138,7 @@
                         <include name="**/openssl-${opensslVersion}.tar.gz" />
                       </fileset>
                     </ftp>
+                    <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
                     <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/" />
                     <untar src="${project.build.directory}/openssl-${opensslVersion}.tar" dest="${project.build.directory}/" />
 

@@ -50,9 +50,23 @@
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
     <aprVersion>1.5.2</aprVersion>
+    <aprMd5>98492e965963f852ab29f9e61b2ad700</aprMd5>
     <boringsslBranch>chromium-stable</boringsslBranch>
     <libresslVersion>2.3.4</libresslVersion>
+    <!--
+        NB: libressl does not currently publish sha256 signatures and instead relies on signify
+        to verify releases. The project does not have a securely published GPG key.
+
+        Verifying a libressl release:
+        - Download the new version and the SHA256.sig from http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/
+        - Grab the signify public key from https://www.openbsd.org/libressl/signing.html if you
+          don't already have it
+        - Verify the release: signify -V -x SHA256.sig  -p libressl.pub -m libressl-{libresslVersion}.tar.gz -e
+        - Record the sha256: sha1sum -a 256 libressl-{libresslVersion}.tar.gz (shasum on osx)
+    -->
+    <libresslSha256>7a1135b2620f78928e89538c211a4df1d9415994001d1e7c9178c6b6d72de6a9</libresslSha256>
     <opensslVersion>1.0.2h</opensslVersion>
+    <opensslSha256>1d4007e53aad94a5b2002fe045ee7bb0b3d98f1a47f8b2bc851dcd1c74332919</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprBuildDir>${project.build.directory}/apr-${aprVersion}</aprBuildDir>
     <archBits>64</archBits>
@@ -169,7 +183,7 @@
                 </pathconvert>
                 <property name="aprIncludeDir" value="${aprHomeWindowsPath}\include" />
                 <property name="aprLibDir" value="${aprHomeWindowsPath}\lib" />
-                
+
                 <echo message="Setting APR_INCLUDE_DIR=${aprIncludeDir}" />
                 <echo message="Setting APR_LIB_DIR=${aprLibDir}" />
                 <echo message="Setting SSL_INCLUDE_DIRS=${sslIncludeDirsWindowsPath}" />
@@ -333,6 +347,7 @@
                     <property name="aprTarGzFile" value="apr-${aprVersion}.tar.gz" />
                     <property name="aprTarFile" value="apr-${aprVersion}.tar" />
                     <get src="http://www.us.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
+                    <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="MD5" property="${aprMd5}" verifyProperty="isEqual" />
                     <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
                     <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
                     <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
