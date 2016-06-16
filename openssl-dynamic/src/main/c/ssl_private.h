@@ -362,6 +362,12 @@ DH         *SSL_dh_get_tmp_param(int);
 DH         *SSL_dh_get_param_from_file(const char *);
 RSA        *SSL_callback_tmp_RSA(SSL *, int, int);
 DH         *SSL_callback_tmp_DH(SSL *, int, int);
+// The following provided callbacks will always return DH of a given length.
+// See https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_tmp_dh_callback.html
+DH         *SSL_callback_tmp_DH_512(SSL *, int, int);
+DH         *SSL_callback_tmp_DH_1024(SSL *, int, int);
+DH         *SSL_callback_tmp_DH_2048(SSL *, int, int);
+DH         *SSL_callback_tmp_DH_4096(SSL *, int, int);
 void        SSL_callback_handshake(const SSL *, int, int);
 int         SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, int);
 int         SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, int);

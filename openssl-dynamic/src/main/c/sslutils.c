@@ -426,6 +426,26 @@ DH *SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
     return (DH *)SSL_temp_keys[idx];
 }
 
+DH *SSL_callback_tmp_DH_512(SSL *ssl, int export, int keylen)
+{
+    return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_512];
+}
+
+DH *SSL_callback_tmp_DH_1024(SSL *ssl, int export, int keylen)
+{
+    return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_1024];
+}
+
+DH *SSL_callback_tmp_DH_2048(SSL *ssl, int export, int keylen)
+{
+    return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_2048];
+}
+
+DH *SSL_callback_tmp_DH_4096(SSL *ssl, int export, int keylen)
+{
+    return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_4096];
+}
+
 /*
  * Read a file that optionally contains the server certificate in PEM
  * format, possibly followed by a sequence of CA certificates that

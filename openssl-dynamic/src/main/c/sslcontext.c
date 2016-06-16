@@ -661,6 +661,30 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
     TCN_FREE_CSTRING(file);
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jint length)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+    switch (length) {
+        case 512:
+            SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_512);
+            return;
+        case 1024:
+            SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_1024);
+            return;
+        case 2048:
+            SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_2048);
+            return;
+        case 4096:
+            SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_4096);
+            return;
+        default:
+            tcn_Throw(e, "Unsupported length %s", length);
+            return;
+    }
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setTmpECDHByCurveName)(TCN_STDARGS, jlong ctx,
                                                                   jstring curveName)
 {
