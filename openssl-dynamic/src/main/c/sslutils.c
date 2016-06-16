@@ -22,7 +22,6 @@
 
 #include "tcn.h"
 
-#ifdef HAVE_OPENSSL
 #include "apr_poll.h"
 #include "ssl_private.h"
 
@@ -1357,4 +1356,3 @@ static int ssl_ocsp_request(X509 *cert, X509 *issuer)
 }
 
 #endif /* HAS_OCSP_ENABLED */
-#endif /* HAVE_OPENSSL  */
