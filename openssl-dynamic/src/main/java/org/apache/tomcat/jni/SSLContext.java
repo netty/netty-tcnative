@@ -490,7 +490,15 @@ public final class SSLContext {
      */
     public static native void setTmpDH(long ctx, String cert)
             throws Exception;
-    
+
+    /**
+     * Set length of the DH to use.
+     *
+     * @param ctx Server context to use.
+     * @param length the length.
+     */
+    public static native void setTmpDHLength(long ctx, int length);
+
     /**
      * Set ECDH elliptic curve by name
      * @param ctx Server context to use.
@@ -527,5 +535,4 @@ public final class SSLContext {
      * @return the mode.
      */
     public static native int getMode(long ctx);
-
 }
