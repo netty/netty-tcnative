@@ -48,6 +48,92 @@ static int ssl_ocsp_request(X509 *cert, X509 *issuer);
 **  _________________________________________________________________
 */
 
+
+/*
+ * Adapted from OpenSSL:
+ * http://osxr.org/openssl/source/ssl/ssl_locl.h#0291
+ */
+/* Bits for algorithm_mkey (key exchange algorithm) */
+#define SSL_kRSA        0x00000001L /* RSA key exchange */
+#define SSL_kDHr        0x00000002L /* DH cert, RSA CA cert */ /* no such ciphersuites supported! */
+#define SSL_kDHd        0x00000004L /* DH cert, DSA CA cert */ /* no such ciphersuite supported! */
+#define SSL_kEDH        0x00000008L /* tmp DH key no DH cert */
+#define SSL_kKRB5       0x00000010L /* Kerberos5 key exchange */
+#define SSL_kECDHr      0x00000020L /* ECDH cert, RSA CA cert */
+#define SSL_kECDHe      0x00000040L /* ECDH cert, ECDSA CA cert */
+#define SSL_kEECDH      0x00000080L /* ephemeral ECDH */
+#define SSL_kPSK        0x00000100L /* PSK */
+#define SSL_kGOST       0x00000200L /* GOST key exchange */
+#define SSL_kSRP        0x00000400L /* SRP */
+
+/* Bits for algorithm_auth (server authentication) */
+#define SSL_aRSA        0x00000001L /* RSA auth */
+#define SSL_aDSS        0x00000002L /* DSS auth */
+#define SSL_aNULL       0x00000004L /* no auth (i.e. use ADH or AECDH) */
+#define SSL_aDH         0x00000008L /* Fixed DH auth (kDHd or kDHr) */ /* no such ciphersuites supported! */
+#define SSL_aECDH       0x00000010L /* Fixed ECDH auth (kECDHe or kECDHr) */
+#define SSL_aKRB5       0x00000020L /* KRB5 auth */
+#define SSL_aECDSA      0x00000040L /* ECDSA auth*/
+#define SSL_aPSK        0x00000080L /* PSK auth */
+#define SSL_aGOST94     0x00000100L /* GOST R 34.10-94 signature auth */
+#define SSL_aGOST01     0x00000200L /* GOST R 34.10-2001 signature auth */
+
+/* OpenSSL end */
+
+/*
+ * Adapted from Android:
+ * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
+ */
+const char* SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
+#ifndef OPENSSL_IS_BORINGSSL
+    switch (cipher->algorithm_mkey)
+        {
+    case SSL_kRSA:
+        return SSL_TXT_RSA;
+    case SSL_kDHr:
+        return SSL_TXT_DH "_" SSL_TXT_RSA;
+
+    case SSL_kDHd:
+        return SSL_TXT_DH "_" SSL_TXT_DSS;
+    case SSL_kEDH:
+        switch (cipher->algorithm_auth)
+            {
+        case SSL_aDSS:
+            return "DHE_" SSL_TXT_DSS;
+        case SSL_aRSA:
+            return "DHE_" SSL_TXT_RSA;
+        case SSL_aNULL:
+            return SSL_TXT_DH "_anon";
+        default:
+            return UNKNOWN_AUTH_METHOD;
+            }
+    case SSL_kKRB5:
+        return SSL_TXT_KRB5;
+    case SSL_kECDHr:
+        return SSL_TXT_ECDH "_" SSL_TXT_RSA;
+    case SSL_kECDHe:
+        return SSL_TXT_ECDH "_" SSL_TXT_ECDSA;
+    case SSL_kEECDH:
+        switch (cipher->algorithm_auth)
+            {
+        case SSL_aECDSA:
+            return "ECDHE_" SSL_TXT_ECDSA;
+        case SSL_aRSA:
+            return "ECDHE_" SSL_TXT_RSA;
+        case SSL_aNULL:
+            return SSL_TXT_ECDH "_anon";
+        default:
+            return UNKNOWN_AUTH_METHOD;
+            }
+    default:
+        return UNKNOWN_AUTH_METHOD;
+    }
+#else
+    return SSL_CIPHER_get_kx_name(cipher);
+#endif
+
+}
+
 /* we initialize this index at startup time
  * and never write to it at request time,
  * so this static is thread safe.
@@ -482,9 +568,87 @@ int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio,
               && ERR_GET_REASON(err) == PEM_R_NO_START_LINE)) {
             return -1;
         }
-        while (ERR_get_error() > 0) ;
+        ERR_clear_error();
     }
     return n;
+}
+
+int SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio,
+                                  int skipfirst)
+{
+#if !defined(OPENSSL_IS_BORINGSSL) && OPENSSL_VERSION_NUMBER < 0x1000200fL
+    // Only supported on boringssl or openssl 1.0.2+
+    return -1;
+#else
+    X509 *x509;
+    unsigned long err;
+    int n;
+    STACK_OF(X509) *chain;
+
+    /* optionally skip a leading server certificate */
+    if (skipfirst) {
+        if ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) == NULL) {
+            return -1;
+        }
+        X509_free(x509);
+    }
+
+    /* create new extra chain by loading the certs */
+    n = 0;
+
+    while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
+        if (SSL_add0_chain_cert(ssl, x509) != 1) {
+            X509_free(x509);
+            return -1;
+        }
+        n++;
+    }
+    /* Make sure that only the error is just an EOF */
+    if ((err = ERR_peek_error()) > 0) {
+        if (!(   ERR_GET_LIB(err) == ERR_LIB_PEM
+              && ERR_GET_REASON(err) == PEM_R_NO_START_LINE)) {
+            return -1;
+        }
+        ERR_clear_error();
+    }
+    return n;
+#endif
+}
+
+X509 *load_pem_cert_bio(tcn_pass_cb_t *cb_data, const BIO *bio)
+{
+    X509 *cert = NULL;
+    if (cb_data == NULL)
+        cb_data = &tcn_password_callback;
+    cert = PEM_read_bio_X509_AUX((BIO*) bio, NULL,
+                (pem_password_cb *)SSL_password_callback,
+                (void *)cb_data);
+    if (cert == NULL &&
+       (ERR_GET_REASON(ERR_peek_last_error()) == PEM_R_NO_START_LINE)) {
+        ERR_clear_error();
+        BIO_ctrl((BIO*) bio, BIO_CTRL_RESET, 0, NULL);
+        cert = d2i_X509_bio((BIO*) bio, NULL);
+    }
+    return cert;
+}
+
+EVP_PKEY *load_pem_key_bio(tcn_pass_cb_t *cb_data, const BIO *bio)
+{
+    EVP_PKEY *key = NULL;
+    int i;
+
+    if (cb_data == NULL)
+        cb_data = &tcn_password_callback;
+    for (i = 0; i < 3; i++) {
+        key = PEM_read_bio_PrivateKey((BIO*) bio, NULL,
+                    (pem_password_cb *)SSL_password_callback,
+                    (void *)cb_data);
+        if (key != NULL)
+            break;
+        cb_data->password[0] = '\0';
+        BIO_ctrl((BIO*) bio, BIO_CTRL_RESET, 0, NULL);
+    }
+    return key;
 }
 
 static int ssl_X509_STORE_lookup(X509_STORE *store, int yype,

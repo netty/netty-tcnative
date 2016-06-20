@@ -761,4 +761,52 @@ public final class SSL {
      * @param hostname the hostname
      */
     public static native void setTlsExtHostName(long ssl, String hostname);
+
+    public static native String[] authenticationMethods(long ssl);
+
+    /**
+     * Set BIO of PEM-encoded Server CA Certificates
+     * <p>
+     * This directive sets the optional all-in-one file where you can assemble the
+     * certificates of Certification Authorities (CA) which form the certificate
+     * chain of the server certificate. This starts with the issuing CA certificate
+     * of of the server certificate and can range up to the root CA certificate.
+     * Such a file is simply the concatenation of the various PEM-encoded CA
+     * Certificate files, usually in certificate chain order.
+     * <p>
+     * But be careful: Providing the certificate chain works only if you are using
+     * a single (either RSA or DSA) based server certificate. If you are using a
+     * coupled RSA+DSA certificate pair, this will work only if actually both
+     * certificates use the same certificate chain. Otherwsie the browsers will be
+     * confused in this situation.
+     * @param ssl Server or Client to use.
+     * @param bio BIO of PEM-encoded Server CA Certificates.
+     * @param skipfirst Skip first certificate if chain file is inside
+     *                  certificate file.
+     */
+    public static native void setCertificateChainBio(long ssl, long bio, boolean skipfirst);
+
+    /**
+     * Set Certificate
+     * <br>
+     * Point setCertificate at a PEM encoded certificate stored in a BIO. If
+     * the certificate is encrypted, then you will be prompted for a
+     * pass phrase.  Note that a kill -HUP will prompt again. A test
+     * certificate can be generated with `make certificate' under
+     * built time. Keep in mind that if you've both a RSA and a DSA
+     * certificate you can configure both in parallel (to also allow
+     * the use of DSA ciphers, etc.)
+     * <br>
+     * If the key is not combined with the certificate, use key param
+     * to point at the key file.  Keep in mind that if
+     * you've both a RSA and a DSA private key you can configure
+     * both in parallel (to also allow the use of DSA ciphers, etc.)
+     * @param ssl Server or Client to use.
+     * @param certBio Certificate BIO.
+     * @param keyBio Private Key BIO to use if not in cert.
+     * @param password Certificate password. If null and certificate
+     *                 is encrypted.
+     */
+    public static native void setCertificateBio(
+            long ssl, long certBio, long keyBio, String password) throws Exception;
 }
