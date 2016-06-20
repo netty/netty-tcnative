@@ -49,7 +49,6 @@ struct CRYPTO_dynlock_value {
     apr_thread_mutex_t *mutex;
 };
 
-
 /*
  * Handle the Temporary RSA Keys and DH Params
  */
@@ -834,11 +833,11 @@ TCN_IMPLEMENT_CALL(jint, SSL, fipsModeSet)(TCN_STDARGS, jint mode)
     if(1 != (r = (jint)FIPS_mode_set((int)mode))) {
       /* arrange to get a human-readable error message */
       unsigned long err = ERR_get_error();
-      char msg[256];
+      char msg[ERR_LEN];
 
       /* ERR_load_crypto_strings() already called in initialize() */
 
-      ERR_error_string_n(err, msg, 256);
+      ERR_error_string_n(err, msg, ERR_LEN);
 
       tcn_ThrowException(e, msg);
     }
@@ -1204,7 +1203,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, loadDSATempKey)(TCN_STDARGS, jint idx,
 
 TCN_IMPLEMENT_CALL(jstring, SSL, getLastError)(TCN_STDARGS)
 {
-    char buf[256];
+    char buf[ERR_LEN];
     UNREFERENCED(o);
     ERR_error_string(ERR_get_error(), buf);
     return tcn_new_string(e, buf);
@@ -1685,7 +1684,9 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
         buf = NULL;
         length = i2d_X509(cert, &buf);
         if (length < 0) {
-            OPENSSL_free(buf);
+            if (buf != NULL) {
+                OPENSSL_free(buf);
+            }
             // In case of error just return an empty byte[][]
             return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
         }
@@ -1742,7 +1743,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
 
 TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
 {
-    char buf[256];
+    char buf[ERR_LEN];
     UNREFERENCED(o);
     ERR_error_string(number, buf);
     return tcn_new_string(e, buf);
@@ -1970,7 +1971,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
     }
 
     if (!SSL_set_cipher_list(ssl_, J2S(ciphers))) {
-        char err[256];
+        char err[ERR_LEN];
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
         rv = JNI_FALSE;
@@ -2076,7 +2077,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName)(TCN_STDARGS, jlong ssl, jstring
         UNREFERENCED(o);
 
         if (SSL_set_tlsext_host_name(ssl_, J2S(hostname)) != 1) {
-            char err[256];
+            char err[ERR_LEN];
             ERR_error_string(ERR_get_error(), err);
             tcn_Throw(e, "Unable to set TLS servername extension (%s)", err);
         }
@@ -2085,5 +2086,114 @@ TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName)(TCN_STDARGS, jlong ssl, jstring
     TCN_FREE_CSTRING(hostname);
 }
 
-/*** End Apple API Additions ***/
+TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong ssl) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    const STACK_OF(SSL_CIPHER) *ciphers = NULL;
+    int len;
+    int i;
+    jobjectArray array;
 
+    TCN_ASSERT(ssl_ != NULL);
+
+    UNREFERENCED(o);
+
+    ciphers = SSL_get_ciphers(ssl_);
+    len = sk_num((_STACK*) ciphers);
+
+    array = (*e)->NewObjectArray(e, len, stringClass, NULL);
+
+    for (i = 0; i < len; i++) {
+        (*e)->SetObjectArrayElement(e, array, i,
+        (*e)->NewStringUTF(e, SSL_cipher_authentication_method((SSL_CIPHER*) sk_value((_STACK*) ciphers, i))));
+    }
+    return array;
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
+                                                         jlong cert, jlong key,
+                                                         jstring password)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+    BIO *cert_bio = J2P(cert, BIO *);
+    BIO *key_bio = J2P(key, BIO *);
+    EVP_PKEY* pkey;
+    X509* xcert;
+    tcn_pass_cb_t* cb_data;
+    TCN_ALLOC_CSTRING(password);
+    char err[ERR_LEN];
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ssl != NULL);
+
+    cb_data = &tcn_password_callback;
+    cb_data->password[0] = '\0';
+    if (J2S(password) != NULL) {
+        strncat(cb_data->password, J2S(password), SSL_MAX_PASSWORD_LEN - 1);
+    }
+
+    if (key <= 0) {
+        key = cert;
+    }
+
+    if (cert <= 0 || key <= 0) {
+        tcn_Throw(e, "No Certificate file specified or invalid file format");
+        goto cleanup;
+    }
+
+    if ((pkey = load_pem_key_bio(cb_data, key_bio)) == NULL) {
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Unable to load certificate key (%s)",err);
+        goto cleanup;
+    }
+    if ((xcert = load_pem_cert_bio(cb_data, cert_bio)) == NULL) {
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Unable to load certificate (%s) ", err);
+        goto cleanup;
+    }
+
+    if (SSL_use_certificate(ssl_, xcert) <= 0) {
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Error setting certificate (%s)", err);
+        goto cleanup;
+    }
+    if (SSL_use_PrivateKey(ssl_, pkey) <= 0) {
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Error setting private key (%s)", err);
+        goto cleanup;
+    }
+    if (SSL_check_private_key(ssl_) <= 0) {
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+
+        tcn_Throw(e, "Private key does not match the certificate public key (%s)",
+                  err);
+        goto cleanup;
+    }
+cleanup:
+    TCN_FREE_CSTRING(password);
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
+                                                                  jlong chain,
+                                                                  jboolean skipfirst)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+    BIO *b = J2P(chain, BIO *);
+    char err[ERR_LEN];
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ssl_ != NULL);
+    TCN_ASSERT(b != NULL);
+
+    if (SSL_use_certificate_chain_bio(ssl_, b, skipfirst) < 0)  {
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Error setting certificate chain (%s)", err);
+    }
+}
+
+/*** End Apple API Additions ***/
