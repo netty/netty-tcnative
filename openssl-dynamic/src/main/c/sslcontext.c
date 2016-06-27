@@ -30,6 +30,7 @@
 
 #ifdef HAVE_OPENSSL
 #include "ssl_private.h"
+#include <stdint.h>
 
 static jclass byteArrayClass;
 
