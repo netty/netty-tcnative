@@ -29,6 +29,7 @@
 #include "apr_atomic.h"
 
 #include "ssl_private.h"
+#include <stdint.h>
 
 static jclass byteArrayClass;
 extern apr_pool_t *tcn_global_pool;
