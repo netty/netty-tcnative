@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>1.1.33.Fork18-SNAPSHOT</version>
+    <version>1.1.33.Fork18</version>
   </parent>
   <artifactId>netty-tcnative-boringssl-static</artifactId>
   <packaging>jar</packaging>
