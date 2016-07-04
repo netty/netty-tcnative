@@ -677,7 +677,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 #endif
 
 #ifndef OPENSSL_IS_BORINGSSL
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || LIBRESSL_VERSION_NUMBER < 0x20400000L
 
     /* We must register the library in full, to ensure our configuration
      * code can successfully test the SSL environment.

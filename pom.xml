@@ -52,7 +52,7 @@
     <aprVersion>1.5.2</aprVersion>
     <aprMd5>98492e965963f852ab29f9e61b2ad700</aprMd5>
     <boringsslBranch>chromium-stable</boringsslBranch>
-    <libresslVersion>2.3.4</libresslVersion>
+    <libresslVersion>2.4.1</libresslVersion>
     <!--
         NB: libressl does not currently publish sha256 signatures and instead relies on signify
         to verify releases. The project does not have a securely published GPG key.
@@ -64,7 +64,7 @@
         - Verify the release: signify -V -x SHA256.sig  -p libressl.pub -m libressl-{libresslVersion}.tar.gz -e
         - Record the sha256: sha1sum -a 256 libressl-{libresslVersion}.tar.gz (shasum on osx)
     -->
-    <libresslSha256>7a1135b2620f78928e89538c211a4df1d9415994001d1e7c9178c6b6d72de6a9</libresslSha256>
+    <libresslSha256>121922b13169cd47a85e3e77f0bc129f8d04247193b42491cb1fab9074e80477</libresslSha256>
     <opensslVersion>1.0.2h</opensslVersion>
     <opensslSha256>1d4007e53aad94a5b2002fe045ee7bb0b3d98f1a47f8b2bc851dcd1c74332919</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
