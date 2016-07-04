@@ -1639,7 +1639,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     *x509Out = NULL;
     *pkeyOut = NULL;
 
-#if !defined(OPENSSL_IS_BORINGSSL) && OPENSSL_VERSION_NUMBER < 0x1000200fL
+#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x1000200fL || LIBRESSL_VERSION_NUMBER < 0x20400000L)
     switch (ssl->version) {
         case SSL2_VERSION:
             ctype_bytes = (jbyte*) &ssl2_ctype;
