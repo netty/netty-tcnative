@@ -200,6 +200,31 @@
               </target>
             </configuration>
           </execution>
+
+          <!-- Generate bnd bundle manifest. -->
+          <execution>
+            <id>native-manifest</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <exportAntProperties>true</exportAntProperties>
+              <target>
+                <condition property="tcnative.lib" value="libnetty-tcnative.so">
+                  <equals arg1="${os.detected.name}" arg2="linux" />
+                </condition>
+                <condition property="tcnative.lib" value="netty-tcnative.dll">
+                  <equals arg1="${os.detected.name}" arg2="windows" />
+                </condition>
+                <condition property="tcnative.lib" value="libnetty-tcnative.jnilib">
+                  <equals arg1="${os.detected.name}" arg2="osx" />
+                </condition>
+                <property name="tcnativeManifest" value="META-INF/native/${tcnative.lib}; osname=${os.detected.name}; processor=x86_64" />
+                <echo message="Bundle-NativeCode: ${tcnativeManifest}" />
+              </target>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 
@@ -220,6 +245,7 @@
               </supportedProjectTypes>
               <instructions>
                 <Export-Package>org.apache.tomcat.jni.*</Export-Package>
+                <Bundle-NativeCode>${tcnativeManifest}</Bundle-NativeCode>
               </instructions>
             </configuration>
           </execution>
