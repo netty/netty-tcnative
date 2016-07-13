@@ -211,16 +211,18 @@
             <configuration>
               <exportAntProperties>true</exportAntProperties>
               <target>
-                <condition property="tcnative.lib" value="libnetty-tcnative.so">
+                <condition property="tcnative.snippet" value="libnetty-tcnative.so;osname=linux">
                   <equals arg1="${os.detected.name}" arg2="linux" />
                 </condition>
-                <condition property="tcnative.lib" value="netty-tcnative.dll">
+                <!-- In OSGi specification, the alias of Windows family is win32, case insensitive -->
+                <condition property="tcnative.snippet" value="netty-tcnative.dll;osname=win32">
                   <equals arg1="${os.detected.name}" arg2="windows" />
                 </condition>
-                <condition property="tcnative.lib" value="libnetty-tcnative.jnilib">
+                <!-- In OSGi specification, the alias of OSX family is macos or macosx, case insensitive -->
+                <condition property="tcnative.snippet" value="libnetty-tcnative.jnilib;osname=macos;osname=macosx;">
                   <equals arg1="${os.detected.name}" arg2="osx" />
                 </condition>
-                <property name="tcnativeManifest" value="META-INF/native/${tcnative.lib}; osname=${os.detected.name}; processor=x86_64" />
+                <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=x86_64" />
                 <echo message="Bundle-NativeCode: ${tcnativeManifest}" />
               </target>
             </configuration>
