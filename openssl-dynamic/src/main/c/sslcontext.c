@@ -1655,6 +1655,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
             break;
     }
 #else
+    (void) ssl2_ctype;
     ctype_num = SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
 #endif
     if (ctype_num <= 0) {
