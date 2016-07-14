@@ -602,7 +602,6 @@ int SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio,
     X509 *x509;
     unsigned long err;
     int n;
-    STACK_OF(X509) *chain;
 
     /* optionally skip a leading server certificate */
     if (skipfirst) {
