@@ -41,7 +41,9 @@ public final class Library {
             try {
                 System.loadLibrary(NAMES[i]);
                 loaded = true;
-            } catch (ThreadDeath | VirtualMachineError t) {
+            } catch (ThreadDeath t) {
+                throw t;
+            } catch (VirtualMachineError t) {
                 throw t;
             } catch (Throwable t) {
                 String name = System.mapLibraryName(NAMES[i]);
@@ -49,7 +51,7 @@ public final class Library {
                     java.io.File fd = new java.io.File(paths[j] , name);
                     if (fd.exists()) {
                         // File exists but failed to load
-                        throw t;
+                        throw new RuntimeException(t);
                     }
                 }
                 if (i > 0) {

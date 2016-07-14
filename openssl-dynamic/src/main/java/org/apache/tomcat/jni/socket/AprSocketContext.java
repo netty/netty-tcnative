@@ -108,7 +108,7 @@ public class AprSocketContext {
     /**
      * Pollers.
      */
-    private final List<AprPoller> pollers = new ArrayList<>();
+    private final List<AprPoller> pollers = new ArrayList<AprPoller>();
 
     // Set on all accepted or connected sockets.
     // TODO: add the other properties
@@ -123,7 +123,7 @@ public class AprSocketContext {
     private boolean nonBlockingAccept = false;
 
     private final BlockingQueue<AprSocket> acceptedQueue =
-            new LinkedBlockingQueue<>();
+            new LinkedBlockingQueue<AprSocket>();
 
     /**
      * Root APR memory pool.
@@ -157,7 +157,7 @@ public class AprSocketContext {
     final RawDataHandler rawDataHandler = null;
 
     // TODO: do we need this here ?
-    private final Map<String, HostInfo> hosts = new HashMap<>();
+    private final Map<String, HostInfo> hosts = new HashMap<String, HostInfo>();
 
     private String certFile;
     private String keyFile;
@@ -797,10 +797,16 @@ public class AprSocketContext {
         }
 
         void unblock() {
-            try (java.net.Socket sock = new java.net.Socket()) {
-                // Easiest ( maybe safest ) way to interrupt accept
-                // we could have it in non-blocking mode, etc
-                sock.connect(new InetSocketAddress("127.0.0.1", port));
+            java.net.Socket sock = new java.net.Socket();
+
+            try {
+                try {
+                    // Easiest ( maybe safest ) way to interrupt accept
+                    // we could have it in non-blocking mode, etc
+                    sock.connect(new InetSocketAddress("127.0.0.1", port));
+                } finally {
+                    sock.close();
+                }
             } catch (Exception ex) {
                 // ignore - the acceptor may have shut down by itself.
             }
@@ -942,7 +948,7 @@ public class AprSocketContext {
 
         // Should be replaced with socket data.
         // used only to lookup by socket
-        private final Map<Long, AprSocket> channels = new HashMap<>();
+        private final Map<Long, AprSocket> channels = new HashMap<Long, AprSocket>();
 
         // Active + pending, must be < desc.length / 2
         // The channel will also have poller=this when active or pending
@@ -953,7 +959,7 @@ public class AprSocketContext {
 
         private final AtomicInteger pollCount = new AtomicInteger();
 
-        private final List<AprSocket> updates = new ArrayList<>();
+        private final List<AprSocket> updates = new ArrayList<AprSocket>();
 
         @Override
         public void run() {
