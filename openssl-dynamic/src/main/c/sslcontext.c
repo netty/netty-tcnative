@@ -1625,7 +1625,6 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
  */
 static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
-    char ssl2_ctype = SSL3_CT_RSA_SIGN;
     int ctype_num;
     jbyte* ctype_bytes;
     jobjectArray issuers;
@@ -1640,6 +1639,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     *pkeyOut = NULL;
 
 #if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x1000200fL || LIBRESSL_VERSION_NUMBER < 0x20400000L)
+    char ssl2_ctype = SSL3_CT_RSA_SIGN;
     switch (ssl->version) {
         case SSL2_VERSION:
             ctype_bytes = (jbyte*) &ssl2_ctype;
@@ -1655,7 +1655,6 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
             break;
     }
 #else
-    (void) ssl2_ctype;
     ctype_num = SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
 #endif
     if (ctype_num <= 0) {
