@@ -644,7 +644,7 @@ public class AprSocketContext {
                             if (certFile != null) {
                                 boolean rc = SSLContext.setCertificate(sslCtx,
                                         certFile,
-                                        keyFile, null, SSL.SSL_AIDX_DSA);
+                                        keyFile, null);
                                 if (!rc) {
                                     throw new IOException("Can't set keys");
                                 }

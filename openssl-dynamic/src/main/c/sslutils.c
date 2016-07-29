@@ -1440,11 +1440,15 @@ static OCSP_RESPONSE *get_ocsp_response(X509 *cert, X509 *issuer, char *url)
     }
 
     /* Create the OCSP request */
-    if (sscanf(c_port, "%d", &port) != 1)
-        goto end;
-    ocsp_req = OCSP_REQUEST_new();
-    if (ocsp_req == NULL)
+    if (sscanf(c_port, "%d", &port) != 1) {
+        sk_OCSP_CERTID_free(ids);
         return NULL;
+    }
+    ocsp_req = OCSP_REQUEST_new();
+    if (ocsp_req == NULL) {
+        sk_OCSP_CERTID_free(ids);
+        return NULL;
+    }
     if (add_ocsp_cert(&ocsp_req,cert,issuer,ids) == 0 )
         goto free_req;
 
@@ -1456,7 +1460,6 @@ static OCSP_RESPONSE *get_ocsp_response(X509 *cert, X509 *issuer, char *url)
 
     apr_sock = make_socket(hostname, port, mp);
     if (apr_sock == NULL) {
-        ocsp_resp = NULL;
         goto free_bio;
     }
 
@@ -1476,7 +1479,6 @@ free_req:
     sk_OCSP_CERTID_free(ids);
     OCSP_REQUEST_free(ocsp_req);
 
-end:
     return ocsp_resp;
 }
 
