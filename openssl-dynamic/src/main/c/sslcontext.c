@@ -44,19 +44,8 @@ static apr_status_t ssl_context_cleanup(void *data)
         if (c->crl != NULL)
             X509_STORE_free(c->crl);
         c->crl = NULL;
-        if (c->ctx != NULL)
-            SSL_CTX_free(c->ctx);
+        SSL_CTX_free(c->ctx); // this function is safe to call with NULL
         c->ctx = NULL;
-        for (i = 0; i < SSL_AIDX_MAX; i++) {
-            if (c->certs[i] != NULL) {
-                X509_free(c->certs[i]);
-                c->certs[i] = NULL;
-            }
-            if (c->keys[i] != NULL) {
-                EVP_PKEY_free(c->keys[i]);
-                c->keys[i] = NULL;
-            }
-        }
         if (c->bio_is != NULL ) {
             SSL_BIO_close(c->bio_is);
             c->bio_is = NULL;
@@ -229,7 +218,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
         goto init_failed;
     }
 
-    if (!ctx) {
+    if (ctx == NULL) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Failed to initialize SSL_CTX (%s)", err);
@@ -344,6 +333,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jlong pool,
 
     return P2J(c);
 init_failed:
+    SSL_CTX_free(ctx); // this function is safe to call with NULL.
     return 0;
 }
 
@@ -892,13 +882,15 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setRandom)(TCN_STDARGS, jlong ctx,
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
                                                          jstring cert, jstring key,
-                                                         jstring password, jint idx)
+                                                         jstring password)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(cert);
     TCN_ALLOC_CSTRING(key);
     TCN_ALLOC_CSTRING(password);
+    EVP_PKEY *pkey = NULL;
+    X509 *xcert = NULL;
     const char *key_file, *cert_file;
     const char *p;
     char err[256];
@@ -906,11 +898,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
 
-    if (idx < 0 || idx >= SSL_AIDX_MAX) {
-        /* TODO: Throw something */
-        rv = JNI_FALSE;
-        goto cleanup;
-    }
     if (J2S(password)) {
         if (!c->cb_data)
             c->cb_data = &tcn_password_callback;
@@ -927,7 +914,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
         goto cleanup;
     }
     if ((p = strrchr(cert_file, '.')) != NULL && strcmp(p, ".pkcs12") == 0) {
-        if (!ssl_load_pkcs12(c, cert_file, &c->keys[idx], &c->certs[idx], 0)) {
+        if (!ssl_load_pkcs12(c, cert_file, &pkey, &xcert, 0)) {
             ERR_error_string(ERR_get_error(), err);
             tcn_Throw(e, "Unable to load certificate %s (%s)",
                       cert_file, err);
@@ -936,14 +923,14 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
         }
     }
     else {
-        if ((c->keys[idx] = load_pem_key(c, key_file)) == NULL) {
+        if ((pkey = load_pem_key(c, key_file)) == NULL) {
             ERR_error_string(ERR_get_error(), err);
             tcn_Throw(e, "Unable to load certificate key %s (%s)",
                       key_file, err);
             rv = JNI_FALSE;
             goto cleanup;
         }
-        if ((c->certs[idx] = load_pem_cert(c, cert_file)) == NULL) {
+        if ((xcert = load_pem_cert(c, cert_file)) == NULL) {
             ERR_error_string(ERR_get_error(), err);
             tcn_Throw(e, "Unable to load certificate %s (%s)",
                       cert_file, err);
@@ -951,13 +938,13 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
             goto cleanup;
         }
     }
-    if (SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
+    if (SSL_CTX_use_certificate(c->ctx, xcert) <= 0) {
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Error setting certificate (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if (SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
+    if (SSL_CTX_use_PrivateKey(c->ctx, pkey) <= 0) {
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Error setting private key (%s)", err);
         rv = JNI_FALSE;
@@ -974,16 +961,20 @@ cleanup:
     TCN_FREE_CSTRING(cert);
     TCN_FREE_CSTRING(key);
     TCN_FREE_CSTRING(password);
+    EVP_PKEY_free(pkey); // this function is safe to call with NULL
+    X509_free(xcert); // this function is safe to call with NULL
     return rv;
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong ctx,
                                                          jlong cert, jlong key,
-                                                         jstring password, jint idx)
+                                                         jstring password)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     BIO *cert_bio = J2P(cert, BIO *);
     BIO *key_bio = J2P(key, BIO *);
+    EVP_PKEY *pkey = NULL;
+    X509 *xcert = NULL;
 
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(password);
@@ -992,11 +983,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
 
-    if (idx < 0 || idx >= SSL_AIDX_MAX) {
-        /* TODO: Throw something */
-        rv = JNI_FALSE;
-        goto cleanup;
-    }
     if (J2S(password)) {
         if (!c->cb_data)
             c->cb_data = &tcn_password_callback;
@@ -1011,14 +997,14 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
         goto cleanup;
     }
 
-    if ((c->keys[idx] = load_pem_key_bio(c->cb_data, key_bio)) == NULL) {
+    if ((pkey = load_pem_key_bio(c->cb_data, key_bio)) == NULL) {
         ERR_error_string(ERR_get_error(), err);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate key (%s)",err);
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if ((c->certs[idx] = load_pem_cert_bio(c->cb_data, cert_bio)) == NULL) {
+    if ((xcert = load_pem_cert_bio(c->cb_data, cert_bio)) == NULL) {
         ERR_error_string(ERR_get_error(), err);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate (%s) ", err);
@@ -1026,14 +1012,14 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
         goto cleanup;
     }
 
-    if (SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
+    if (SSL_CTX_use_certificate(c->ctx, xcert) <= 0) {
         ERR_error_string(ERR_get_error(), err);
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if (SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
+    if (SSL_CTX_use_PrivateKey(c->ctx, pkey) <= 0) {
         ERR_error_string(ERR_get_error(), err);
         ERR_clear_error();
         tcn_Throw(e, "Error setting private key (%s)", err);
@@ -1051,9 +1037,10 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     }
 cleanup:
     TCN_FREE_CSTRING(password);
+    EVP_PKEY_free(pkey); // this function is safe to call with NULL
+    X509_free(xcert); // this function is safe to call with NULL
     return rv;
 }
-
 
 // Convert protos to wire format
 static int initProtocols(JNIEnv *e, unsigned char **proto_data,
@@ -1061,7 +1048,7 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
     int i;
     unsigned char *p_data;
     // We start with allocate 128 bytes which should be good enough for most use-cases while still be pretty low.
-    // We will call realloc to increate this if needed.
+    // We will call realloc to increase this if needed.
     size_t p_data_size = 128;
     size_t p_data_len = 0;
     jstring proto_string;
@@ -1905,7 +1892,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setRandom)(TCN_STDARGS, jlong ctx,
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
                                                          jstring cert, jstring key,
-                                                         jstring password, jint idx)
+                                                         jstring password)
 {
     UNREFERENCED_STDARGS;
     UNREFERENCED(ctx);
@@ -1918,7 +1905,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong ctx,
                                                          jlong cert, jlong key,
-                                                         jstring password, jint idx)
+                                                         jstring password)
 {
     UNREFERENCED_STDARGS;
     UNREFERENCED(ctx);
