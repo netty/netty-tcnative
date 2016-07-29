@@ -34,9 +34,13 @@ public final class SSL {
     public static final int SSL_ALGO_DSA     = (1<<1);
     public static final int SSL_ALGO_ALL     = (SSL_ALGO_RSA|SSL_ALGO_DSA);
 
+    @Deprecated
     public static final int SSL_AIDX_RSA     = 0;
+    @Deprecated
     public static final int SSL_AIDX_DSA     = 1;
+    @Deprecated
     public static final int SSL_AIDX_MAX     = 2;
+
     /*
      * Define IDs for the temporary RSA keys and DH params
      */

@@ -208,8 +208,10 @@ public final class SSLContext {
     public static native boolean setCertificateChainBio(long ctx, long bio, boolean skipfirst);
 
     /**
+     * @deprecated Use {@link #setCertificate(long, String, String, String)}
+     * <p>
      * Set Certificate
-     * <br>
+     * <p>
      * Point setCertificateFile at a PEM encoded certificate.  If
      * the certificate is encrypted, then you will be prompted for a
      * pass phrase.  Note that a kill -HUP will prompt again. A test
@@ -217,7 +219,7 @@ public final class SSLContext {
      * built time. Keep in mind that if you've both a RSA and a DSA
      * certificate you can configure both in parallel (to also allow
      * the use of DSA ciphers, etc.)
-     * <br>
+     * <p>
      * If the key is not combined with the certificate, use key param
      * to point at the key file.  Keep in mind that if
      * you've both a RSA and a DSA private key you can configure
@@ -227,16 +229,40 @@ public final class SSLContext {
      * @param key Private Key file to use if not in cert.
      * @param password Certificate password. If null and certificate
      *                 is encrypted, password prompt will be displayed.
-     * @param idx Certificate index SSL_AIDX_RSA or SSL_AIDX_DSA.
+     * @param idx deprecated and ignored.
      */
-    public static native boolean setCertificate(long ctx, String cert,
-                                                String key, String password,
-                                                int idx)
-        throws Exception;
+    @Deprecated
+    public static boolean setCertificate(long ctx, String cert, String key, String password, int idx) throws Exception {
+        return setCertificate(ctx, cert, key, password);
+    }
 
     /**
      * Set Certificate
-     * <br>
+     * <p>
+     * Point setCertificateFile at a PEM encoded certificate.  If
+     * the certificate is encrypted, then you will be prompted for a
+     * pass phrase.  Note that a kill -HUP will prompt again. A test
+     * certificate can be generated with `make certificate' under
+     * built time. Keep in mind that if you've both a RSA and a DSA
+     * certificate you can configure both in parallel (to also allow
+     * the use of DSA ciphers, etc.)
+     * <p>
+     * If the key is not combined with the certificate, use key param
+     * to point at the key file.  Keep in mind that if
+     * you've both a RSA and a DSA private key you can configure
+     * both in parallel (to also allow the use of DSA ciphers, etc.)
+     * @param ctx Server or Client context to use.
+     * @param cert Certificate file.
+     * @param key Private Key file to use if not in cert.
+     * @param password Certificate password. If null and certificate
+     *                 is encrypted, password prompt will be displayed.
+     */
+    public static native boolean setCertificate(long ctx, String cert, String key, String password) throws Exception;
+
+    /**
+     * @deprecated Use {@link #setCertificateBio(long, long, long, String)}
+     * Set Certificate
+     * <p>
      * Point setCertificate at a PEM encoded certificate stored in a BIO. If
      * the certificate is encrypted, then you will be prompted for a
      * pass phrase.  Note that a kill -HUP will prompt again. A test
@@ -244,7 +270,7 @@ public final class SSLContext {
      * built time. Keep in mind that if you've both a RSA and a DSA
      * certificate you can configure both in parallel (to also allow
      * the use of DSA ciphers, etc.)
-     * <br>
+     * <p>
      * If the key is not combined with the certificate, use key param
      * to point at the key file.  Keep in mind that if
      * you've both a RSA and a DSA private key you can configure
@@ -254,10 +280,37 @@ public final class SSLContext {
      * @param keyBio Private Key BIO to use if not in cert.
      * @param password Certificate password. If null and certificate
      *                 is encrypted, password prompt will be displayed.
-     * @param idx Certificate index SSL_AIDX_RSA or SSL_AIDX_DSA.
+     * @param idx deprecated and ignored.
+     */
+    @Deprecated
+    public static boolean setCertificateBio(
+            long ctx, long certBio, long keyBio, String password, int idx) throws Exception {
+        return setCertificateBio(ctx, certBio, keyBio, password);
+    }
+
+    /**
+     * Set Certificate
+     * <p>
+     * Point setCertificate at a PEM encoded certificate stored in a BIO. If
+     * the certificate is encrypted, then you will be prompted for a
+     * pass phrase.  Note that a kill -HUP will prompt again. A test
+     * certificate can be generated with `make certificate' under
+     * built time. Keep in mind that if you've both a RSA and a DSA
+     * certificate you can configure both in parallel (to also allow
+     * the use of DSA ciphers, etc.)
+     * <p>
+     * If the key is not combined with the certificate, use key param
+     * to point at the key file.  Keep in mind that if
+     * you've both a RSA and a DSA private key you can configure
+     * both in parallel (to also allow the use of DSA ciphers, etc.)
+     * @param ctx Server or Client context to use.
+     * @param certBio Certificate BIO.
+     * @param keyBio Private Key BIO to use if not in cert.
+     * @param password Certificate password. If null and certificate
+     *                 is encrypted, password prompt will be displayed.
      */
     public static native boolean setCertificateBio(
-            long ctx, long certBio, long keyBio, String password, int idx) throws Exception;
+            long ctx, long certBio, long keyBio, String password) throws Exception;
 
     /**
      * Set the size of the internal session cache.

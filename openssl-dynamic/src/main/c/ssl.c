@@ -1114,6 +1114,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, newBIO)(TCN_STDARGS, jlong pool,
     bio->flags = SSL_BIO_FLAG_CALLBACK;
     return P2J(bio);
 init_failed:
+    BIO_free(bio); // this function is safe to call with NULL.
     return 0;
 }
 
@@ -1248,7 +1249,6 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
 
     UNREFERENCED_STDARGS;
 
-    handshakeCount = malloc(sizeof(int));
     ssl = SSL_new(c->ctx);
     if (ssl == NULL) {
         tcn_ThrowException(e, "cannot create new ssl");
@@ -1256,6 +1256,7 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
     }
 
     // Store the handshakeCount in the SSL instance.
+    handshakeCount = malloc(sizeof(int));
     *handshakeCount = 0;
     SSL_set_app_data3(ssl, handshakeCount);
 
@@ -2116,9 +2117,9 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
     SSL *ssl_ = J2P(ssl, SSL *);
     BIO *cert_bio = J2P(cert, BIO *);
     BIO *key_bio = J2P(key, BIO *);
-    EVP_PKEY* pkey;
-    X509* xcert;
-    tcn_pass_cb_t* cb_data;
+    EVP_PKEY* pkey = NULL;
+    X509* xcert = NULL;
+    tcn_pass_cb_t* cb_data = NULL;
     TCN_ALLOC_CSTRING(password);
     char err[ERR_LEN];
 
@@ -2175,6 +2176,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
     }
 cleanup:
     TCN_FREE_CSTRING(password);
+    EVP_PKEY_free(pkey); // this function is safe to call with NULL
+    X509_free(xcert); // this function is safe to call with NULL
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,

@@ -73,10 +73,6 @@
 #define SSL_ALGO_DSA     (1<<1)
 #define SSL_ALGO_ALL     (SSL_ALGO_RSA|SSL_ALGO_DSA)
 
-#define SSL_AIDX_RSA     (0)
-#define SSL_AIDX_DSA     (1)
-#define SSL_AIDX_MAX     (2)
-
 /*
  * Define IDs for the temporary RSA keys and DH params
  */
@@ -277,10 +273,6 @@ struct tcn_ssl_ctxt_t {
     X509_STORE              *crl;
     /* pointer to the context verify store */
     X509_STORE              *store;
-    const char              *cert_files[SSL_AIDX_MAX];
-    const char              *key_files[SSL_AIDX_MAX];
-    X509                    *certs[SSL_AIDX_MAX];
-    EVP_PKEY                *keys[SSL_AIDX_MAX];
 
     int                     ca_certs;
     int                     shutdown_type;
