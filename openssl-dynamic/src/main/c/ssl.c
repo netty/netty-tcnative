@@ -2117,8 +2117,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
     SSL *ssl_ = J2P(ssl, SSL *);
     BIO *cert_bio = J2P(cert, BIO *);
     BIO *key_bio = J2P(key, BIO *);
-    EVP_PKEY* pkey;
-    X509* xcert;
+    EVP_PKEY* pkey = NULL;
+    X509* xcert = NULL;
     tcn_pass_cb_t* cb_data;
     TCN_ALLOC_CSTRING(password);
     char err[ERR_LEN];
@@ -2175,6 +2175,12 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
         goto cleanup;
     }
 cleanup:
+    if (pkey != NULL) {
+        EVP_PKEY_free(pkey);
+    }
+    if (xcert != NULL) {
+        X509_free(xcert);
+    }
     TCN_FREE_CSTRING(password);
 }
 
