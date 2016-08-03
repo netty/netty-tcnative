@@ -1670,7 +1670,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     // Get a stack of all certs in the chain.
     sk = SSL_get_peer_cert_chain(ssl_);
 
-    len = sk_num((_STACK*) sk);
+    len = sk_X509_num(sk);
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
         return NULL;
@@ -1679,7 +1679,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
-        cert = (X509*) sk_value((_STACK*) sk, i);
+        cert = sk_X509_value(sk, i);
 
         buf = NULL;
         length = i2d_X509(cert, &buf);
@@ -1932,7 +1932,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     UNREFERENCED_STDARGS;
 
     sk = SSL_get_ciphers(ssl_);
-    len = sk_num((_STACK*) sk);
+    len = sk_SSL_CIPHER_num(sk);
 
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
@@ -1943,7 +1943,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     array = (*e)->NewObjectArray(e, len, stringClass, NULL);
 
     for (i = 0; i < len; i++) {
-        cipher = (SSL_CIPHER*) sk_value((_STACK*) sk, i);
+        cipher = sk_SSL_CIPHER_value(sk, i);
         name = SSL_CIPHER_get_name(cipher);
 
         c_name = (*e)->NewStringUTF(e, name);
@@ -2098,7 +2098,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
     UNREFERENCED(o);
 
     ciphers = SSL_get_ciphers(ssl_);
-    len = sk_num((_STACK*) ciphers);
+    len = sk_SSL_CIPHER_num(ciphers);
 
     array = (*e)->NewObjectArray(e, len, stringClass, NULL);
 
