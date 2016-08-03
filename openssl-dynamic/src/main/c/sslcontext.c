@@ -1463,11 +1463,11 @@ static const char* authentication_method(const SSL* ssl) {
             return SSL_TXT_RSA;
         default:
             ciphers = SSL_get_ciphers(ssl);
-            if (ciphers == NULL || sk_num((_STACK*) ciphers) <= 0) {
+            if (ciphers == NULL || sk_SSL_CIPHER_num(ciphers) <= 0) {
                 // No cipher available so return UNKNOWN.
                 return UNKNOWN_AUTH_METHOD;
             }
-            return SSL_cipher_authentication_method(sk_value((_STACK*) ciphers, 0));
+            return SSL_cipher_authentication_method(sk_SSL_CIPHER_value(ciphers, 0));
         }
     }
 }
@@ -1482,7 +1482,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     // Get a stack of all certs in the chain
     STACK_OF(X509) *sk = ctx->untrusted;
 
-    int len = sk_num((_STACK*) sk);
+    int len = sk_X509_num(sk);
     unsigned i;
     X509 *cert;
     int length;
@@ -1499,7 +1499,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
-        cert = (X509*) sk_value((_STACK*) sk, i);
+        cert = sk_X509_value(sk, i);
 
         buf = NULL;
         length = i2d_X509(cert, &buf);
