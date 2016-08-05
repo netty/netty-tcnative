@@ -1919,7 +1919,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     STACK_OF(SSL_CIPHER) *sk;
     int len;
     jobjectArray array;
-    SSL_CIPHER *cipher;
+    const SSL_CIPHER *cipher;
     const char *name;
     int i;
     jstring c_name;
