@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>1.1.33.Fork19-SNAPSHOT</version>
+    <version>1.1.33.Fork20-SNAPSHOT</version>
   </parent>
   <artifactId>netty-tcnative-libressl-static</artifactId>
   <packaging>jar</packaging>
@@ -116,7 +116,6 @@
   </build>
 
   <profiles>
-    <!-- TODO: Build currently doesn't work on Windows. -->
     <profile>
       <id>build-libressl-windows</id>
       <activation>
@@ -124,28 +123,15 @@
           <family>windows</family>
         </os>
       </activation>
+      <properties>
+        <msvcSslLibs>libssl-39.lib; libcrypto-38.lib; libtls-1.1</msvcSslLibs>
+        <msvcSslLibDirs>${sslHome}/x${archBits}</msvcSslLibDirs>
+        <libresslWindows>libressl-${libresslVersion}-windows</libresslWindows>
+        <libresslWindowsZip>${libresslWindows}.zip</libresslWindowsZip>
+      </properties>
       <build>
         <plugins>
           <!-- Download the LibreSSL source -->
-          <plugin>
-            <artifactId>maven-scm-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>get-libressl-windows</id>
-                <phase>generate-sources</phase>
-                <goals>
-                  <goal>checkout</goal>
-                </goals>
-                <configuration>
-                  <checkoutDirectory>${libresslCheckoutDir}</checkoutDirectory>
-                  <connectionType>developerConnection</connectionType>
-                  <developerConnectionUrl>scm:git:https://github.com/libressl-portable/portable.git</developerConnectionUrl>
-                  <scmVersion>v${libresslVersion}</scmVersion>
-                  <scmVersionType>tag</scmVersionType>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
           <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
@@ -157,13 +143,11 @@
                 </goals>
                 <configuration>
                   <target>
-                    <mkdir dir="${libresslBuildDir}"/>
-                    <exec executable="cmake" failonerror="true" dir="${libresslBuildDir}" resolveexecutable="true">
-                      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
-                      <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                      <arg value="-GNinja" />
-                      <arg value=".." />
-                    </exec>
+                    <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslWindowsZip}"
+                         dest="${project.build.directory}/${libresslWindowsZip}"
+                         verbose="on"/>
+                    <unzip src="${project.build.directory}/${libresslWindowsZip}" dest="${project.build.directory}/" />
+                    <move file="${project.build.directory}/${libresslWindows}" tofile="${sslHome}"/>
                   </target>
                 </configuration>
               </execution>
