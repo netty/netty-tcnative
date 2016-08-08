@@ -596,7 +596,7 @@ int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio,
 int SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio,
                                   int skipfirst)
 {
-#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x1000200fL || LIBRESSL_VERSION_NUMBER < 0x20400000L)
+#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER))
     // Only supported on boringssl or openssl 1.0.2+
     return -1;
 #else
@@ -802,7 +802,7 @@ static int ssl_verify_CRL(int ok, X509_STORE_CTX *ctx, tcn_ssl_ctxt_t *c)
             X509_REVOKED *revoked =
                 sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || LIBRESSL_VERSION_NUMBER < 0x20400000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
             ASN1_INTEGER *sn = revoked->serialNumber;
 #else
             ASN1_INTEGER *sn = X509_REVOKED_get0_serialNumber(revoked);
@@ -937,7 +937,7 @@ void SSL_callback_handshake(const SSL *ssl, int where, int rc)
         int state = SSL_get_state(ssl);
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || LIBRESSL_VERSION_NUMBER < 0x20400000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
         if (state == SSL3_ST_SR_CLNT_HELLO_A
 #ifndef OPENSSL_IS_BORINGSSL
                 || state == SSL23_ST_SR_CLNT_HELLO_A
