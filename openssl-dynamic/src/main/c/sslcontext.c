@@ -1632,7 +1632,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     *x509Out = NULL;
     *pkeyOut = NULL;
 
-#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x1000200fL || LIBRESSL_VERSION_NUMBER < 0x20400000L)
+#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER))
     char ssl2_ctype = SSL3_CT_RSA_SIGN;
     switch (ssl->version) {
         case SSL2_VERSION:
