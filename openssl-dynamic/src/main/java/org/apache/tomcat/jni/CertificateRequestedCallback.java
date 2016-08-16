@@ -25,12 +25,41 @@ public interface CertificateRequestedCallback {
     /**
      * Called during cert selection.
      *
-     * Implementation should use {@link SSL#setCertificateBio(long, long, long, String)} and
-     * {@link SSL#setCertificateChainBio(long, long, boolean)} to set the certificate and private key to use.
-     *
      * @param ssl                       the SSL instance
      * @param keyTypeBytes              an array of the key types.
      * @param asn1DerEncodedPrincipals  the principals
+     * @return material to use or {@code null} if non should be used. The ownership of all native memory goes over to
+     *                  tcnative at this point.
+     *
      */
-    void requested(long ssl, byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals);
+    KeyMaterial requested(long ssl, byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals);
+
+    /**
+     * Holds the material to use. Tcnative is responsible releasing native memory used by the wrapped native objects.
+     */
+    // Non-final so we can extend from this later ond cache these easily in Netty.
+    class KeyMaterial {
+
+        private final long certificateChain;
+        private final long privateKey;
+
+        public KeyMaterial(long certificateChain, long privateKey) {
+            this.certificateChain = certificateChain;
+            this.privateKey = privateKey;
+        }
+
+        /**
+         * Returns a {@code EVP_PKEY} pointer
+         */
+        public final long privateKey() {
+            return privateKey;
+        }
+
+        /**
+         * Returns a x509 chain ({@code STACK_OF(X509)} pointer).
+         */
+        public final long certificateChain() {
+            return certificateChain;
+        }
+    }
 }

@@ -38,9 +38,6 @@ tcn_pass_cb_t tcn_password_callback;
 /* Global reference to the pool used by the dynamic mutexes */
 static apr_pool_t *dynlockpool = NULL;
 
-static jclass byteArrayClass;
-static jclass stringClass;
-
 /* Dynamic lock structure */
 struct CRYPTO_dynlock_value {
     apr_pool_t *pool;
@@ -758,14 +755,6 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
                               ssl_init_cleanup,
                               apr_pool_cleanup_null);
     TCN_FREE_CSTRING(engine);
-
-    // Cache the byte[].class for performance reasons
-    clazz = (*e)->FindClass(e, "[B");
-    byteArrayClass = (jclass) (*e)->NewGlobalRef(e, clazz);
-
-    // Cache the String.class for performance reasons
-    sClazz = (*e)->FindClass(e, "java/lang/String");
-    stringClass = (jclass) (*e)->NewGlobalRef(e, sClazz);
 
     return (jint)APR_SUCCESS;
 }
@@ -1658,6 +1647,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     unsigned char *buf;
     jobjectArray array;
     jbyteArray bArray;
+    jclass byteArrayClass = tcn_get_byte_array_class();
 
     SSL *ssl_ = J2P(ssl, SSL *);
 
@@ -1941,7 +1931,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     }
 
     // Create the byte[][] array that holds all the certs
-    array = (*e)->NewObjectArray(e, len, stringClass, NULL);
+    array = (*e)->NewObjectArray(e, len, tcn_get_string_class(), NULL);
 
     for (i = 0; i < len; i++) {
         cipher = sk_SSL_CIPHER_value(sk, i);
@@ -2101,7 +2091,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
     ciphers = SSL_get_ciphers(ssl_);
     len = sk_SSL_CIPHER_num(ciphers);
 
-    array = (*e)->NewObjectArray(e, len, stringClass, NULL);
+    array = (*e)->NewObjectArray(e, len, tcn_get_string_class(), NULL);
 
     for (i = 0; i < len; i++) {
         (*e)->SetObjectArrayElement(e, array, i,
@@ -2197,6 +2187,99 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate chain (%s)", err);
     }
+}
+
+TCN_IMPLEMENT_CALL(long, SSL, parsePrivateKey)(TCN_STDARGS, jlong privateKeyBio, jstring password)
+{
+    EVP_PKEY* pkey = NULL;
+    BIO *bio = J2P(privateKeyBio, BIO *);
+    tcn_pass_cb_t* cb_data = &tcn_password_callback;
+    TCN_ALLOC_CSTRING(password);
+    char err[ERR_LEN];
+
+    UNREFERENCED(o);
+
+    if (bio == NULL) {
+        tcn_Throw(e, "Unable to load certificate key");
+        goto cleanup;
+    }
+
+    cb_data->password[0] = '\0';
+    if (J2S(password) != NULL) {
+        strncat(cb_data->password, J2S(password), SSL_MAX_PASSWORD_LEN - 1);
+    }
+
+    if ((pkey = load_pem_key_bio(cb_data, bio)) == NULL) {
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Unable to load certificate key (%s)",err);
+        goto cleanup;
+    }
+
+cleanup:
+    TCN_FREE_CSTRING(password);
+    return P2J(pkey);
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, freePrivateKey)(TCN_STDARGS, jlong privateKey)
+{
+    EVP_PKEY *key = J2P(privateKey, EVP_PKEY *);
+    UNREFERENCED(o);
+    EVP_PKEY_free(key); // Safe to call with NULL as well.
+}
+
+TCN_IMPLEMENT_CALL(long, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
+{
+    BIO *cert_bio = J2P(x509ChainBio, BIO *);
+    X509* cert = NULL;
+    STACK_OF(X509) *chain = NULL;
+    char err[ERR_LEN];
+    unsigned long error;
+    int n = 0;
+
+    UNREFERENCED(o);
+
+    if (cert_bio == NULL) {
+        tcn_Throw(e, "No Certificate specified or invalid format");
+        goto cleanup;
+    }
+
+    chain = sk_X509_new_null();
+    while ((cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL)) != NULL) {
+        if (sk_X509_push(chain, cert) != 1) {
+            tcn_Throw(e, "No Certificate specified or invalid format");
+            goto cleanup;
+        }
+        cert = NULL;
+        n++;
+    }
+
+    // ensure that if we have an error its just for EOL.
+    if ((error = ERR_peek_error()) > 0) {
+        if (!(ERR_GET_LIB(error) == ERR_LIB_PEM
+              && ERR_GET_REASON(error) == PEM_R_NO_START_LINE)) {
+
+            ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+            tcn_Throw(e, "Invalid format (%s)", err);
+            goto cleanup;
+        }
+        ERR_clear_error();
+    }
+
+    return P2J(chain);
+
+cleanup:
+    ERR_clear_error();
+    sk_X509_pop_free(chain, X509_free);
+    X509_free(cert);
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
+{
+    STACK_OF(X509) *chain = J2P(x509Chain, STACK_OF(X509) *);
+    UNREFERENCED(o);
+    sk_X509_pop_free(chain, X509_free);
 }
 
 /*** End Apple API Additions ***/

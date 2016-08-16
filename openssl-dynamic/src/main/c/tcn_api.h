@@ -50,6 +50,10 @@ apr_pool_t *tcn_get_global_pool(void);
  */
 jclass tcn_get_string_class(void);
 
+jclass tcn_get_byte_array_class();
+jfieldID tcn_get_key_material_certificate_chain_field();
+jfieldID tcn_get_key_material_private_key_field();
+
 /* Return global JVM initalized on JNI_OnLoad
  */
 JavaVM *tcn_get_java_vm(void);

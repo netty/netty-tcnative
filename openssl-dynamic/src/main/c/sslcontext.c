@@ -31,7 +31,6 @@
 #include "ssl_private.h"
 #include <stdint.h>
 
-static jclass byteArrayClass;
 extern apr_pool_t *tcn_global_pool;
 
 static apr_status_t ssl_context_cleanup(void *data)
@@ -98,7 +97,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     apr_pool_t *p = NULL;
     tcn_ssl_ctxt_t *c = NULL;
     SSL_CTX *ctx = NULL;
-    jclass clazz;
 
     UNREFERENCED(o);
 
@@ -327,11 +325,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     apr_pool_cleanup_register(p, (const void *)c,
                               ssl_context_cleanup,
                               apr_pool_cleanup_null);
-
-
-    // Cache the byte[].class for performance reasons
-    clazz = (*e)->FindClass(e, "[B");
-    byteArrayClass = (jclass) (*e)->NewGlobalRef(e, clazz);
 
     return P2J(c);
 cleanup:
@@ -1472,7 +1465,6 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
 
-
     // Get a stack of all certs in the chain
     STACK_OF(X509) *sk = ctx->untrusted;
 
@@ -1487,6 +1479,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     const char *authMethod;
     jstring authMethodString;
     jint result;
+    jclass byteArrayClass = tcn_get_byte_array_class();
     tcn_get_java_env(&e);
 
     // Create the byte[][] array that holds all the certs
@@ -1573,6 +1566,7 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
     int length;
     unsigned char *buf;
     X509_NAME* principal;
+    jclass byteArrayClass = tcn_get_byte_array_class();
 
     if (names == NULL) {
         return NULL;
@@ -1613,10 +1607,6 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
     return array;
 }
 
-/**
- * Partly based on code from conscrypt:
- * https://android.googlesource.com/platform/external/conscrypt/+/master/src/main/native/org_conscrypt_NativeCrypto.cpp
- */
 static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
     int ctype_num;
@@ -1624,15 +1614,20 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     jobjectArray issuers;
     JNIEnv *e;
     jbyteArray keyTypes;
-    X509* certificate;
-    EVP_PKEY* privatekey;
+    jobject keyMaterial;
+    STACK_OF(X509) *chain = NULL;
+    X509 *cert = NULL;
+    EVP_PKEY* pkey = NULL;
+    jlong certChain;
+    jlong privateKey;
     tcn_get_java_env(&e);
 
-    /* Clear output of key and certificate in case of early exit due to error. */
-    *x509Out = NULL;
-    *pkeyOut = NULL;
 
-#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER))
+#if defined(LIBRESSL_VERSION_NUMBER)
+    return -1;
+#else
+
+#if !defined(OPENSSL_IS_BORINGSSL) && OPENSSL_VERSION_NUMBER < 0x10002000L
     char ssl2_ctype = SSL3_CT_RSA_SIGN;
     switch (ssl->version) {
         case SSL2_VERSION:
@@ -1665,19 +1660,46 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     issuers = principalBytes(e,  SSL_get_client_CA_list(ssl));
 
     // Execute the java callback
-    (*e)->CallVoidMethod(e, c->cert_requested_callback, c->cert_requested_callback_method, P2J(ssl), keyTypes, issuers);
-
-    // Check for values set from Java
-    certificate = SSL_get_certificate(ssl);
-    privatekey  = SSL_get_privatekey(ssl);
-
-    if (certificate != NULL && privatekey != NULL) {
-        *x509Out = certificate;
-        *pkeyOut = privatekey;
-        return 1;
+    keyMaterial = (*e)->CallObjectMethod(e, c->cert_requested_callback, c->cert_requested_callback_method, P2J(ssl), keyTypes, issuers);
+    if (keyMaterial == NULL) {
+        return 0;
     }
+
+    // Any failure after this line must cause a goto fail to cleanup things.
+    certChain = (*e)->GetLongField(e, keyMaterial, tcn_get_key_material_certificate_chain_field());
+    privateKey = (*e)->GetLongField(e, keyMaterial, tcn_get_key_material_private_key_field());
+
+    chain = J2P(certChain, STACK_OF(X509) *);
+    pkey = J2P(privateKey, EVP_PKEY *);
+
+    if (chain == NULL || pkey == NULL || sk_X509_num(chain) <= 0) {
+        goto fail;
+    }
+
+    // We need to explicit set the chain as stated in:
+    // https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_client_cert_cb.html
+    //
+    // Using SSL_set0_chain(...) here as we not want to increment the reference count.
+    if (SSL_set0_chain(ssl, chain) <= 0) {
+        goto fail;
+    }
+
+    cert = sk_X509_value(chain, 0);
+    // Increment the reference count as we already set the chain via SSL_set0_chain(...) and using a cert out of it.
+    if (tcn_X509_up_ref(cert) <= 0) {
+        goto fail;
+    }
+    *x509Out = cert;
+    *pkeyOut = pkey;
+    return 1;
+fail:
+    ERR_clear_error();
+    sk_X509_pop_free(chain, X509_free);
+    EVP_PKEY_free(pkey);
+
     // TODO: Would it be more correct to return 0 in this case we may not want to use any cert / private key ?
     return -1;
+#endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlong ctx, jobject callback)
@@ -1691,7 +1713,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
         SSL_CTX_set_client_cert_cb(c->ctx, NULL);
     } else {
         jclass callback_class = (*e)->GetObjectClass(e, callback);
-        jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(J[B[[B)V");
+        jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(J[B[[B)Lorg/apache/tomcat/jni/CertificateRequestedCallback$KeyMaterial;");
         if (method == NULL) {
             return;
         }
