@@ -46,6 +46,10 @@ static jclass    jFinfo_class;
 static jclass    jAinfo_class;
 static jmethodID jString_init;
 static jmethodID jString_getBytes;
+static jclass    byteArrayClass;
+static jclass    keyMaterialClass;
+static jfieldID  keyMaterialCertificateChainFieldId;
+static jfieldID  keyMaterialPrivateKeyFieldId;
 
 int tcn_parent_pid = 0;
 
@@ -98,7 +102,15 @@ JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved)
     tcn_parent_pid = getppid();
 #endif
 
-    return  TCN_JNI_VERSION;  
+    TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
+    TCN_LOAD_CLASS(env, keyMaterialClass, "org/apache/tomcat/jni/CertificateRequestedCallback$KeyMaterial", JNI_ERR);
+
+    TCN_GET_FIELD(env, keyMaterialClass, keyMaterialCertificateChainFieldId,
+                   "certificateChain", "J", JNI_ERR);
+    TCN_GET_FIELD(env, keyMaterialClass, keyMaterialPrivateKeyFieldId,
+                   "privateKey", "J", JNI_ERR);
+
+    return TCN_JNI_VERSION;
 }
 
 /* Called by the JVM when APR_JAVA is loaded */
@@ -123,6 +135,9 @@ JNIEXPORT void JNICALL JNI_OnUnload_netty_tcnative(JavaVM *vm, void *reserved)
         TCN_UNLOAD_CLASS(env, jAinfo_class);
         apr_terminate();
     }
+
+    TCN_UNLOAD_CLASS(env, byteArrayClass);
+    TCN_UNLOAD_CLASS(env, keyMaterialClass);
 }
 
 /* Called by the JVM before the APR_JAVA is unloaded */
@@ -483,6 +498,21 @@ apr_pool_t *tcn_get_global_pool()
 jclass tcn_get_string_class()
 {
     return jString_class;
+}
+
+jclass tcn_get_byte_array_class()
+{
+    return byteArrayClass;
+}
+
+jfieldID tcn_get_key_material_certificate_chain_field()
+{
+    return keyMaterialCertificateChainFieldId;
+}
+
+jfieldID tcn_get_key_material_private_key_field()
+{
+    return keyMaterialPrivateKeyFieldId;
 }
 
 JavaVM * tcn_get_java_vm()
