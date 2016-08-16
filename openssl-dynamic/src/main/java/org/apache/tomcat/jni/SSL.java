@@ -813,4 +813,38 @@ public final class SSL {
      */
     public static native void setCertificateBio(
             long ssl, long certBio, long keyBio, String password) throws Exception;
+
+    /**
+     * Parse private key from BIO and return {@code EVP_PKEY} pointer.
+     *
+     * <p>Be sure you understand how OpenSsl will behave with respect to reference counting!
+     *
+     * If the {@code EVP_PKEY} pointer is used with the client certificate callback
+     * {@link CertificateRequestedCallback} the ownership goes over to OpenSsl / Tcnative and so calling
+     * {@link #freePrivateKey(long)} should <strong>NOT</strong> be done in this case. Otherwise you may
+     * need to call {@link #freePrivateKey(long)} to decrement the reference count and free memory.
+     */
+    public static native long parsePrivateKey(long privateKeyBio, String password) throws Exception;
+
+    /**
+     * Free private key ({@code EVP_PKEY} pointer).
+     */
+    public static native void freePrivateKey(long privateKey);
+
+    /**
+     * Parse X509 chain from BIO and return ({@code STACK_OF(X509)} pointer).
+     *
+     * <p>Be sure you understand how OpenSsl will behave with respect to reference counting!
+     *
+     * If the {@code STACK_OF(X509)} pointer is used with the client certificate callback
+     * {@link CertificateRequestedCallback} the ownership goes over to OpenSsl / Tcnative and and so calling
+     * {@link #freeX509Chain(long)} should <strong>NOT</strong> be done in this case. Otherwise you may
+     * need to call {@link #freeX509Chain(long)} to decrement the reference count and free memory.
+     */
+    public static native long parseX509Chain(long x509ChainBio) throws Exception;
+
+    /**
+     * Free x509 chain ({@code STACK_OF(X509)} pointer).
+     */
+    public static native void freeX509Chain(long x509Chain);
 }

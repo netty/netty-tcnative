@@ -267,6 +267,14 @@ apr_status_t    tcn_load_ainfo_class(JNIEnv *, jclass);
         }                                           \
     TCN_END_MACRO
 
+#define TCN_GET_FIELD(E, C, F, N, S, R)            \
+    TCN_BEGIN_MACRO                                 \
+        F = (*(E))->GetFieldID((E), C, N, S);      \
+        if (F == NULL) {                            \
+            return R;                               \
+        }                                           \
+    TCN_END_MACRO
+
 #define TCN_MAX_METHODS 8
 
 typedef struct {

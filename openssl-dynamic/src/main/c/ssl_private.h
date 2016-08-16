@@ -374,6 +374,8 @@ int         SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, int);
 int         SSL_use_certificate_chain_bio(SSL *, BIO *, int);
 X509        *load_pem_cert_bio(tcn_pass_cb_t *, const BIO *);
 EVP_PKEY    *load_pem_key_bio(tcn_pass_cb_t *, const BIO *);
+int         tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey);
+int         tcn_X509_up_ref(X509* cert);
 
 int         SSL_callback_SSL_verify(int, X509_STORE_CTX *);
 int         SSL_rand_seed(const char *file);

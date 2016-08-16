@@ -822,12 +822,34 @@ static int ssl_verify_CRL(int ok, X509_STORE_CTX *ctx, tcn_ssl_ctxt_t *c)
     return ok;
 }
 
+int tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    // Workaround for https://bugs.chromium.org/p/boringssl/issues/detail?id=89#
+    EVP_PKEY_up_ref(pkey);
+    return 1;
+#elif OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+    return CRYPTO_add(&pkey->references, 1, CRYPTO_LOCK_EVP_PKEY);
+#else
+    return EVP_PKEY_up_ref(pkey);
+#endif
+}
+
+int tcn_X509_up_ref(X509* cert) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    // Workaround for https://bugs.chromium.org/p/boringssl/issues/detail?id=89#
+    X509_up_ref(cert);
+    return 1;
+#elif OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+    return CRYPTO_add(&cert->references, 1, CRYPTO_LOCK_X509);
+#else
+    return X509_up_ref(cert);
+#endif
+}
+
 /*
  * This OpenSSL callback function is called when OpenSSL
  * does client authentication and verifies the certificate chain.
  */
-
-
 int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
 {
    /* Get Apache context back through OpenSSL context */
