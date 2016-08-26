@@ -124,7 +124,7 @@
         </os>
       </activation>
       <properties>
-        <msvcSslLibs>libssl-39.lib; libcrypto-38.lib; libtls-1.1</msvcSslLibs>
+        <msvcSslLibs>libssl-39.lib; libcrypto-38.lib; libtls-11.lib</msvcSslLibs>
         <msvcSslLibDirs>${sslHome}/x${archBits}</msvcSslLibDirs>
         <libresslWindows>libressl-${libresslVersion}-windows</libresslWindows>
         <libresslWindowsZip>${libresslWindows}.zip</libresslWindowsZip>
