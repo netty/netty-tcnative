@@ -1,3 +1,18 @@
+/*
+ * Copyright 2016 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 /* Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,17 +29,12 @@
  * limitations under the License.
  */
 
-/*
- *
- * @author Mladen Turk
- * @version $Id: ssl.c 1649733 2015-01-06 04:42:24Z billbarker $
- */
-
 #include "tcn.h"
 #include "apr_file_io.h"
 #include "apr_thread_mutex.h"
 #include "apr_atomic.h"
-#include "apr_poll.h"
+#include "apr_strings.h"
+#include "apr_portable.h"
 #include "ssl_private.h"
 
 static int ssl_initialized = 0;
@@ -33,7 +43,6 @@ extern apr_pool_t *tcn_global_pool;
 
 ENGINE *tcn_ssl_engine = NULL;
 void *SSL_temp_keys[SSL_TMP_KEY_MAX];
-tcn_pass_cb_t tcn_password_callback;
 
 /* Global reference to the pool used by the dynamic mutexes */
 static apr_pool_t *dynlockpool = NULL;
@@ -284,13 +293,6 @@ static apr_status_t ssl_init_cleanup(void *data)
     if (!ssl_initialized)
         return APR_SUCCESS;
     ssl_initialized = 0;
-
-    if (tcn_password_callback.cb.obj) {
-        JNIEnv *env;
-        tcn_get_java_env(&env);
-        TCN_UNLOAD_CLASS(env,
-                         tcn_password_callback.cb.obj);
-    }
 
     SSL_TMP_KEYS_FREE(RSA);
     SSL_TMP_KEYS_FREE(DH);
@@ -546,104 +548,6 @@ static int ssl_rand_load_file(const char *file)
     return -1;
 }
 
-/*
- * writes a number of random bytes (currently 1024) to
- * file which can be used to initialize the PRNG by calling
- * RAND_load_file() in a later session
- */
-static int ssl_rand_save_file(const char *file)
-{
-#ifndef OPENSSL_IS_BORINGSSL
-    char buffer[APR_PATH_MAX];
-    int n;
-    if (file == NULL) {
-        file = RAND_file_name(buffer, sizeof(buffer));
-#ifdef HAVE_SSL_RAND_EGD
-    } else if ((n = RAND_egd(file)) > 0) {
-        return 0;
-#endif
-    }
-    if (file == NULL || !RAND_write_file(file))
-        return 0;
-    else
-        return 1;
-#else
-    // BoringSsl doesn't have RAND_file_name/RAND_write_file and RAND_egd always return 255
-    return 0;
-#endif
-}
-
-int SSL_rand_seed(const char *file)
-{
-    unsigned char stackdata[256];
-    static volatile apr_uint32_t counter = 0;
-
-    if (ssl_rand_load_file(file) < 0) {
-        int n;
-        struct {
-            apr_time_t    t;
-            pid_t         p;
-            unsigned long i;
-            apr_uint32_t  u;
-        } _ssl_seed;
-        if (counter == 0) {
-            apr_generate_random_bytes(stackdata, 256);
-            RAND_seed(stackdata, 128);
-        }
-        _ssl_seed.t = apr_time_now();
-        _ssl_seed.p = getpid();
-        _ssl_seed.i = ssl_thread_id();
-        apr_atomic_inc32(&counter);
-        _ssl_seed.u = counter;
-        RAND_seed((unsigned char *)&_ssl_seed, sizeof(_ssl_seed));
-        /*
-         * seed in some current state of the run-time stack (128 bytes)
-         */
-        n = ssl_rand_choosenum(0, sizeof(stackdata)-128-1);
-        RAND_seed(stackdata + n, 128);
-    }
-    return RAND_status();
-}
-
-static int ssl_rand_make(const char *file, int len, int base64)
-{
-    int r;
-    int num = len;
-    BIO *out = NULL;
-
-    out = BIO_new(BIO_s_file());
-    if (out == NULL)
-        return 0;
-    if ((r = BIO_write_filename(out, (char *)file)) < 0) {
-        BIO_free_all(out);
-        return 0;
-    }
-    if (base64) {
-        BIO *b64 = BIO_new(BIO_f_base64());
-        if (b64 == NULL) {
-            BIO_free_all(out);
-            return 0;
-        }
-        out = BIO_push(b64, out);
-    }
-    while (num > 0) {
-        unsigned char buf[4096];
-        int len = num;
-        if (len > sizeof(buf))
-            len = sizeof(buf);
-        r = RAND_bytes(buf, len);
-        if (r <= 0) {
-            BIO_free_all(out);
-            return 0;
-        }
-        BIO_write(out, buf, len);
-        num -= len;
-    }
-    r = BIO_flush(out);
-    BIO_free_all(out);
-    return r > 0 ? 1 : 0;
-}
-
 TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 {
     int r = 0;
@@ -732,12 +636,6 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     }
 #endif
 
-    memset(&tcn_password_callback, 0, sizeof(tcn_pass_cb_t));
-    /* Initialize PRNG
-     * This will in most cases call the builtin
-     * low entropy seed.
-     */
-    SSL_rand_seed(NULL);
     /* For SSL_get_app_data2() and SSL_get_app_data3() at request time */
     SSL_init_app_data2_3_idx();
 
@@ -759,299 +657,6 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     return (jint)APR_SUCCESS;
 }
 
-TCN_IMPLEMENT_CALL(jboolean, SSL, randLoad)(TCN_STDARGS, jstring file)
-{
-    TCN_ALLOC_CSTRING(file);
-    int r;
-    UNREFERENCED(o);
-    r = SSL_rand_seed(J2S(file));
-    TCN_FREE_CSTRING(file);
-    return r ? JNI_TRUE : JNI_FALSE;
-}
-
-TCN_IMPLEMENT_CALL(jboolean, SSL, randSave)(TCN_STDARGS, jstring file)
-{
-    TCN_ALLOC_CSTRING(file);
-    int r;
-    UNREFERENCED(o);
-    r = ssl_rand_save_file(J2S(file));
-    TCN_FREE_CSTRING(file);
-    return r ? JNI_TRUE : JNI_FALSE;
-}
-
-TCN_IMPLEMENT_CALL(jboolean, SSL, randMake)(TCN_STDARGS, jstring file,
-                                            jint length, jboolean base64)
-{
-    TCN_ALLOC_CSTRING(file);
-    int r;
-    UNREFERENCED(o);
-    r = ssl_rand_make(J2S(file), length, base64);
-    TCN_FREE_CSTRING(file);
-    return r ? JNI_TRUE : JNI_FALSE;
-}
-
-TCN_IMPLEMENT_CALL(void, SSL, randSet)(TCN_STDARGS, jstring file)
-{
-    TCN_ALLOC_CSTRING(file);
-    UNREFERENCED(o);
-    if (J2S(file)) {
-        ssl_global_rand_file = apr_pstrdup(tcn_global_pool, J2S(file));
-    }
-    TCN_FREE_CSTRING(file);
-}
-
-TCN_IMPLEMENT_CALL(jint, SSL, fipsModeGet)(TCN_STDARGS)
-{
-    UNREFERENCED(o);
-#ifdef OPENSSL_FIPS
-    return FIPS_mode();
-#else
-    /* FIPS is unavailable */
-    tcn_ThrowException(e, "FIPS was not available to tcnative at build time. You will need to re-build tcnative against an OpenSSL with FIPS.");
-
-    return 0;
-#endif
-}
-
-TCN_IMPLEMENT_CALL(jint, SSL, fipsModeSet)(TCN_STDARGS, jint mode)
-{
-    int r = 0;
-    UNREFERENCED(o);
-
-#ifdef OPENSSL_FIPS
-    if(1 != (r = (jint)FIPS_mode_set((int)mode))) {
-      /* arrange to get a human-readable error message */
-      unsigned long err = ERR_get_error();
-      char msg[ERR_LEN];
-
-      /* ERR_load_crypto_strings() already called in initialize() */
-
-      ERR_error_string_n(err, msg, ERR_LEN);
-
-      tcn_ThrowException(e, msg);
-    }
-#else
-    /* FIPS is unavailable */
-    tcn_ThrowException(e, "FIPS was not available to tcnative at build time. You will need to re-build tcnative against an OpenSSL with FIPS.");
-#endif
-
-    return r;
-}
-
-/* OpenSSL Java Stream BIO */
-
-typedef struct  {
-    int            refcount;
-    apr_pool_t     *pool;
-    tcn_callback_t cb;
-} BIO_JAVA;
-
-
-static apr_status_t generic_bio_cleanup(void *data)
-{
-    BIO *b = (BIO *)data;
-
-    if (b) {
-        BIO_free(b);
-    }
-    return APR_SUCCESS;
-}
-
-void SSL_BIO_close(BIO *bi)
-{
-    if (bi == NULL)
-        return;
-    if (bi->ptr != NULL && (bi->flags & SSL_BIO_FLAG_CALLBACK)) {
-        BIO_JAVA *j = (BIO_JAVA *)bi->ptr;
-        j->refcount--;
-        if (j->refcount == 0) {
-            if (j->pool)
-                apr_pool_cleanup_run(j->pool, bi, generic_bio_cleanup);
-            else
-                BIO_free(bi);
-        }
-    }
-    else
-        BIO_free(bi);
-}
-
-void SSL_BIO_doref(BIO *bi)
-{
-    if (bi == NULL)
-        return;
-    if (bi->ptr != NULL && (bi->flags & SSL_BIO_FLAG_CALLBACK)) {
-        BIO_JAVA *j = (BIO_JAVA *)bi->ptr;
-        j->refcount++;
-    }
-}
-
-
-static int jbs_new(BIO *bi)
-{
-    BIO_JAVA *j;
-
-    if ((j = OPENSSL_malloc(sizeof(BIO_JAVA))) == NULL)
-        return 0;
-    j->pool      = NULL;
-    j->refcount  = 1;
-    bi->shutdown = 1;
-    bi->init     = 0;
-    bi->num      = -1;
-    bi->ptr      = (char *)j;
-
-    return 1;
-}
-
-static int jbs_free(BIO *bi)
-{
-    JNIEnv *e = NULL;
-    BIO_JAVA *j;
-
-    if (bi == NULL)
-        return 0;
-    if (bi->ptr != NULL) {
-        j = (BIO_JAVA *)bi->ptr;
-        if (bi->init) {
-            bi->init = 0;
-            tcn_get_java_env(&e);
-            TCN_UNLOAD_CLASS(e, j->cb.obj);
-        }
-        OPENSSL_free(bi->ptr);
-    }
-    bi->ptr = NULL;
-    return 1;
-}
-
-static int jbs_write(BIO *b, const char *in, int inl)
-{
-    jint ret = -1;
-
-    if (b->init && in != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)b->ptr;
-        JNIEnv   *e = NULL;
-        jbyteArray jb;
-        tcn_get_java_env(&e);
-        jb = (*e)->NewByteArray(e, inl);
-        if (!(*e)->ExceptionOccurred(e)) {
-            BIO_clear_retry_flags(b);
-            (*e)->SetByteArrayRegion(e, jb, 0, inl, (jbyte *)in);
-            ret = (*e)->CallIntMethod(e, j->cb.obj,
-                                      j->cb.mid[0], jb);
-            (*e)->DeleteLocalRef(e, jb);
-        }
-    }
-    if (ret == 0) {
-        BIO_set_retry_write(b);
-        ret = -1;
-    }
-    return ret;
-}
-
-static int jbs_read(BIO *b, char *out, int outl)
-{
-    jint ret = 0;
-    jbyte *jout;
-
-    if (b->init && out != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)b->ptr;
-        JNIEnv   *e = NULL;
-        jbyteArray jb;
-        tcn_get_java_env(&e);
-        jb = (*e)->NewByteArray(e, outl);
-        if (!(*e)->ExceptionOccurred(e)) {
-            BIO_clear_retry_flags(b);
-            ret = (*e)->CallIntMethod(e, j->cb.obj,
-                                      j->cb.mid[1], jb);
-            if (ret > 0) {
-                jout = (*e)->GetPrimitiveArrayCritical(e, jb, NULL);
-                memcpy(out, jout, ret);
-                (*e)->ReleasePrimitiveArrayCritical(e, jb, jout, 0);
-            } else if (outl != 0) {
-                ret = -1;
-                BIO_set_retry_read(b);
-            }
-            (*e)->DeleteLocalRef(e, jb);
-        }
-    }
-    return ret;
-}
-
-static int jbs_puts(BIO *b, const char *in)
-{
-    int ret = 0;
-    JNIEnv *e = NULL;
-    BIO_JAVA *j;
-
-    if (b->init && in != NULL) {
-        j = (BIO_JAVA *)b->ptr;
-        tcn_get_java_env(&e);
-        ret = (*e)->CallIntMethod(e, j->cb.obj,
-                                  j->cb.mid[2],
-                                  tcn_new_string(e, in));
-    }
-    return ret;
-}
-
-static int jbs_gets(BIO *b, char *out, int outl)
-{
-    int ret = 0;
-    JNIEnv *e = NULL;
-    BIO_JAVA *j;
-    jobject o;
-    int l;
-
-    if (b->init && out != NULL) {
-        j = (BIO_JAVA *)b->ptr;
-        tcn_get_java_env(&e);
-        if ((o = (*e)->CallObjectMethod(e, j->cb.obj,
-                            j->cb.mid[3], (jint)(outl - 1)))) {
-            TCN_ALLOC_CSTRING(o);
-            if (J2S(o)) {
-                l = (int)strlen(J2S(o));
-                if (l < outl) {
-                    strcpy(out, J2S(o));
-                    ret = outl;
-                }
-            }
-            TCN_FREE_CSTRING(o);
-        }
-    }
-    return ret;
-}
-
-static long jbs_ctrl(BIO *b, int cmd, long num, void *ptr)
-{
-    int ret = 0;
-    switch (cmd) {
-        case BIO_CTRL_FLUSH:
-            ret = 1;
-            break;
-        default:
-            ret = 0;
-            break;
-    }
-    return ret;
-}
-
-static BIO_METHOD jbs_methods = {
-    BIO_TYPE_FILE,
-    "Java Callback",
-    jbs_write,
-    jbs_read,
-    jbs_puts,
-    jbs_gets,
-    jbs_ctrl,
-    jbs_new,
-    jbs_free,
-    NULL
-};
-
-static BIO_METHOD *BIO_jbs()
-{
-    return(&jbs_methods);
-}
-
-
 TCN_IMPLEMENT_CALL(jlong, SSL, newMemBIO)(TCN_STDARGS)
 {
     BIO *bio = NULL;
@@ -1064,131 +669,6 @@ TCN_IMPLEMENT_CALL(jlong, SSL, newMemBIO)(TCN_STDARGS)
         return 0;
     }
     return P2J(bio);
-}
-
-TCN_IMPLEMENT_CALL(jlong, SSL, newBIO)(TCN_STDARGS, jlong pool,
-                                       jobject callback)
-{
-    BIO *bio = NULL;
-    BIO_JAVA *j;
-    jclass cls;
-
-    UNREFERENCED(o);
-
-    if ((bio = BIO_new(BIO_jbs())) == NULL) {
-        tcn_ThrowException(e, "Create BIO failed");
-        goto init_failed;
-    }
-    j = (BIO_JAVA *)bio->ptr;
-    if (j == NULL) {
-        tcn_ThrowException(e, "Create BIO failed");
-        goto init_failed;
-    }
-    j->pool = J2P(pool, apr_pool_t *);
-    if (j->pool) {
-        apr_pool_cleanup_register(j->pool, (const void *)bio,
-                                  generic_bio_cleanup,
-                                  apr_pool_cleanup_null);
-    }
-
-    cls = (*e)->GetObjectClass(e, callback);
-    j->cb.mid[0] = (*e)->GetMethodID(e, cls, "write", "([B)I");
-    j->cb.mid[1] = (*e)->GetMethodID(e, cls, "read",  "([B)I");
-    j->cb.mid[2] = (*e)->GetMethodID(e, cls, "puts",  "(Ljava/lang/String;)I");
-    j->cb.mid[3] = (*e)->GetMethodID(e, cls, "gets",  "(I)Ljava/lang/String;");
-    /* TODO: Check if method id's are valid */
-    j->cb.obj    = (*e)->NewGlobalRef(e, callback);
-
-    bio->init  = 1;
-    bio->flags = SSL_BIO_FLAG_CALLBACK;
-    return P2J(bio);
-init_failed:
-    BIO_free(bio); // this function is safe to call with NULL.
-    return 0;
-}
-
-
-TCN_IMPLEMENT_CALL(jint, SSL, closeBIO)(TCN_STDARGS, jlong bio)
-{
-    BIO *b = J2P(bio, BIO *);
-
-    UNREFERENCED_STDARGS;
-
-    if (b != NULL) {
-        SSL_BIO_close(b);
-    }
-
-    return APR_SUCCESS;
-}
-
-TCN_IMPLEMENT_CALL(void, SSL, setPasswordCallback)(TCN_STDARGS,
-                                                   jobject callback)
-{
-    jclass cls;
-
-    UNREFERENCED(o);
-    if (tcn_password_callback.cb.obj) {
-        TCN_UNLOAD_CLASS(e,
-                         tcn_password_callback.cb.obj);
-    }
-    cls = (*e)->GetObjectClass(e, callback);
-    tcn_password_callback.cb.mid[0] = (*e)->GetMethodID(e, cls, "callback",
-                           "(Ljava/lang/String;)Ljava/lang/String;");
-    /* TODO: Check if method id is valid */
-    tcn_password_callback.cb.obj    = (*e)->NewGlobalRef(e, callback);
-
-}
-
-TCN_IMPLEMENT_CALL(void, SSL, setPassword)(TCN_STDARGS, jstring password)
-{
-    TCN_ALLOC_CSTRING(password);
-    UNREFERENCED(o);
-    if (J2S(password)) {
-        strncpy(tcn_password_callback.password, J2S(password), SSL_MAX_PASSWORD_LEN);
-        tcn_password_callback.password[SSL_MAX_PASSWORD_LEN-1] = '\0';
-    }
-    TCN_FREE_CSTRING(password);
-}
-
-TCN_IMPLEMENT_CALL(jboolean, SSL, generateRSATempKey)(TCN_STDARGS, jint idx)
-{
-    int r = 1;
-    UNREFERENCED_STDARGS;
-    SSL_TMP_KEY_FREE(RSA, idx);
-    switch (idx) {
-        case SSL_TMP_KEY_RSA_512:
-            r = SSL_TMP_KEY_INIT_RSA(512);
-        break;
-        case SSL_TMP_KEY_RSA_1024:
-            r = SSL_TMP_KEY_INIT_RSA(1024);
-        break;
-        case SSL_TMP_KEY_RSA_2048:
-            r = SSL_TMP_KEY_INIT_RSA(2048);
-        break;
-        case SSL_TMP_KEY_RSA_4096:
-            r = SSL_TMP_KEY_INIT_RSA(4096);
-        break;
-    }
-    return r ? JNI_FALSE : JNI_TRUE;
-}
-
-TCN_IMPLEMENT_CALL(jboolean, SSL, loadDSATempKey)(TCN_STDARGS, jint idx,
-                                                  jstring file)
-{
-    jboolean r = JNI_FALSE;
-    TCN_ALLOC_CSTRING(file);
-    DH *dh;
-    UNREFERENCED(o);
-
-    if (!J2S(file))
-        return JNI_FALSE;
-    SSL_TMP_KEY_FREE(DSA, idx);
-    if ((dh = SSL_dh_get_param_from_file(J2S(file)))) {
-        SSL_temp_keys[idx] = dh;
-        r = JNI_TRUE;
-    }
-    TCN_FREE_CSTRING(file);
-    return r;
 }
 
 TCN_IMPLEMENT_CALL(jstring, SSL, getLastError)(TCN_STDARGS)
@@ -1260,29 +740,10 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
 
     // Setup verify and seed
     SSL_set_verify_result(ssl, X509_V_OK);
-    SSL_rand_seed(c->rand_file);
 
     // Store for later usage in SSL_callback_SSL_verify
     SSL_set_app_data2(ssl, c);
     return P2J(ssl);
-}
-
-TCN_IMPLEMENT_CALL(void, SSL, setBIO)(TCN_STDARGS,
-                                      jlong ssl /* SSL * */,
-                                      jlong rbio /* BIO * */,
-                                      jlong wbio /* BIO * */) {
-    SSL *ssl_ = J2P(ssl, SSL *);
-    BIO *r = J2P(rbio, BIO *);
-    BIO *w = J2P(wbio, BIO *);
-
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
-
-    UNREFERENCED_STDARGS;
-
-    SSL_set_bio(ssl_, r, w);
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, getError)(TCN_STDARGS,
@@ -2109,18 +1570,11 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
     BIO *key_bio = J2P(key, BIO *);
     EVP_PKEY* pkey = NULL;
     X509* xcert = NULL;
-    tcn_pass_cb_t* cb_data = NULL;
     TCN_ALLOC_CSTRING(password);
     char err[ERR_LEN];
 
     UNREFERENCED(o);
     TCN_ASSERT(ssl != NULL);
-
-    cb_data = &tcn_password_callback;
-    cb_data->password[0] = '\0';
-    if (J2S(password) != NULL) {
-        strncat(cb_data->password, J2S(password), SSL_MAX_PASSWORD_LEN - 1);
-    }
 
     if (key <= 0) {
         key = cert;
@@ -2131,13 +1585,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
         goto cleanup;
     }
 
-    if ((pkey = load_pem_key_bio(cb_data, key_bio)) == NULL) {
+    if ((pkey = load_pem_key_bio(cpassword, key_bio)) == NULL) {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate key (%s)",err);
         goto cleanup;
     }
-    if ((xcert = load_pem_cert_bio(cb_data, cert_bio)) == NULL) {
+    if ((xcert = load_pem_cert_bio(cpassword, cert_bio)) == NULL) {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate (%s) ", err);
@@ -2193,7 +1647,6 @@ TCN_IMPLEMENT_CALL(long, SSL, parsePrivateKey)(TCN_STDARGS, jlong privateKeyBio,
 {
     EVP_PKEY* pkey = NULL;
     BIO *bio = J2P(privateKeyBio, BIO *);
-    tcn_pass_cb_t* cb_data = &tcn_password_callback;
     TCN_ALLOC_CSTRING(password);
     char err[ERR_LEN];
 
@@ -2204,12 +1657,7 @@ TCN_IMPLEMENT_CALL(long, SSL, parsePrivateKey)(TCN_STDARGS, jlong privateKeyBio,
         goto cleanup;
     }
 
-    cb_data->password[0] = '\0';
-    if (J2S(password) != NULL) {
-        strncat(cb_data->password, J2S(password), SSL_MAX_PASSWORD_LEN - 1);
-    }
-
-    if ((pkey = load_pem_key_bio(cb_data, bio)) == NULL) {
+    if ((pkey = load_pem_key_bio(cpassword, bio)) == NULL) {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate key (%s)",err);

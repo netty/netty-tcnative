@@ -1,3 +1,18 @@
+/*
+ * Copyright 2016 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 /* Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,25 +29,10 @@
  * limitations under the License.
  */
 
-/*
- *
- * @author Mladen Turk
- * @version $Id: jnilib.c 1666217 2015-03-12 15:03:31Z rjung $
- */
-
 #include "tcn.h"
 #include "apr_version.h"
-#include "apr_file_io.h"
-#include "apr_mmap.h"
 #include "apr_atomic.h"
-
-#include "tcn_version.h"
-
-#ifdef TCN_DO_STATISTICS
-extern void sp_poll_dump_statistics();
-extern void sp_network_dump_statistics();
-extern void ssl_network_dump_statistics();
-#endif
+#include "apr_strings.h"
 
 #ifndef TCN_JNI_VERSION
 #define TCN_JNI_VERSION JNI_VERSION_1_4
@@ -42,8 +42,6 @@ apr_pool_t *tcn_global_pool = NULL;
 static JavaVM     *tcn_global_vm = NULL;
 
 static jclass    jString_class;
-static jclass    jFinfo_class;
-static jclass    jAinfo_class;
 static jmethodID jString_init;
 static jmethodID jString_getBytes;
 static jclass    byteArrayClass;
@@ -96,7 +94,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved)
 #endif
 
     TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
-    TCN_LOAD_CLASS(env, keyMaterialClass, "org/apache/tomcat/jni/CertificateRequestedCallback$KeyMaterial", JNI_ERR);
+    TCN_LOAD_CLASS(env, keyMaterialClass, "io/netty/tcnative/jni/CertificateRequestedCallback$KeyMaterial", JNI_ERR);
 
     TCN_GET_FIELD(env, keyMaterialClass, keyMaterialCertificateChainFieldId,
                    "certificateChain", "J", JNI_ERR);
@@ -124,8 +122,6 @@ JNIEXPORT void JNICALL JNI_OnUnload_netty_tcnative(JavaVM *vm, void *reserved)
     }
     if (tcn_global_pool) {
         TCN_UNLOAD_CLASS(env, jString_class);
-        TCN_UNLOAD_CLASS(env, jFinfo_class);
-        TCN_UNLOAD_CLASS(env, jAinfo_class);
         apr_terminate();
     }
 
@@ -241,7 +237,7 @@ char *tcn_pstrdup(JNIEnv *env, jstring jstr, apr_pool_t *pool)
     return result;
 }
 
-TCN_IMPLEMENT_CALL(jboolean, Library, initialize)(TCN_STDARGS)
+TCN_IMPLEMENT_CALL(jboolean, Library, initialize0)(TCN_STDARGS)
 {
 
     UNREFERENCED_STDARGS;
@@ -255,33 +251,6 @@ TCN_IMPLEMENT_CALL(jboolean, Library, initialize)(TCN_STDARGS)
     return JNI_TRUE;
 }
 
-TCN_IMPLEMENT_CALL(void, Library, terminate)(TCN_STDARGS)
-{
-
-    UNREFERENCED_STDARGS;
-    if (tcn_global_pool) {        
-        apr_pool_t *p = tcn_global_pool;
-        tcn_global_pool = NULL;
-#ifdef TCN_DO_STATISTICS
-        fprintf(stderr, "APR Statistical data ....\n");
-#endif
-        apr_pool_destroy(p);
-#ifdef TCN_DO_STATISTICS
-        sp_poll_dump_statistics();
-        sp_network_dump_statistics();
-        ssl_network_dump_statistics();
-        fprintf(stderr, "APR Terminated\n");
-#endif
-        apr_terminate();
-    }
-}
-
-TCN_IMPLEMENT_CALL(jlong, Library, globalPool)(TCN_STDARGS)
-{
-    UNREFERENCED_STDARGS;
-    return P2J(tcn_global_pool);
-}
-
 TCN_IMPLEMENT_CALL(jint, Library, version)(TCN_STDARGS, jint what)
 {
     apr_version_t apv;
@@ -290,18 +259,6 @@ TCN_IMPLEMENT_CALL(jint, Library, version)(TCN_STDARGS, jint what)
     apr_version(&apv);
 
     switch (what) {
-        case 0x01:
-            return TCN_MAJOR_VERSION;
-        break;
-        case 0x02:
-            return TCN_MINOR_VERSION;
-        break;
-        case 0x03:
-            return TCN_PATCH_VERSION;
-        break;
-        case 0x04:
-            return TCN_IS_DEV_VERSION;
-        break;
         case 0x11:
             return apv.major;
         break;
@@ -316,12 +273,6 @@ TCN_IMPLEMENT_CALL(jint, Library, version)(TCN_STDARGS, jint what)
         break;
     }
     return 0;
-}
-
-TCN_IMPLEMENT_CALL(jstring, Library, versionString)(TCN_STDARGS)
-{
-    UNREFERENCED(o);
-    return AJP_TO_JSTRING(TCN_VERSION_STRING);
 }
 
 TCN_IMPLEMENT_CALL(jstring, Library, aprVersionString)(TCN_STDARGS)
@@ -443,38 +394,6 @@ TCN_IMPLEMENT_CALL(jboolean, Library, has)(TCN_STDARGS, jint what)
         break;
     }
     return rv;
-}
-
-TCN_IMPLEMENT_CALL(jint, Library, size)(TCN_STDARGS, jint what)
-{
-
-    UNREFERENCED_STDARGS;
-
-    switch (what) {
-        case 1:
-            return APR_SIZEOF_VOIDP;
-        break;
-        case 2:
-            return APR_PATH_MAX;
-        break;
-        case 3:
-            return APRMAXHOSTLEN;
-        break;
-        case 4:
-            return APR_MAX_IOVEC_SIZE;
-        break;
-        case 5:
-            return APR_MAX_SECS_TO_LINGER;
-        break;
-        case 6:
-            return APR_MMAP_THRESHOLD;
-        break;
-        case 7:
-            return APR_MMAP_LIMIT;
-        break;
-
-    }
-    return 0;
 }
 
 apr_pool_t *tcn_get_global_pool()

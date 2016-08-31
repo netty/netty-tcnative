@@ -1,4 +1,19 @@
 /*
+ * Copyright 2016 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+/*
  *  Licensed to the Apache Software Foundation (ASF) under one or more
  *  contributor license agreements.  See the NOTICE file distributed with
  *  this work for additional information regarding copyright ownership.
@@ -15,14 +30,11 @@
  *  limitations under the License.
  */
 
-package org.apache.tomcat.jni;
+package io.netty.tcnative.jni;
 
-/** SSL Context
- *
- * @author Mladen Turk
- */
 public final class SSLContext {
 
+    private SSLContext() { }
 
     /**
      * Initialize new SSL context
@@ -61,27 +73,6 @@ public final class SSLContext {
     public static native void setContextId(long ctx, String id);
 
     /**
-     * Associate BIOCallback for input or output data capture.
-     * <br>
-     * First word in the output string will contain error
-     * level in the form:
-     * <PRE>
-     * [ERROR]  -- Critical error messages
-     * [WARN]   -- Warning messages
-     * [INFO]   -- Informational messages
-     * [DEBUG]  -- Debugging messaged
-     * </PRE>
-     * Callback can use that word to determine application logging level
-     * by intercepting <b>write</b> call.
-     * If the <b>bio</b> is set to 0 no error messages will be displayed.
-     * Default is to use the stderr output stream.
-     * @param ctx Server or Client context to use.
-     * @param bio BIO handle to use, created with SSL.newBIO
-     * @param dir BIO direction (1 for input 0 for output).
-     */
-    public static native void setBIO(long ctx, long bio, int dir);
-
-    /**
      * Set OpenSSL Option.
      * @param ctx Server or Client context to use.
      * @param options  See SSL.SSL_OP_* for option flags.
@@ -103,27 +94,6 @@ public final class SSLContext {
     public static native void clearOptions(long ctx, int options);
 
     /**
-     * Sets the "quiet shutdown" flag for <b>ctx</b> to be
-     * <b>mode</b>. SSL objects created from <b>ctx</b> inherit the
-     * <b>mode</b> valid at the time and may be 0 or 1.
-     * <br>
-     * Normally when a SSL connection is finished, the parties must send out
-     * "close notify" alert messages using L&lt;SSL_shutdown(3)|SSL_shutdown(3)&gt;
-     * for a clean shutdown.
-     * <br>
-     * When setting the "quiet shutdown" flag to 1, <b>SSL.shutdown</b>
-     * will set the internal flags to SSL_SENT_SHUTDOWN|SSL_RECEIVED_SHUTDOWN.
-     * (<b>SSL_shutdown</b> then behaves like called with
-     * SSL_SENT_SHUTDOWN|SSL_RECEIVED_SHUTDOWN.)
-     * The session is thus considered to be shutdown, but no "close notify" alert
-     * is sent to the peer. This behaviour violates the TLS standard.
-     * The default is normal shutdown behaviour as described by the TLS standard.
-     * @param ctx Server or Client context to use.
-     * @param mode True to set the quiet shutdown.
-     */
-    public static native void setQuietShutdown(long ctx, boolean mode);
-
-    /**
      * Cipher Suite available for negotiation in SSL handshake.
      * <br>
      * This complex directive uses a colon-separated cipher-spec string consisting
@@ -138,29 +108,6 @@ public final class SSLContext {
      * @param ciphers An SSL cipher specification.
      */
     public static native boolean setCipherSuite(long ctx, String ciphers)
-        throws Exception;
-
-    /**
-     * Set File of concatenated PEM-encoded CA CRLs or
-     * directory of PEM-encoded CA Certificates for Client Auth
-     * <br>
-     * This directive sets the all-in-one file where you can assemble the
-     * Certificate Revocation Lists (CRL) of Certification Authorities (CA)
-     * whose clients you deal with. These are used for Client Authentication.
-     * Such a file is simply the concatenation of the various PEM-encoded CRL
-     * files, in order of preference.
-     * <br>
-     * The files in this directory have to be PEM-encoded and are accessed through
-     * hash filenames. So usually you can't just place the Certificate files there:
-     * you also have to create symbolic links named hash-value.N. And you should
-     * always make sure this directory contains the appropriate symbolic links.
-     * Use the Makefile which comes with mod_ssl to accomplish this task.
-     * @param ctx Server or Client context to use.
-     * @param file File of concatenated PEM-encoded CA CRLs for Client Auth.
-     * @param path Directory of PEM-encoded CA Certificates for Client Auth.
-     */
-    public static native boolean setCARevocation(long ctx, String file,
-                                                 String path)
         throws Exception;
 
     /**
@@ -388,77 +335,19 @@ public final class SSLContext {
         for (int i = 0; i < keys.length; i++) {
             SessionTicketKey key = keys[i];
             int dstCurPos = SessionTicketKey.TICKET_KEY_SIZE * i;
-            System.arraycopy(key.getName(), 0, binaryKeys, dstCurPos, SessionTicketKey.NAME_SIZE);
+            System.arraycopy(key.name, 0, binaryKeys, dstCurPos, SessionTicketKey.NAME_SIZE);
             dstCurPos += SessionTicketKey.NAME_SIZE;
-            System.arraycopy(key.getHmacKey(), 0, binaryKeys, dstCurPos, SessionTicketKey.HMAC_KEY_SIZE);
+            System.arraycopy(key.hmacKey, 0, binaryKeys, dstCurPos, SessionTicketKey.HMAC_KEY_SIZE);
             dstCurPos += SessionTicketKey.HMAC_KEY_SIZE;
-            System.arraycopy(key.getAesKey(), 0, binaryKeys, dstCurPos, SessionTicketKey.AES_KEY_SIZE);
+            System.arraycopy(key.aesKey, 0, binaryKeys, dstCurPos, SessionTicketKey.AES_KEY_SIZE);
         }
         setSessionTicketKeys0(ctx, binaryKeys);
     }
 
     /**
      * Set TLS session keys.
-     *
-     * @deprecated  prefer {@link #setSessionTicketKeys(long, SessionTicketKey[])}
-     */
-    @Deprecated
-    public static void setSessionTicketKeys(long ctx, byte[] keys) {
-        if (keys.length % SessionTicketKey.TICKET_KEY_SIZE != 0) {
-            throw new IllegalArgumentException("Session ticket keys provided were wrong size. keys.length % " + SessionTicketKey.TICKET_KEY_SIZE + " must be 0");
-        }
-        setSessionTicketKeys0(ctx, keys);
-    }
-    /**
-     * Set TLS session keys.
      */
     private static native void setSessionTicketKeys0(long ctx, byte[] keys);
-
-    /**
-     * Set File and Directory of concatenated PEM-encoded CA Certificates
-     * for Client Auth
-     * <br>
-     * This directive sets the all-in-one file where you can assemble the
-     * Certificates of Certification Authorities (CA) whose clients you deal with.
-     * These are used for Client Authentication. Such a file is simply the
-     * concatenation of the various PEM-encoded Certificate files, in order of
-     * preference. This can be used alternatively and/or additionally to
-     * path.
-     * <br>
-     * The files in this directory have to be PEM-encoded and are accessed through
-     * hash filenames. So usually you can't just place the Certificate files there:
-     * you also have to create symbolic links named hash-value.N. And you should
-     * always make sure this directory contains the appropriate symbolic links.
-     * Use the Makefile which comes with mod_ssl to accomplish this task.
-     * @param ctx Server or Client context to use.
-     * @param file File of concatenated PEM-encoded CA Certificates for
-     *             Client Auth.
-     * @param path Directory of PEM-encoded CA Certificates for Client Auth.
-     */
-    public static native boolean setCACertificate(long ctx, String file,
-                                                  String path)
-        throws Exception;
-
-    /**
-     * Set file for randomness
-     * @param ctx Server or Client context to use.
-     * @param file random file.
-     */
-    public static native void setRandom(long ctx, String file);
-
-    /**
-     * Set SSL connection shutdown type
-     * <br>
-     * The following levels are available for level:
-     * <PRE>
-     * SSL_SHUTDOWN_TYPE_STANDARD
-     * SSL_SHUTDOWN_TYPE_UNCLEAN
-     * SSL_SHUTDOWN_TYPE_ACCURATE
-     * </PRE>
-     * @param ctx Server or Client context to use.
-     * @param type Shutdown type to use.
-     */
-    public static native void setShutdownType(long ctx, int type);
 
     /**
      * Set Type of Client Certificate verification and Maximum depth of CA Certificates
@@ -516,18 +405,6 @@ public final class SSLContext {
     /**
      * Set next protocol for next protocol negotiation extension
      * @param ctx Server context to use.
-     * @param nextProtos comma delimited list of protocols in priority order
-     *
-     * @deprecated use {@link #setNpnProtos(long, String[], int)}
-     */
-    @Deprecated
-    public static void setNextProtos(long ctx, String nextProtos) {
-        setNpnProtos(ctx, nextProtos.split(","), SSL.SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL);
-    }
-
-    /**
-     * Set next protocol for next protocol negotiation extension
-     * @param ctx Server context to use.
      * @param nextProtos protocols in priority order
      * @param selectorFailureBehavior see {@link SSL#SSL_SELECTOR_FAILURE_NO_ADVERTISE}
      *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
@@ -544,30 +421,12 @@ public final class SSLContext {
     public static native void setAlpnProtos(long ctx, String[] alpnProtos, int selectorFailureBehavior);
 
     /**
-     * Set DH parameters
-     * @param ctx Server context to use.
-     * @param cert DH param file (can be generated from e.g. {@code openssl dhparam -rand - 2048 > dhparam.pem} -
-     *             see the <a href="https://www.openssl.org/docs/apps/dhparam.html">OpenSSL documentation</a>).
-     */
-    public static native void setTmpDH(long ctx, String cert)
-            throws Exception;
-
-    /**
      * Set length of the DH to use.
      *
      * @param ctx Server context to use.
      * @param length the length.
      */
     public static native void setTmpDHLength(long ctx, int length);
-
-    /**
-     * Set ECDH elliptic curve by name
-     * @param ctx Server context to use.
-     * @param curveName the name of the elliptic curve to use
-     *             (available names can be obtained from {@code openssl ecparam -list_curves}).
-     */
-    public static native void setTmpECDHByCurveName(long ctx, String curveName)
-            throws Exception;
 
     /**
      * Set the context within which session be reused (server side only)

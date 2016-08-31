@@ -27,3 +27,5 @@
 # Mac-specific directory that no other operating system needs.
 .DS_Store
 
+# Do not include stuff in the static modules as this is generated during the build
+*-static/src

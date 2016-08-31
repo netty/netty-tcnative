@@ -1,4 +1,19 @@
 /*
+ * Copyright 2016 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+/*
  *  Licensed to the Apache Software Foundation (ASF) under one or more
  *  contributor license agreements.  See the NOTICE file distributed with
  *  this work for additional information regarding copyright ownership.
@@ -14,13 +29,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.apache.tomcat.jni;
+package io.netty.tcnative.jni;
 
-/** SSL
- *
- * @author Mladen Turk
- */
 public final class SSL {
+
+    private SSL() { }
 
     /*
      * Type definitions mostly from mod_ssl
@@ -177,11 +190,6 @@ public final class SSL {
     public static final int SSL_MODE_SERVER         = 1;
     public static final int SSL_MODE_COMBINED       = 2;
 
-    public static final int SSL_SHUTDOWN_TYPE_UNSET    = 0;
-    public static final int SSL_SHUTDOWN_TYPE_STANDARD = 1;
-    public static final int SSL_SHUTDOWN_TYPE_UNCLEAN  = 2;
-    public static final int SSL_SHUTDOWN_TYPE_ACCURATE = 3;
-
     public static final int SSL_INFO_SESSION_ID                = 0x0001;
     public static final int SSL_INFO_CIPHER                    = 0x0002;
     public static final int SSL_INFO_CIPHER_USEKEYSIZE         = 0x0003;
@@ -260,137 +268,21 @@ public final class SSL {
 
     /**
      * Initialize OpenSSL support.
+     *
      * This function needs to be called once for the
-     * lifetime of JVM. Library.init() has to be called before.
+     * lifetime of JVM. See {@link Library#initialize(String, String)}
+     *
      * @param engine Support for external a Crypto Device ("engine"),
-     *                usually
-     * a hardware accelerator card for crypto operations.
+     *                usually a hardware accelerator card for crypto operations.
      * @return APR status code
      */
-    public static native int initialize(String engine);
-
-    /**
-     * Get the status of FIPS Mode.
-     *
-     * @return FIPS_mode return code. It is <code>0</code> if OpenSSL is not
-     *  in FIPS mode, <code>1</code> if OpenSSL is in FIPS Mode.
-     * @throws Exception If tcnative was not compiled with FIPS Mode available.
-     * @see <a href="http://wiki.openssl.org/index.php/FIPS_mode%28%29">OpenSSL method FIPS_mode()</a>
-     */
-    public static native int fipsModeGet() throws Exception;
-
-    /**
-     * Enable/Disable FIPS Mode.
-     *
-     * @param mode 1 - enable, 0 - disable
-     *
-     * @return FIPS_mode_set return code
-     * @throws Exception If tcnative was not compiled with FIPS Mode available,
-     *  or if {@code FIPS_mode_set()} call returned an error value.
-     * @see <a href="http://wiki.openssl.org/index.php/FIPS_mode_set%28%29">OpenSSL method FIPS_mode_set()</a>
-     */
-    public static native int fipsModeSet(int mode) throws Exception;
-
-    /**
-     * Add content of the file to the PRNG
-     * @param filename Filename containing random data.
-     *        If null the default file will be tested.
-     *        The seed file is $RANDFILE if that environment variable is
-     *        set, $HOME/.rnd otherwise.
-     *        In case both files are unavailable builtin
-     *        random seed generator is used.
-     */
-    public static native boolean randLoad(String filename);
-
-    /**
-     * Writes a number of random bytes (currently 1024) to
-     * file <code>filename</code> which can be used to initialize the PRNG
-     * by calling randLoad in a later session.
-     * @param filename Filename to save the data
-     */
-    public static native boolean randSave(String filename);
-
-    /**
-     * Creates random data to filename
-     * @param filename Filename to save the data
-     * @param len The length of random sequence in bytes
-     * @param base64 Output the data in Base64 encoded format
-     */
-    public static native boolean randMake(String filename, int len,
-                                          boolean base64);
-
-    /**
-     * Sets global random filename.
-     * @param filename Filename to use.
-     *        If set it will be used for SSL initialization
-     *        and all contexts where explicitly not set.
-     */
-    public static native void randSet(String filename);
-
-    /**
-     * Initialize new BIO
-     * @param pool The pool to use.
-     * @param callback BIOCallback to use
-     * @return new BIO handle
-     */
-     public static native long newBIO(long pool, BIOCallback callback)
-            throws Exception;
+    static native int initialize(String engine);
 
     /**
      * Initialize new in-memory BIO that is located in the secure heap.
      * @return New BIO handle
      */
     public static native long newMemBIO() throws Exception;
-
-    /**
-     * Close BIO and dereference callback object
-     * @param bio BIO to close and destroy.
-     * @return APR Status code
-     */
-     public static native int closeBIO(long bio);
-
-    /**
-     * Set global Password callback for obtaining passwords.
-     * @param callback PasswordCallback implementation to use.
-     */
-     public static native void setPasswordCallback(PasswordCallback callback);
-
-    /**
-     * Set global Password for decrypting certificates and keys.
-     * @param password Password to use.
-     */
-     public static native void setPassword(String password);
-
-    /**
-     * Generate temporary RSA key.
-     * <br>
-     * Index can be one of:
-     * <PRE>
-     * SSL_TMP_KEY_RSA_512
-     * SSL_TMP_KEY_RSA_1024
-     * SSL_TMP_KEY_RSA_2048
-     * SSL_TMP_KEY_RSA_4096
-     * </PRE>
-     * By default 512 and 1024 keys are generated on startup.
-     * You can use a low priority thread to generate them on the fly.
-     * @param idx temporary key index.
-     */
-    public static native boolean generateRSATempKey(int idx);
-
-    /**
-     * Load temporary DSA key from file
-     * <br>
-     * Index can be one of:
-     * <PRE>
-     * SSL_TMP_KEY_DH_512
-     * SSL_TMP_KEY_DH_1024
-     * SSL_TMP_KEY_DH_2048
-     * SSL_TMP_KEY_DH_4096
-     * </PRE>
-     * @param idx temporary key index.
-     * @param file File containing DH params.
-     */
-    public static native boolean loadDSATempKey(int idx, String file);
 
     /**
      * Return last SSL error string
@@ -436,14 +328,6 @@ public final class SSL {
      * @return pointer to SSL instance (SSL *)
      */
     public static native long newSSL(long ctx, boolean server);
-
-    /**
-     * SSL_set_bio
-     * @param ssl SSL pointer (SSL *)
-     * @param rbio read BIO pointer (BIO *)
-     * @param wbio write BIO pointer (BIO *)
-     */
-    public static native void setBIO(long ssl, long rbio, long wbio);
 
     /**
      * SSL_get_error
@@ -540,12 +424,6 @@ public final class SSL {
      * @param bio
      */
     public static native void freeBIO(long bio);
-
-    /**
-     * BIO_flush
-     * @param bio
-     */
-    public static native void flushBIO(long bio);
 
     /**
      * SSL_shutdown

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2016 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 /* Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,35 +29,19 @@
  * limitations under the License.
  */
 
-/*
- *
- * @author Mladen Turk
- * @version $Id: tcn.h 1446443 2013-02-15 04:18:04Z rjung $
- */
-
 #ifndef TCN_H
 #define TCN_H
 
+// Start includes
+#include <jni.h>
+
 #include "apr.h"
-#include "apr_general.h"
-#include "apr_lib.h"
 #include "apr_pools.h"
-#include "apr_portable.h"
-#include "apr_network_io.h"
-#include "apr_poll.h"
-#include "apr_ring.h"
-#include "apr_strings.h"
 
 #ifndef APR_HAS_THREADS
 #error "Missing APR_HAS_THREADS support from APR."
 #endif
 
-#if defined(DEBUG) || defined(_DEBUG)
-/* On -DDEBUG use the statistics */
-#ifndef TCN_DO_STATISTICS
-#define TCN_DO_STATISTICS
-#endif
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -51,64 +50,15 @@
 #include <unistd.h>
 #endif
 
-#if !defined(APR_POLLSET_NOCOPY)
-/* Add missing API */
-#define APR_RING_FOREACH(ep, head, elem, link)                          \
-    for (ep = APR_RING_FIRST(head);                                     \
-         ep != APR_RING_SENTINEL(head, elem, link);                     \
-         ep = APR_RING_NEXT(ep, link))
-
-#define APR_RING_FOREACH_SAFE(ep1, ep2, head, elem, link)               \
-    for (ep1 = APR_RING_FIRST(head), ep2 = APR_RING_NEXT(ep1, link);    \
-         ep1 != APR_RING_SENTINEL(head, elem, link);                    \
-         ep1 = ep2, ep2 = APR_RING_NEXT(ep1, link))
-
-#define APR_POLLSET_NOCOPY  0
-#endif 
-
-#include "tcn_api.h"
-
-
 #if defined(_DEBUG) || defined(DEBUG)
 #include <assert.h>
 #define TCN_ASSERT(x)  assert((x))
 #else
 #define TCN_ASSERT(x) (void)0
 #endif
+// End includes
 
-#ifndef APR_MAX_IOVEC_SIZE
-#define APR_MAX_IOVEC_SIZE 1024
-#endif
-
-#define TCN_TIMEUP      APR_OS_START_USERERR + 1
-#define TCN_EAGAIN      APR_OS_START_USERERR + 2
-#define TCN_EINTR       APR_OS_START_USERERR + 3
-#define TCN_EINPROGRESS APR_OS_START_USERERR + 4
-#define TCN_ETIMEDOUT   APR_OS_START_USERERR + 5
-
-#define TCN_LOG_EMERG  1
-#define TCN_LOG_ERROR  2
-#define TCN_LOG_NOTICE 3
-#define TCN_LOG_WARN   4
-#define TCN_LOG_INFO   5
-#define TCN_LOG_DEBUG  6
-
-#define TCN_ERROR_WRAP(E)                   \
-    if (APR_STATUS_IS_TIMEUP(E))            \
-        (E) = TCN_TIMEUP;                   \
-    else if (APR_STATUS_IS_EAGAIN(E))       \
-        (E) = TCN_EAGAIN;                   \
-    else if (APR_STATUS_IS_EINTR(E))        \
-        (E) = TCN_EINTR;                    \
-    else if (APR_STATUS_IS_EINPROGRESS(E))  \
-        (E) = TCN_EINPROGRESS;              \
-    else if (APR_STATUS_IS_ETIMEDOUT(E))    \
-        (E) = TCN_ETIMEDOUT;                \
-    else                                    \
-        (E) = (E)
-
-#define TCN_CLASS_PATH  "org/apache/tomcat/jni/"
-#define TCN_ERROR_CLASS TCN_CLASS_PATH "Error"
+#define TCN_CLASS_PATH  "io/netty/tcnative/jni/"
 #define TCN_PARENT_IDE  "TCN_PARENT_ID"
 
 #define UNREFERENCED(P)      (P) = (P)
@@ -123,67 +73,17 @@
 /* On stack buffer size */
 #define TCN_BUFFER_SZ   8192
 #define TCN_STDARGS     JNIEnv *e, jobject o
-#define TCN_IMPARGS     JNIEnv *e, jobject o, void *sock
-#define TCN_IMPCALL(X)  e, o, X->opaque
 
 #define TCN_IMPLEMENT_CALL(RT, CL, FN)  \
-    JNIEXPORT RT JNICALL Java_org_apache_tomcat_jni_##CL##_##FN
+    JNIEXPORT RT JNICALL Java_io_netty_tcnative_jni_##CL##_##FN
 
 #define TCN_IMPLEMENT_METHOD(RT, FN)    \
     static RT method_##FN
 
-#define TCN_GETNET_METHOD(FN)  method_##FN
-
-#define TCN_SOCKET_UNKNOWN  0
-#define TCN_SOCKET_APR      1
-#define TCN_SOCKET_SSL      2
-#define TCN_SOCKET_UNIX     3
-#define TCN_SOCKET_NTPIPE   4
-
-#define TCN_SOCKET_GET_POOL 0
-#define TCN_SOCKET_GET_IMPL 1
-#define TCN_SOCKET_GET_APRS 2
-#define TCN_SOCKET_GET_TYPE 3
-
-typedef struct {
-    int type;
-    apr_status_t (*cleanup)(void *);
-    apr_status_t (APR_THREAD_FUNC *close) (apr_socket_t *);
-    apr_status_t (APR_THREAD_FUNC *shutdown) (apr_socket_t *, apr_shutdown_how_e);
-    apr_status_t (APR_THREAD_FUNC *opt_get)(apr_socket_t *, apr_int32_t, apr_int32_t *);
-    apr_status_t (APR_THREAD_FUNC *opt_set)(apr_socket_t *, apr_int32_t, apr_int32_t);
-    apr_status_t (APR_THREAD_FUNC *timeout_get)(apr_socket_t *, apr_interval_time_t *);
-    apr_status_t (APR_THREAD_FUNC *timeout_set)(apr_socket_t *, apr_interval_time_t);
-    apr_status_t (APR_THREAD_FUNC *send) (apr_socket_t *, const char *, apr_size_t *);
-    apr_status_t (APR_THREAD_FUNC *sendv)(apr_socket_t *, const struct iovec *, apr_int32_t, apr_size_t *);
-    apr_status_t (APR_THREAD_FUNC *recv) (apr_socket_t *, char *, apr_size_t *);
-} tcn_nlayer_t;
-
-typedef struct tcn_socket_t tcn_socket_t;
-typedef struct tcn_pfde_t   tcn_pfde_t;
-
-struct tcn_pfde_t {
-    APR_RING_ENTRY(tcn_pfde_t) link;
-    apr_pollfd_t fd;
-};
-
-struct tcn_socket_t {
-    apr_pool_t   *pool;
-    apr_pool_t   *child;
-    apr_socket_t *sock;
-    void         *opaque;
-    char         *jsbbuff;
-    char         *jrbbuff;
-    tcn_nlayer_t *net;
-    tcn_pfde_t   *pe;
-    apr_time_t          last_active;
-    apr_interval_time_t timeout;
-};
 
 /* Private helper functions */
 void            tcn_Throw(JNIEnv *, const char *, ...);
 void            tcn_ThrowException(JNIEnv *, const char *);
-void            tcn_ThrowMemoryException(JNIEnv *, const char *, int, const char *);
 void            tcn_ThrowAPRException(JNIEnv *, apr_status_t);
 jstring         tcn_new_string(JNIEnv *, const char *);
 jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
@@ -192,12 +92,9 @@ jobjectArray    tcn_new_arrays(JNIEnv *env, size_t len);
 char           *tcn_get_string(JNIEnv *, jstring);
 char           *tcn_strdup(JNIEnv *, jstring);
 char           *tcn_pstrdup(JNIEnv *, jstring, apr_pool_t *);
-apr_status_t    tcn_load_ainfo_class(JNIEnv *, jclass);
 
 #define J2S(V)  c##V
 #define J2L(V)  p##V
-
-#define J2T(T) (apr_time_t)((T))
 
 #define TCN_BEGIN_MACRO     if (1) {
 #define TCN_END_MACRO       } else (void)(0)
@@ -218,13 +115,6 @@ apr_status_t    tcn_load_ainfo_class(JNIEnv *, jclass);
         if (c##V)                \
             free(c##V);          \
     TCN_END_MACRO
-
-#define TCN_CHECK_ALLOCATED(x)                              \
-        if (x == NULL) {                                    \
-            tcn_ThrowMemoryException(e, __FILE__, __LINE__, \
-            "APR memory allocation failed");                \
-            goto cleanup;                                   \
-        } else (void)(0)
 
 #define TCN_THROW_IF_ERR(x, r)                  \
     TCN_BEGIN_MACRO                             \
@@ -274,12 +164,6 @@ apr_status_t    tcn_load_ainfo_class(JNIEnv *, jclass);
 
 #define TCN_MAX_METHODS 8
 
-typedef struct {
-    jobject     obj;
-    jmethodID   mid[TCN_MAX_METHODS];
-    void        *opaque;
-} tcn_callback_t;
-
 #define TCN_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define TCN_MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -302,21 +186,25 @@ typedef struct {
 
 #endif
 
-#if  !APR_HAVE_IPV6
-#define APR_INET6 APR_INET
-#endif
 
-#define GET_S_FAMILY(T, F)           \
-    if (F == 0) T = APR_UNSPEC;      \
-    else if (F == 1) T = APR_INET;   \
-    else if (F == 2) T = APR_INET6;  \
-    else T = F
+/* Return global apr pool
+ */
+apr_pool_t *tcn_get_global_pool(void);
 
-#define GET_S_TYPE(T, F)             \
-    if (F == 0) T = SOCK_STREAM;     \
-    else if (F == 1) T = SOCK_DGRAM; \
-    else T = F
+/* Return global String class
+ */
+jclass tcn_get_string_class(void);
 
-#define TCN_NO_SOCKET_TIMEOUT -2
+jclass tcn_get_byte_array_class();
+jfieldID tcn_get_key_material_certificate_chain_field();
+jfieldID tcn_get_key_material_private_key_field();
+
+/* Return global JVM initalized on JNI_OnLoad
+ */
+JavaVM *tcn_get_java_vm(void);
+
+/* Get current thread JNIEnv
+ */
+jint tcn_get_java_env(JNIEnv **);
 
 #endif /* TCN_H */

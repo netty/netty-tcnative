@@ -1,3 +1,18 @@
+/*
+ * Copyright 2016 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 /* Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,18 +29,9 @@
  * limitations under the License.
  */
 
-/** SSL Context wrapper
- *
- * @author Mladen Turk
- * @version $Id: sslcontext.c 1649733 2015-01-06 04:42:24Z billbarker $
- */
-
 #include "tcn.h"
 
-#include "apr_file_io.h"
-#include "apr_thread_mutex.h"
 #include "apr_thread_rwlock.h"
-#include "apr_poll.h"
 #include "apr_atomic.h"
 
 #include "ssl_private.h"
@@ -45,14 +51,6 @@ static apr_status_t ssl_context_cleanup(void *data)
         c->crl = NULL;
         SSL_CTX_free(c->ctx); // this function is safe to call with NULL
         c->ctx = NULL;
-        if (c->bio_is != NULL ) {
-            SSL_BIO_close(c->bio_is);
-            c->bio_is = NULL;
-        }
-        if (c->bio_os != NULL ) {
-            SSL_BIO_close(c->bio_os);
-            c->bio_os = NULL;
-        }
 
         if (c->verifier != NULL) {
             tcn_get_java_env(&e);
@@ -87,6 +85,11 @@ static apr_status_t ssl_context_cleanup(void *data)
             c->ticket_keys = NULL;
         }
         c->ticket_keys_len = 0;
+
+        if (c->password != NULL) {
+            free(c->password);
+            c->password = NULL;
+        }
     }
     return APR_SUCCESS;
 }
@@ -233,7 +236,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     c->mode     = mode;
     c->ctx      = ctx;
     c->pool     = p;
-    c->bio_os   = NULL;
     SSL_CTX_set_options(c->ctx, SSL_OP_ALL);
     if (!(protocol & SSL_PROTOCOL_SSLV2))
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv2);
@@ -311,12 +313,10 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
      */
     c->verify_depth  = 1;
     c->verify_mode   = SSL_CVERIFY_UNSET;
-    c->shutdown_type = SSL_SHUTDOWN_TYPE_UNSET;
 
     /* Set default password callback */
     SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *)SSL_password_callback);
-    SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *)(&tcn_password_callback));
-    SSL_CTX_set_info_callback(c->ctx, SSL_callback_handshake);
+    SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *) c->password);
 
     apr_thread_rwlock_create(&c->mutex, p);
     /*
@@ -362,29 +362,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setContextId)(TCN_STDARGS, jlong ctx,
     TCN_FREE_CSTRING(id);
 }
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setBIO)(TCN_STDARGS, jlong ctx,
-                                             jlong bio, jint dir)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    BIO *bio_handle   = J2P(bio, BIO *);
-
-    UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
-    if (dir == 0) {
-        if (c->bio_os && c->bio_os != bio_handle)
-            SSL_BIO_close(c->bio_os);
-        c->bio_os = bio_handle;
-    }
-    else if (dir == 1) {
-        if (c->bio_is && c->bio_is != bio_handle)
-            SSL_BIO_close(c->bio_is);
-        c->bio_is = bio_handle;
-    }
-    else
-        return;
-    SSL_BIO_doref(bio_handle);
-}
-
 TCN_IMPLEMENT_CALL(void, SSLContext, setOptions)(TCN_STDARGS, jlong ctx,
                                                  jint opt)
 {
@@ -420,16 +397,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, clearOptions)(TCN_STDARGS, jlong ctx,
     SSL_CTX_clear_options(c->ctx, opt);
 }
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setQuietShutdown)(TCN_STDARGS, jlong ctx,
-                                                       jboolean mode)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-
-    UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
-    SSL_CTX_set_quiet_shutdown(c->ctx, mode ? 1 : 0);
-}
-
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
                                                          jstring ciphers)
 {
@@ -449,55 +416,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
         rv = JNI_FALSE;
     }
     TCN_FREE_CSTRING(ciphers);
-    return rv;
-}
-
-TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCARevocation)(TCN_STDARGS, jlong ctx,
-                                                          jstring file,
-                                                          jstring path)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    TCN_ALLOC_CSTRING(file);
-    TCN_ALLOC_CSTRING(path);
-    jboolean rv = JNI_FALSE;
-    X509_LOOKUP *lookup;
-    char err[256];
-
-    UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
-    if (J2S(file) == NULL && J2S(path) == NULL)
-        return JNI_FALSE;
-
-    if (!c->crl) {
-        if ((c->crl = X509_STORE_new()) == NULL)
-            goto cleanup;
-    }
-    if (J2S(file)) {
-        lookup = X509_STORE_add_lookup(c->crl, X509_LOOKUP_file());
-        if (lookup == NULL) {
-            ERR_error_string(ERR_get_error(), err);
-            X509_STORE_free(c->crl);
-            c->crl = NULL;
-            tcn_Throw(e, "Lookup failed for file %s (%s)", J2S(file), err);
-            goto cleanup;
-        }
-        X509_LOOKUP_load_file(lookup, J2S(file), X509_FILETYPE_PEM);
-    }
-    if (J2S(path)) {
-        lookup = X509_STORE_add_lookup(c->crl, X509_LOOKUP_hash_dir());
-        if (lookup == NULL) {
-            ERR_error_string(ERR_get_error(), err);
-            X509_STORE_free(c->crl);
-            c->crl = NULL;
-            tcn_Throw(e, "Lookup failed for path %s (%s)", J2S(file), err);
-            goto cleanup;
-        }
-        X509_LOOKUP_add_dir(lookup, J2S(path), X509_FILETYPE_PEM);
-    }
-    rv = JNI_TRUE;
-cleanup:
-    TCN_FREE_CSTRING(file);
-    TCN_FREE_CSTRING(path);
     return rv;
 }
 
@@ -536,120 +454,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jl
     return JNI_FALSE;
 }
 
-TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificate)(TCN_STDARGS,
-                                                           jlong ctx,
-                                                           jstring file,
-                                                           jstring path)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    jboolean rv = JNI_TRUE;
-    TCN_ALLOC_CSTRING(file);
-    TCN_ALLOC_CSTRING(path);
-
-    UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
-    if (file == NULL && path == NULL)
-        return JNI_FALSE;
-
-   /*
-     * Configure Client Authentication details
-     */
-    if (!SSL_CTX_load_verify_locations(c->ctx,
-                                       J2S(file), J2S(path))) {
-        char err[256];
-        ERR_error_string(ERR_get_error(), err);
-        tcn_Throw(e, "Unable to configure locations "
-                  "for client authentication (%s)", err);
-        rv = JNI_FALSE;
-        goto cleanup;
-    }
-    c->store = SSL_CTX_get_cert_store(c->ctx);
-    if (c->mode) {
-        STACK_OF(X509_NAME) *ca_certs;
-        c->ca_certs++;
-        ca_certs = SSL_CTX_get_client_CA_list(c->ctx);
-        if (ca_certs == NULL) {
-            SSL_load_client_CA_file(J2S(file));
-            if (ca_certs != NULL)
-                SSL_CTX_set_client_CA_list(c->ctx, ca_certs);
-        }
-        else {
-            if (!SSL_add_file_cert_subjects_to_stack(ca_certs, J2S(file)))
-                ca_certs = NULL;
-        }
-        if (ca_certs == NULL && c->verify_mode == SSL_CVERIFY_REQUIRE) {
-            /*
-             * Give a warning when no CAs were configured but client authentication
-             * should take place. This cannot work.
-            */
-            if (c->bio_os) {
-                BIO_printf(c->bio_os,
-                           "[WARN] Oops, you want to request client "
-                           "authentication, but no CAs are known for "
-                           "verification!?");
-            }
-            else {
-                fprintf(stderr,
-                        "[WARN] Oops, you want to request client "
-                        "authentication, but no CAs are known for "
-                        "verification!?");
-            }
-        }
-    }
-cleanup:
-    TCN_FREE_CSTRING(file);
-    TCN_FREE_CSTRING(path);
-    return rv;
-}
-
-TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
-                                                                  jstring file)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    BIO *bio = NULL;
-    DH *dh = NULL;
-    TCN_ALLOC_CSTRING(file);
-    UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
-    TCN_ASSERT(file);
-
-    if (!J2S(file)) {
-        tcn_Throw(e, "Error while configuring DH: no dh param file given");
-        return;
-    }
-    
-    bio = BIO_new_file(J2S(file), "r");
-    if (!bio) {
-        char err[256];
-        ERR_error_string(ERR_get_error(), err);
-        tcn_Throw(e, "Error while configuring DH using %s: %s", J2S(file), err);
-        TCN_FREE_CSTRING(file);
-        return;
-    }
-
-    dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
-    BIO_free(bio);
-    if (!dh) {
-        char err[256];
-        ERR_error_string(ERR_get_error(), err);
-        tcn_Throw(e, "Error while configuring DH: no DH parameter found in %s (%s)", J2S(file), err);
-        TCN_FREE_CSTRING(file);
-        return;
-    }
-
-    if (1 != SSL_CTX_set_tmp_dh(c->ctx, dh)) {
-        char err[256];
-        DH_free(dh);
-        ERR_error_string(ERR_get_error(), err);
-        tcn_Throw(e, "Error while configuring DH with file %s: %s", J2S(file), err);
-        TCN_FREE_CSTRING(file);
-        return;
-    }
-    
-    DH_free(dh);
-    TCN_FREE_CSTRING(file);
-}
-
 TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jint length)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -672,60 +476,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
             tcn_Throw(e, "Unsupported length %s", length);
             return;
     }
-}
-
-TCN_IMPLEMENT_CALL(void, SSLContext, setTmpECDHByCurveName)(TCN_STDARGS, jlong ctx,
-                                                                  jstring curveName)
-{
-#ifdef HAVE_ECC
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    int i;
-    EC_KEY  *ecdh;
-    TCN_ALLOC_CSTRING(curveName);
-    UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
-    TCN_ASSERT(curveName);
-    
-    // First try to get curve by name
-    i = OBJ_sn2nid(J2S(curveName));
-    if (!i) {
-        tcn_Throw(e, "Can't configure elliptic curve: unknown curve name %s", J2S(curveName));
-        TCN_FREE_CSTRING(curveName);
-        return;
-    }
-    
-    ecdh = EC_KEY_new_by_curve_name(i);
-    if (!ecdh) {
-        tcn_Throw(e, "Can't configure elliptic curve: unknown curve name %s", J2S(curveName));
-        TCN_FREE_CSTRING(curveName);
-        return;
-    }
-    
-    // Setting found curve to context
-    if (1 != SSL_CTX_set_tmp_ecdh(c->ctx, ecdh)) {
-        char err[256];
-        EC_KEY_free(ecdh);
-        ERR_error_string(ERR_get_error(), err);
-        tcn_Throw(e, "Error while configuring elliptic curve %s: %s", J2S(curveName), err);
-        TCN_FREE_CSTRING(curveName);
-        return;
-    }
-    EC_KEY_free(ecdh);
-    TCN_FREE_CSTRING(curveName);
-#else
-	tcn_Throw(e, "Cant't configure elliptic curve: unsupported by this OpenSSL version");
-	return;
-#endif
-}
-
-TCN_IMPLEMENT_CALL(void, SSLContext, setShutdownType)(TCN_STDARGS, jlong ctx,
-                                                      jint type)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-
-    UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
-    c->shutdown_type = type;
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx,
@@ -767,7 +517,6 @@ static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
 {
     BIO *bio = NULL;
     EVP_PKEY *key = NULL;
-    tcn_pass_cb_t *cb_data = c->cb_data;
     int i;
 
     if ((bio = BIO_new(BIO_s_file())) == NULL) {
@@ -777,15 +526,13 @@ static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
         BIO_free(bio);
         return NULL;
     }
-    if (!cb_data)
-        cb_data = &tcn_password_callback;
+
     for (i = 0; i < 3; i++) {
         key = PEM_read_bio_PrivateKey(bio, NULL,
                     (pem_password_cb *)SSL_password_callback,
-                    (void *)cb_data);
+                    (void *)c->password);
         if (key != NULL)
             break;
-        cb_data->password[0] = '\0';
         BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
     }
     BIO_free(bio);
@@ -796,7 +543,6 @@ static X509 *load_pem_cert(tcn_ssl_ctxt_t *c, const char *file)
 {
     BIO *bio = NULL;
     X509 *cert = NULL;
-    tcn_pass_cb_t *cb_data = c->cb_data;
 
     if ((bio = BIO_new(BIO_s_file())) == NULL) {
         return NULL;
@@ -805,11 +551,9 @@ static X509 *load_pem_cert(tcn_ssl_ctxt_t *c, const char *file)
         BIO_free(bio);
         return NULL;
     }
-    if (!cb_data)
-        cb_data = &tcn_password_callback;
     cert = PEM_read_bio_X509_AUX(bio, NULL,
                 (pem_password_cb *)SSL_password_callback,
-                (void *)cb_data);
+                (void *)c->password);
     if (cert == NULL &&
        (ERR_GET_REASON(ERR_peek_last_error()) == PEM_R_NO_START_LINE)) {
         ERR_clear_error();
@@ -828,7 +572,6 @@ static int ssl_load_pkcs12(tcn_ssl_ctxt_t *c, const char *file,
     int         len, rc = 0;
     PKCS12     *p12;
     BIO        *in;
-    tcn_pass_cb_t *cb_data = c->cb_data;
 
     if ((in = BIO_new(BIO_s_file())) == 0)
         return 0;
@@ -846,9 +589,7 @@ static int ssl_load_pkcs12(tcn_ssl_ctxt_t *c, const char *file,
         pass = "";
     }
     else {
-        if (!cb_data)
-            cb_data = &tcn_password_callback;
-        len = SSL_password_callback(buff, PEM_BUFSIZE, 0, cb_data);
+        len = SSL_password_callback(buff, PEM_BUFSIZE, 0, (void *) c->password);
         if (len < 0) {
             /* Passpharse callback error */
             goto cleanup;
@@ -867,18 +608,19 @@ cleanup:
     return rc;
 }
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setRandom)(TCN_STDARGS, jlong ctx,
-                                                jstring file)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    TCN_ALLOC_CSTRING(file);
-
-    TCN_ASSERT(ctx != 0);
-    UNREFERENCED(o);
-    if (J2S(file))
-        c->rand_file = apr_pstrdup(c->pool, J2S(file));
-    TCN_FREE_CSTRING(file);
+static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jboolean rv) {
+    if (!rv) {
+        if (c->password != NULL) {
+            free(c->password);
+            c->password = NULL;
+        }
+        // Restore old password
+        c->password = old_password;
+    } else if (old_password != NULL) {
+        free(old_password);
+    }
 }
+
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
                                                          jstring cert, jstring key,
@@ -893,16 +635,20 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     X509 *xcert = NULL;
     const char *key_file, *cert_file;
     const char *p;
+    char *old_password = NULL;
     char err[256];
 
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
 
     if (J2S(password)) {
-        if (!c->cb_data)
-            c->cb_data = &tcn_password_callback;
-        strncpy(c->cb_data->password, J2S(password), SSL_MAX_PASSWORD_LEN);
-        c->cb_data->password[SSL_MAX_PASSWORD_LEN-1] = '\0';
+        old_password = c->password;
+
+        c->password = strdup(cpassword);
+        if (c->password == NULL) {
+            rv = JNI_FALSE;
+            goto cleanup;
+        }
     }
     key_file  = J2S(key);
     cert_file = J2S(cert);
@@ -963,6 +709,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
+    free_and_reset_pass(c, old_password, rv);
     return rv;
 }
 
@@ -978,17 +725,22 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
 
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(password);
+    char *old_password = NULL;
     char err[256];
 
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
 
     if (J2S(password)) {
-        if (!c->cb_data)
-            c->cb_data = &tcn_password_callback;
-        strncpy(c->cb_data->password, J2S(password), SSL_MAX_PASSWORD_LEN);
-        c->cb_data->password[SSL_MAX_PASSWORD_LEN-1] = '\0';
+        old_password = c->password;
+
+        c->password = strdup(cpassword);
+        if (c->password == NULL) {
+            rv = JNI_FALSE;
+            goto cleanup;
+        }
     }
+
     if (!key)
         key = cert;
     if (!cert || !key) {
@@ -997,14 +749,14 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
         goto cleanup;
     }
 
-    if ((pkey = load_pem_key_bio(c->cb_data, key_bio)) == NULL) {
+    if ((pkey = load_pem_key_bio(c->password, key_bio)) == NULL) {
         ERR_error_string(ERR_get_error(), err);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate key (%s)",err);
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if ((xcert = load_pem_cert_bio(c->cb_data, cert_bio)) == NULL) {
+    if ((xcert = load_pem_cert_bio(c->password, cert_bio)) == NULL) {
         ERR_error_string(ERR_get_error(), err);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate (%s) ", err);
@@ -1039,6 +791,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
+    free_and_reset_pass(c, old_password, rv);
     return rv;
 }
 
@@ -1713,7 +1466,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
         SSL_CTX_set_client_cert_cb(c->ctx, NULL);
     } else {
         jclass callback_class = (*e)->GetObjectClass(e, callback);
-        jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(J[B[[B)Lorg/apache/tomcat/jni/CertificateRequestedCallback$KeyMaterial;");
+        jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(J[B[[B)Lio/netty/tcnative/jni/CertificateRequestedCallback$KeyMaterial;");
         if (method == NULL) {
             return;
         }

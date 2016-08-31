@@ -1,3 +1,18 @@
+/*
+ * Copyright 2016 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 /* Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -12,12 +27,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-
-/*
- *
- * @author Mladen Turk
- * @version $Id: ssl_private.h 1658728 2015-02-10 14:45:19Z kkolinko $
  */
 
 #ifndef SSL_PRIVATE_H
@@ -40,7 +49,6 @@
 #endif
 
 #include "apr_thread_rwlock.h"
-#include "apr_atomic.h"
 
 /* OpenSSL headers */
 #include <openssl/opensslv.h>
@@ -134,7 +142,6 @@
 #define SSL_DEFAULT_CACHE_SIZE  (256)
 #define SSL_DEFAULT_VHOST_NAME  ("_default_:443")
 #define SSL_MAX_STR_LEN         (2048)
-#define SSL_MAX_PASSWORD_LEN    (256)
 
 #define SSL_CVERIFY_UNSET           (-1)
 #define SSL_CVERIFY_NONE            (0)
@@ -142,11 +149,6 @@
 #define SSL_CVERIFY_REQUIRE         (2)
 #define SSL_CVERIFY_OPTIONAL_NO_CA  (3)
 #define SSL_VERIFY_PEER_STRICT      (SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT)
-
-#define SSL_SHUTDOWN_TYPE_UNSET     (0)
-#define SSL_SHUTDOWN_TYPE_STANDARD  (1)
-#define SSL_SHUTDOWN_TYPE_UNCLEAN   (2)
-#define SSL_SHUTDOWN_TYPE_ACCURATE  (3)
 
 #define SSL_TO_APR_ERROR(X)         (APR_OS_START_USERERR + 1000 + X)
 
@@ -206,9 +208,6 @@
     || (errnum == X509_V_ERR_CERT_UNTRUSTED) \
     || (errnum == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE))
 
-#define SSL_DEFAULT_PASS_PROMPT "Some of your private key files are encrypted for security reasons.\n"  \
-                                "In order to read them you have to provide the pass phrases.\n"         \
-                                "Enter password :"
 
 #define OCSP_STATUS_OK        0
 #define OCSP_STATUS_REVOKED   1
@@ -223,7 +222,6 @@ static const char* UNKNOWN_AUTH_METHOD = "UNKNOWN";
 #define HAVE_ECC              1
 #endif
 
-
 #define SSL_SELECTOR_FAILURE_NO_ADVERTISE                       0
 #define SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL            1
 
@@ -234,22 +232,7 @@ static const char* UNKNOWN_AUTH_METHOD = "UNKNOWN";
 
 extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 
-typedef struct {
-    /* client can have any number of cert/key pairs */
-    const char  *cert_file;
-    const char  *cert_path;
-    STACK_OF(X509_INFO) *certs;
-} ssl_pkc_t;
-
 typedef struct tcn_ssl_ctxt_t tcn_ssl_ctxt_t;
-
-typedef struct {
-    char            password[SSL_MAX_PASSWORD_LEN];
-    const char     *prompt;
-    tcn_callback_t cb;
-} tcn_pass_cb_t;
-
-extern tcn_pass_cb_t tcn_password_callback;
 
 typedef struct {
     unsigned char   key_name[SSL_SESSION_TICKET_KEY_NAME_LEN];
@@ -260,8 +243,6 @@ typedef struct {
 struct tcn_ssl_ctxt_t {
     apr_pool_t              *pool;
     SSL_CTX                 *ctx;
-    BIO                     *bio_os;
-    BIO                     *bio_is;
 
     unsigned char           context_id[SHA_DIGEST_LENGTH];
 
@@ -274,15 +255,10 @@ struct tcn_ssl_ctxt_t {
     /* pointer to the context verify store */
     X509_STORE              *store;
 
-    int                     ca_certs;
-    int                     shutdown_type;
-    char                    *rand_file;
-
-    const char              *cipher_suite;
     /* for client or downstream server authentication */
     int                     verify_depth;
     int                     verify_mode;
-    tcn_pass_cb_t           *cb_data;
+    char                    *password;
 
     /* certificate verifier callback */
     jobject verifier;
@@ -316,34 +292,6 @@ struct tcn_ssl_ctxt_t {
     apr_uint32_t            ticket_keys_fail;
 };
 
-
-typedef struct {
-    apr_pool_t     *pool;
-    tcn_ssl_ctxt_t *ctx;
-    SSL            *ssl;
-    X509           *peer;
-    int             shutdown_type;
-    /* Track the handshake/renegotiation state for the connection so
-     * that all client-initiated renegotiations can be rejected, as a
-     * partial fix for CVE-2009-3555.
-     */
-    enum { 
-        RENEG_INIT = 0, /* Before initial handshake */
-        RENEG_REJECT,   /* After initial handshake; any client-initiated
-                         * renegotiation should be rejected
-                         */
-        RENEG_ALLOW,    /* A server-initated renegotiation is taking
-                         * place (as dictated by configuration)
-                         */
-        RENEG_ABORT     /* Renegotiation initiated by client, abort the
-                         * connection
-                         */
-    } reneg_state;
-    apr_socket_t   *sock;
-    apr_pollset_t  *pollset;
-} tcn_ssl_conn_t;
-
-
 /*
  *  Additional Functions
  */
@@ -354,12 +302,8 @@ void        SSL_set_app_data2(SSL *, void *);
 // The app_data3 is used to store the handshakeCount pointer for the SSL instance.
 void       *SSL_get_app_data3(SSL *);
 void        SSL_set_app_data3(SSL *, void *);
-int         SSL_password_prompt(tcn_pass_cb_t *);
 int         SSL_password_callback(char *, int, int, void *);
-void        SSL_BIO_close(BIO *);
-void        SSL_BIO_doref(BIO *);
 DH         *SSL_dh_get_tmp_param(int);
-DH         *SSL_dh_get_param_from_file(const char *);
 RSA        *SSL_callback_tmp_RSA(SSL *, int, int);
 DH         *SSL_callback_tmp_DH(SSL *, int, int);
 // The following provided callbacks will always return DH of a given length.
@@ -368,21 +312,17 @@ DH         *SSL_callback_tmp_DH_512(SSL *, int, int);
 DH         *SSL_callback_tmp_DH_1024(SSL *, int, int);
 DH         *SSL_callback_tmp_DH_2048(SSL *, int, int);
 DH         *SSL_callback_tmp_DH_4096(SSL *, int, int);
-void        SSL_callback_handshake(const SSL *, int, int);
 int         SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, int);
 int         SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, int);
 int         SSL_use_certificate_chain_bio(SSL *, BIO *, int);
-X509        *load_pem_cert_bio(tcn_pass_cb_t *, const BIO *);
-EVP_PKEY    *load_pem_key_bio(tcn_pass_cb_t *, const BIO *);
+X509        *load_pem_cert_bio(const char *, const BIO *);
+EVP_PKEY    *load_pem_key_bio(const char *, const BIO *);
 int         tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey);
 int         tcn_X509_up_ref(X509* cert);
-
 int         SSL_callback_SSL_verify(int, X509_STORE_CTX *);
-int         SSL_rand_seed(const char *file);
 int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);
 int         SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int,void *);
 int         SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
-void        SSL_init_app_data2_3_idx(void);
 const char *SSL_cipher_authentication_method(const SSL_CIPHER *);
 
 #if defined(__GNUC__) || defined(__GNUG__)
