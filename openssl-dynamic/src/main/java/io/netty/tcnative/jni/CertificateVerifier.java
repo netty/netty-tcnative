@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.tomcat.jni;
+package io.netty.tcnative.jni;
 
 /**
  * Is called during handshake and hooked into openssl via {@code SSL_CTX_set_cert_verify_callback}.
