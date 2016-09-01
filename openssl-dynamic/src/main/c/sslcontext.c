@@ -1621,7 +1621,8 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     jlong certChain;
     jlong privateKey;
     tcn_get_java_env(&e);
-
+    int certChainLen;
+    int i;
 
 #if defined(LIBRESSL_VERSION_NUMBER)
     return -1;
@@ -1672,16 +1673,26 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     chain = J2P(certChain, STACK_OF(X509) *);
     pkey = J2P(privateKey, EVP_PKEY *);
 
-    if (chain == NULL || pkey == NULL || sk_X509_num(chain) <= 0) {
+    if (chain == NULL || pkey == NULL) {
         goto fail;
     }
 
-    // We need to explicit set the chain as stated in:
-    // https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_client_cert_cb.html
-    //
-    // Using SSL_set0_chain(...) here as we not want to increment the reference count.
-    if (SSL_set0_chain(ssl, chain) <= 0) {
-        goto fail;
+    certChainLen = sk_X509_num(chain);
+
+    if (certChainLen <= 0) {
+       goto fail;
+    }
+
+    // Skip the first cert in the chain as we will write this to x509Out.
+    // See https://github.com/netty/netty-tcnative/issues/184
+    for (i = 1; i < certChainLen; ++i) {
+        // We need to explicit add extra certs to the chain as stated in:
+        // https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_client_cert_cb.html
+        //
+        // Using SSL_add0_chain_cert(...) here as we not want to increment the reference count.
+        if (SSL_add0_chain_cert(ssl, sk_X509_value(chain, i)) <= 0) {
+            goto fail;
+        }
     }
 
     cert = sk_X509_value(chain, 0);
@@ -1691,6 +1702,9 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     }
     *x509Out = cert;
     *pkeyOut = pkey;
+
+    // Free the stack it self but not the certs.
+    sk_X509_free(chain);
     return 1;
 fail:
     ERR_clear_error();
