@@ -1436,7 +1436,7 @@ static const char* authentication_method(const SSL* ssl) {
 {
     const STACK_OF(SSL_CIPHER) *ciphers = NULL;
 
-    switch (ssl->version)
+    switch (SSL_version(ssl))
         {
         case SSL2_VERSION:
             return SSL_TXT_RSA;
