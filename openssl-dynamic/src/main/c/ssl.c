@@ -2247,7 +2247,7 @@ TCN_IMPLEMENT_CALL(long, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 
     chain = sk_X509_new_null();
     while ((cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL)) != NULL) {
-        if (sk_X509_push(chain, cert) != 1) {
+        if (sk_X509_push(chain, cert) <= 0) {
             tcn_Throw(e, "No Certificate specified or invalid format");
             goto cleanup;
         }
