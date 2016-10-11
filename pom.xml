@@ -430,12 +430,12 @@
                     </requireProperty>
                     <requireFilesContent>
                       <message>
-                        Release process must be performed on RHEL 6.6 or its derivatives.
+                        Release process must be performed on RHEL 6.8 or its derivatives.
                       </message>
                       <files>
                         <file>/etc/redhat-release</file>
                       </files>
-                      <content>release 6.7</content>
+                      <content>release 6.8</content>
                     </requireFilesContent>
                   </rules>
                 </configuration>
