@@ -45,9 +45,6 @@ static apr_status_t ssl_context_cleanup(void *data)
     JNIEnv *e;
 
     if (c) {
-        if (c->crl != NULL)
-            X509_STORE_free(c->crl);
-        c->crl = NULL;
         SSL_CTX_free(c->ctx); // this function is safe to call with NULL
         c->ctx = NULL;
 
