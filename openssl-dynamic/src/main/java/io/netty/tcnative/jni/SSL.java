@@ -39,32 +39,6 @@ public final class SSL {
      * Type definitions mostly from mod_ssl
      */
     public static final int UNSET            = -1;
-    /*
-     * Define the certificate algorithm types
-     */
-    public static final int SSL_ALGO_UNKNOWN = 0;
-    public static final int SSL_ALGO_RSA     = (1<<0);
-    public static final int SSL_ALGO_DSA     = (1<<1);
-    public static final int SSL_ALGO_ALL     = (SSL_ALGO_RSA|SSL_ALGO_DSA);
-
-    @Deprecated
-    public static final int SSL_AIDX_RSA     = 0;
-    @Deprecated
-    public static final int SSL_AIDX_DSA     = 1;
-    @Deprecated
-    public static final int SSL_AIDX_MAX     = 2;
-
-    /*
-     * Define the SSL options
-     */
-    public static final int SSL_OPT_NONE           = 0;
-    public static final int SSL_OPT_RELSET         = (1<<0);
-    public static final int SSL_OPT_STDENVVARS     = (1<<1);
-    public static final int SSL_OPT_EXPORTCERTDATA = (1<<3);
-    public static final int SSL_OPT_FAKEBASICAUTH  = (1<<4);
-    public static final int SSL_OPT_STRICTREQUIRE  = (1<<5);
-    public static final int SSL_OPT_OPTRENEGOTIATE = (1<<6);
-    public static final int SSL_OPT_ALL            = (SSL_OPT_STDENVVARS|SSL_OPT_EXPORTCERTDATA|SSL_OPT_FAKEBASICAUTH|SSL_OPT_STRICTREQUIRE|SSL_OPT_OPTRENEGOTIATE);
 
     /*
      * Define the SSL Protocol options
@@ -160,69 +134,9 @@ public final class SSL {
     public static final int SSL_OP_NETSCAPE_CA_DN_BUG               = 0x20000000;
     public static final int SSL_OP_NETSCAPE_DEMO_CIPHER_CHANGE_BUG  = 0x40000000;
 
-    public static final int SSL_CRT_FORMAT_UNDEF    = 0;
-    public static final int SSL_CRT_FORMAT_ASN1     = 1;
-    public static final int SSL_CRT_FORMAT_TEXT     = 2;
-    public static final int SSL_CRT_FORMAT_PEM      = 3;
-    public static final int SSL_CRT_FORMAT_NETSCAPE = 4;
-    public static final int SSL_CRT_FORMAT_PKCS12   = 5;
-    public static final int SSL_CRT_FORMAT_SMIME    = 6;
-    public static final int SSL_CRT_FORMAT_ENGINE   = 7;
-
     public static final int SSL_MODE_CLIENT         = 0;
     public static final int SSL_MODE_SERVER         = 1;
     public static final int SSL_MODE_COMBINED       = 2;
-
-    public static final int SSL_INFO_SESSION_ID                = 0x0001;
-    public static final int SSL_INFO_CIPHER                    = 0x0002;
-    public static final int SSL_INFO_CIPHER_USEKEYSIZE         = 0x0003;
-    public static final int SSL_INFO_CIPHER_ALGKEYSIZE         = 0x0004;
-    public static final int SSL_INFO_CIPHER_VERSION            = 0x0005;
-    public static final int SSL_INFO_CIPHER_DESCRIPTION        = 0x0006;
-    public static final int SSL_INFO_PROTOCOL                  = 0x0007;
-
-    /* To obtain the CountryName of the Client Certificate Issuer
-     * use the SSL_INFO_CLIENT_I_DN + SSL_INFO_DN_COUNTRYNAME
-     */
-    public static final int SSL_INFO_CLIENT_S_DN               = 0x0010;
-    public static final int SSL_INFO_CLIENT_I_DN               = 0x0020;
-    public static final int SSL_INFO_SERVER_S_DN               = 0x0040;
-    public static final int SSL_INFO_SERVER_I_DN               = 0x0080;
-
-    public static final int SSL_INFO_DN_COUNTRYNAME            = 0x0001;
-    public static final int SSL_INFO_DN_STATEORPROVINCENAME    = 0x0002;
-    public static final int SSL_INFO_DN_LOCALITYNAME           = 0x0003;
-    public static final int SSL_INFO_DN_ORGANIZATIONNAME       = 0x0004;
-    public static final int SSL_INFO_DN_ORGANIZATIONALUNITNAME = 0x0005;
-    public static final int SSL_INFO_DN_COMMONNAME             = 0x0006;
-    public static final int SSL_INFO_DN_TITLE                  = 0x0007;
-    public static final int SSL_INFO_DN_INITIALS               = 0x0008;
-    public static final int SSL_INFO_DN_GIVENNAME              = 0x0009;
-    public static final int SSL_INFO_DN_SURNAME                = 0x000A;
-    public static final int SSL_INFO_DN_DESCRIPTION            = 0x000B;
-    public static final int SSL_INFO_DN_UNIQUEIDENTIFIER       = 0x000C;
-    public static final int SSL_INFO_DN_EMAILADDRESS           = 0x000D;
-
-    public static final int SSL_INFO_CLIENT_M_VERSION          = 0x0101;
-    public static final int SSL_INFO_CLIENT_M_SERIAL           = 0x0102;
-    public static final int SSL_INFO_CLIENT_V_START            = 0x0103;
-    public static final int SSL_INFO_CLIENT_V_END              = 0x0104;
-    public static final int SSL_INFO_CLIENT_A_SIG              = 0x0105;
-    public static final int SSL_INFO_CLIENT_A_KEY              = 0x0106;
-    public static final int SSL_INFO_CLIENT_CERT               = 0x0107;
-    public static final int SSL_INFO_CLIENT_V_REMAIN           = 0x0108;
-
-    public static final int SSL_INFO_SERVER_M_VERSION          = 0x0201;
-    public static final int SSL_INFO_SERVER_M_SERIAL           = 0x0202;
-    public static final int SSL_INFO_SERVER_V_START            = 0x0203;
-    public static final int SSL_INFO_SERVER_V_END              = 0x0204;
-    public static final int SSL_INFO_SERVER_A_SIG              = 0x0205;
-    public static final int SSL_INFO_SERVER_A_KEY              = 0x0206;
-    public static final int SSL_INFO_SERVER_CERT               = 0x0207;
-    /* Return client certificate chain.
-     * Add certificate chain number to that flag (0 ... verify depth)
-     */
-    public static final int SSL_INFO_CLIENT_CERT_CHAIN         = 0x0400;
 
     /* Only support OFF and SERVER for now */
     public static final long SSL_SESS_CACHE_OFF = 0x0000;
