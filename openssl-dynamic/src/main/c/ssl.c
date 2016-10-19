@@ -657,8 +657,6 @@ static int ssl_rand_make(const char *file, int len, int base64)
 TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 {
     int r = 0;
-    jclass clazz;
-    jclass sClazz;
 
     TCN_ALLOC_CSTRING(engine);
 
