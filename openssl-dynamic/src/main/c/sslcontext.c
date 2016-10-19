@@ -38,7 +38,6 @@ static apr_status_t ssl_context_cleanup(void *data)
     JNIEnv *e;
 
     if (c) {
-        int i;
         if (c->crl != NULL)
             X509_STORE_free(c->crl);
         c->crl = NULL;
