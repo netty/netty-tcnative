@@ -258,28 +258,17 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     SSL_CTX_set_options(c->ctx, SSL_OP_SINGLE_ECDH_USE);
 #endif
 
-#ifdef SSL_OP_NO_COMPRESSION
     SSL_CTX_set_options(c->ctx, SSL_OP_NO_COMPRESSION);
-#else
-#error "SSL_OP_NO_COMPRESSION not supported in your version of OpenSSL"
-#endif
 
-#ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
     /*
      * Disallow a session from being resumed during a renegotiation,
      * so that an acceptable cipher suite can be negotiated.
      */
     SSL_CTX_set_options(c->ctx, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
-#else
-#error "SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION not supported in your version of OpenSSL"
-#endif
 
-#ifdef SSL_MODE_RELEASE_BUFFERS
     /* Release idle buffers to the SSL_CTX free list */
     SSL_CTX_set_mode(c->ctx, SSL_MODE_RELEASE_BUFFERS);
-#else
-#error "SSL_MODE_RELEASE_BUFFERS not supported in your version of OpenSSL"
-#endif
+
     /* Default session context id and cache size */
     SSL_CTX_sess_set_cache_size(c->ctx, SSL_DEFAULT_CACHE_SIZE);
 
