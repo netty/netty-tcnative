@@ -71,17 +71,10 @@ struct CRYPTO_dynlock_value {
     SSL_TMP_KEY_FREE(type, SSL_TMP_KEY_##type##_2048);  \
     SSL_TMP_KEY_FREE(type, SSL_TMP_KEY_##type##_4096)
 
-#define SSL_TMP_KEY_INIT_RSA(bits) \
-    ssl_tmp_key_init_rsa(bits, SSL_TMP_KEY_RSA_##bits)
-
 #define SSL_TMP_KEY_INIT_DH(bits)  \
     ssl_tmp_key_init_dh(bits, SSL_TMP_KEY_DH_##bits)
 
 #define SSL_TMP_KEYS_INIT(R)                    \
-    SSL_temp_keys[SSL_TMP_KEY_RSA_2048] = NULL; \
-    SSL_temp_keys[SSL_TMP_KEY_RSA_4096] = NULL; \
-    R |= SSL_TMP_KEY_INIT_RSA(512);             \
-    R |= SSL_TMP_KEY_INIT_RSA(1024);            \
     R |= SSL_TMP_KEY_INIT_DH(512);              \
     R |= SSL_TMP_KEY_INIT_DH(1024);             \
     R |= SSL_TMP_KEY_INIT_DH(2048);             \
@@ -122,10 +115,6 @@ static const jint supported_ssl_opts = 0
 
 #ifdef SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
      | SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
-#endif
-
-#ifdef SSL_OP_EPHEMERAL_RSA
-     | SSL_OP_EPHEMERAL_RSA
 #endif
 
 #ifdef SSL_OP_LEGACY_SERVER_CONNECT
@@ -233,39 +222,6 @@ static const jint supported_ssl_opts = 0
 #endif
      | 0;
 
-static int ssl_tmp_key_init_rsa(int bits, int idx)
-{
-#if defined(OPENSSL_FIPS)
-    /**
-     * Short RSA keys cannot be generated in FIPS mode.
-     */
-    if (bits < 1024) {
-        SSL_temp_keys[idx] = NULL;
-        return 0;
-    }
-#endif
-
-    BIGNUM *e = BN_new();
-    RSA *rsa = RSA_new();
-    int ret = 1;
-
-    if (e == NULL ||
-        rsa == NULL ||
-        !BN_set_word(e, RSA_F4) ||
-        RSA_generate_key_ex(rsa, bits, e, NULL) != 1) {
-        goto err;
-    }
-
-    SSL_temp_keys[idx] = rsa;
-    rsa = NULL;
-    ret = 0;
-
-err:
-    BN_free(e);
-    RSA_free(rsa);
-    return ret;
-}
-
 static int ssl_tmp_key_init_dh(int bits, int idx)
 {
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
@@ -303,7 +259,6 @@ static apr_status_t ssl_init_cleanup(void *data)
         return APR_SUCCESS;
     ssl_initialized = 0;
 
-    SSL_TMP_KEYS_FREE(RSA);
     SSL_TMP_KEYS_FREE(DH);
     /*
      * Try to kill the internals of the SSL library.

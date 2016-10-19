@@ -85,15 +85,11 @@
  * Define IDs for the temporary RSA keys and DH params
  */
 
-#define SSL_TMP_KEY_RSA_512     (0)
-#define SSL_TMP_KEY_RSA_1024    (1)
-#define SSL_TMP_KEY_RSA_2048    (2)
-#define SSL_TMP_KEY_RSA_4096    (3)
-#define SSL_TMP_KEY_DH_512      (4)
-#define SSL_TMP_KEY_DH_1024     (5)
-#define SSL_TMP_KEY_DH_2048     (6)
-#define SSL_TMP_KEY_DH_4096     (7)
-#define SSL_TMP_KEY_MAX         (8)
+#define SSL_TMP_KEY_DH_512      (1)
+#define SSL_TMP_KEY_DH_1024     (2)
+#define SSL_TMP_KEY_DH_2048     (3)
+#define SSL_TMP_KEY_DH_4096     (4)
+#define SSL_TMP_KEY_MAX         (5)
 
 #define SSL_CRT_FORMAT_UNDEF    (0)
 #define SSL_CRT_FORMAT_ASN1     (1)
@@ -304,7 +300,6 @@ void       *SSL_get_app_data3(SSL *);
 void        SSL_set_app_data3(SSL *, void *);
 int         SSL_password_callback(char *, int, int, void *);
 DH         *SSL_dh_get_tmp_param(int);
-RSA        *SSL_callback_tmp_RSA(SSL *, int, int);
 DH         *SSL_callback_tmp_DH(SSL *, int, int);
 // The following provided callbacks will always return DH of a given length.
 // See https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_tmp_dh_callback.html

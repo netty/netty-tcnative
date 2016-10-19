@@ -55,20 +55,6 @@ public final class SSL {
     public static final int SSL_AIDX_MAX     = 2;
 
     /*
-     * Define IDs for the temporary RSA keys and DH params
-     */
-
-    public static final int SSL_TMP_KEY_RSA_512  = 0;
-    public static final int SSL_TMP_KEY_RSA_1024 = 1;
-    public static final int SSL_TMP_KEY_RSA_2048 = 2;
-    public static final int SSL_TMP_KEY_RSA_4096 = 3;
-    public static final int SSL_TMP_KEY_DH_512   = 4;
-    public static final int SSL_TMP_KEY_DH_1024  = 5;
-    public static final int SSL_TMP_KEY_DH_2048  = 6;
-    public static final int SSL_TMP_KEY_DH_4096  = 7;
-    public static final int SSL_TMP_KEY_MAX      = 8;
-
-    /*
      * Define the SSL options
      */
     public static final int SSL_OPT_NONE           = 0;
@@ -141,9 +127,6 @@ public final class SSL {
     public static final int SSL_OP_SINGLE_ECDH_USE                  = 0x00080000;
     /* If set, always create a new key when using tmp_dh parameters */
     public static final int SSL_OP_SINGLE_DH_USE                    = 0x00100000;
-    /* Set to always use the tmp_rsa key when doing RSA operations,
-     * even when this violates protocol specs */
-    public static final int SSL_OP_EPHEMERAL_RSA                    = 0x00200000;
     /* Set on servers to choose the cipher according to the server's
      * preferences */
     public static final int SSL_OP_CIPHER_SERVER_PREFERENCE         = 0x00400000;
