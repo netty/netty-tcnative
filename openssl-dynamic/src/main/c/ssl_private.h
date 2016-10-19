@@ -173,8 +173,6 @@ struct tcn_ssl_ctxt_t {
     /* we are one or the other */
     int                     mode;
 
-    /* certificate revocation list */
-    X509_STORE              *crl;
     /* pointer to the context verify store */
     X509_STORE              *store;
 
