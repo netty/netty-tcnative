@@ -519,8 +519,8 @@ int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio,
 int SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio,
                                   int skipfirst)
 {
-#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER))
-    // Only supported on boringssl or openssl 1.0.2+
+#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
+    // Only supported on openssl 1.0.2+
     return -1;
 #else
     X509 *x509;
