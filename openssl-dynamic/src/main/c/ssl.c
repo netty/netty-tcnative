@@ -279,17 +279,16 @@ static int ssl_tmp_key_init_dh(int bits, int idx)
 #endif
 }
 
-
 TCN_IMPLEMENT_CALL(jint, SSL, version)(TCN_STDARGS)
 {
     UNREFERENCED_STDARGS;
-    return (jint) SSLeay();
+    return OpenSSL_version_num();
 }
 
 TCN_IMPLEMENT_CALL(jstring, SSL, versionString)(TCN_STDARGS)
 {
     UNREFERENCED(o);
-    return AJP_TO_JSTRING(SSLeay_version(SSLEAY_VERSION));
+    return AJP_TO_JSTRING(OpenSSL_version(OPENSSL_VERSION));
 }
 
 /*
@@ -323,7 +322,9 @@ static apr_status_t ssl_init_cleanup(void *data)
 #if OPENSSL_VERSION_NUMBER >= 0x00907001
     CRYPTO_cleanup_all_ex_data();
 #endif
-    ERR_remove_state(0);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+    ERR_remove_thread_state(NULL);
+#endif
 
     /* Don't call ERR_free_strings here; ERR_load_*_strings only
      * actually load the error strings once per process due to static
@@ -395,11 +396,16 @@ static unsigned long ssl_thread_id(void)
 #endif
 }
 
+static void ssl_set_thread_id(CRYPTO_THREADID *id)
+{
+    CRYPTO_THREADID_set_numeric(id, ssl_thread_id());
+}
+
 static apr_status_t ssl_thread_cleanup(void *data)
 {
     UNREFERENCED(data);
     CRYPTO_set_locking_callback(NULL);
-    CRYPTO_set_id_callback(NULL);
+    CRYPTO_THREADID_set_callback(NULL);
     CRYPTO_set_dynlock_create_callback(NULL);
     CRYPTO_set_dynlock_lock_callback(NULL);
     CRYPTO_set_dynlock_destroy_callback(NULL);
@@ -499,7 +505,7 @@ static void ssl_thread_setup(apr_pool_t *p)
                                 APR_THREAD_MUTEX_DEFAULT, p);
     }
 
-    CRYPTO_set_id_callback(ssl_thread_id);
+    CRYPTO_THREADID_set_callback(ssl_set_thread_id);
     CRYPTO_set_locking_callback(ssl_thread_lock);
 
     /* Set up dynamic locking scaffolding for OpenSSL to use at its
@@ -585,15 +591,10 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 #endif
 
 #ifndef OPENSSL_IS_BORINGSSL
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
-
     /* We must register the library in full, to ensure our configuration
      * code can successfully test the SSL environment.
      */
-    CRYPTO_malloc_init();
-#else
     OPENSSL_malloc_init();
-#endif
 #endif
 
     ERR_load_crypto_strings();
