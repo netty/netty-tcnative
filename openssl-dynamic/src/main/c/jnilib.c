@@ -101,7 +101,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved)
 /* Called by the JVM when APR_JAVA is loaded */
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 {
-  return JNI_OnLoad_netty_tcnative(vm, reserved);
+    return JNI_OnLoad_netty_tcnative(vm, reserved);
 }
 
 /* Called by the JVM before the APR_JAVA is unloaded */
@@ -114,6 +114,7 @@ JNIEXPORT void JNICALL JNI_OnUnload_netty_tcnative(JavaVM *vm, void *reserved)
     if ((*vm)->GetEnv(vm, (void **)&env, TCN_JNI_VERSION)) {
         return;
     }
+
     if (tcn_global_pool) {
         TCN_UNLOAD_CLASS(env, jString_class);
         apr_terminate();

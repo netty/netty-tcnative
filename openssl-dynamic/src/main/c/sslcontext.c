@@ -1523,3 +1523,80 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, getMode)(TCN_STDARGS, jlong ctx)
 
     return (jint) SSL_CTX_get_mode(c->ctx);
 }
+
+#if !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL)
+
+static const int OCSP_CLIENT_ACK = 1;
+static const int OCSP_SERVER_ACK = SSL_TLSEXT_ERR_OK;
+
+/**
+ * This function is being called from OpenSSL. We do everything in
+ * Java-land and this callback is just a stub that returns the
+ * right values to keep OpenSSL happy.
+ *
+ * The arg that is passed into this function is the pointer for one
+ * of these values:
+ *   OCSP_CLIENT_ACK
+ *   OCSP_SERVER_ACK
+ */
+static int openssl_ocsp_callback(SSL *ssl, void *arg) {
+    return *(const int*)arg;
+}
+
+#endif /* !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL) */
+
+/**
+ * Enables OCSP stapling for the given SSLContext
+ */
+TCN_IMPLEMENT_CALL(void, SSLContext, enableOcsp)(TCN_STDARGS, jlong ctx, jboolean client) {
+
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    if (c == NULL) {
+        tcn_ThrowException(e, "ctx is null");
+        return;
+    }
+
+#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
+    tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
+
+#elif defined(TCN_OCSP_NOT_SUPPORTED)
+    tcn_ThrowException(e, "OCSP stapling is not supported");
+
+#elif !defined(OPENSSL_IS_BORINGSSL)
+    //
+    // The client and server use slightly different return values to signal
+    // error and success to OpenSSL. We're going to do something naughty to
+    // align OpenSSL's and BoringSSL's APIs and simply tell OpenSSL to use
+    // a stubbed callback function that is always saying that things are OK.
+    // The argument for the callback function is simply the pointer of the
+    // return value.
+    //
+    const int *arg = (client ? &OCSP_CLIENT_ACK : &OCSP_SERVER_ACK);
+    if (SSL_CTX_set_tlsext_status_arg(c->ctx, arg) <= 0L) {
+        tcn_ThrowException(e, "SSL_CTX_set_tlsext_status_arg() failed");
+        return;
+    }
+
+    if (SSL_CTX_set_tlsext_status_cb(c->ctx, openssl_ocsp_callback) <= 0L) {
+        tcn_ThrowException(e, "SSL_CTX_set_tlsext_status_cb() failed");
+        return;
+    }
+#endif
+}
+
+/**
+ * Disables OCSP stapling for the given SSLContext
+ */
+TCN_IMPLEMENT_CALL(void, SSLContext, disableOcsp)(TCN_STDARGS, jlong ctx) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    if (c == NULL) {
+        tcn_ThrowException(e, "ctx is null");
+        return;
+    }
+
+// This does nothing in BoringSSL
+#if !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL)
+    SSL_CTX_set_tlsext_status_cb(c->ctx, NULL);
+    SSL_CTX_set_tlsext_status_arg(c->ctx, NULL);
+#endif
+}

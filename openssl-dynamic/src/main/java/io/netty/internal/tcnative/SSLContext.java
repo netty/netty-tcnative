@@ -539,4 +539,21 @@ public final class SSLContext {
      * @return the mode.
      */
     public static native int getMode(long ctx);
+    
+    /**
+     * Enables OCSP stapling for the given {@link SSLContext} or throws an
+     * exception if OCSP stapling is not supported.
+     * 
+     * <p><a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_tlsext_status_type.html">SSL_set_tlsext_status_type</a>
+     * <p><a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html">Search for OCSP</a>
+     */
+    public static native void enableOcsp(long ctx, boolean client);
+
+    /**
+     * Disables OCSP stapling on the given {@link SSLContext}.
+     * 
+     * <p><a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_tlsext_status_type.html">SSL_set_tlsext_status_type</a>
+     * <p><a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html">Search for OCSP</a>
+     */
+    public static native void disableOcsp(long ctx);
 }
