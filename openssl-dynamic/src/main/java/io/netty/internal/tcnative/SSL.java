@@ -33,6 +33,8 @@ package io.netty.internal.tcnative;
 
 import java.nio.ByteBuffer;
 
+import javax.net.ssl.SSLEngine;
+
 import static io.netty.internal.tcnative.NativeStaticallyReferencedJniMethods.*;
 
 public final class SSL {
@@ -625,4 +627,41 @@ public final class SSL {
      * @param x509Chain {@code STACK_OF(X509)} pointer
      */
     public static native void freeX509Chain(long x509Chain);
+    
+    /**
+     * Enables OCSP stapling for the given {@link SSLEngine} or throws an
+     * exception if OCSP stapling is not supported.
+     * 
+     * <p>NOTE: This needs to happen before the SSL handshake.
+     * 
+     * <p><a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_tlsext_status_type.html">SSL_set_tlsext_status_type</a>
+     * <p><a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html">Search for OCSP</a>
+     */
+    public static native void enableOcsp(long ssl);
+
+    /**
+     * Sets the OCSP response for the given {@link SSLEngine} or throws an
+     * exception in case of an error.
+     *
+     * <p>NOTE: This is only meant to be called for server {@link SSLEngine}s.
+     *
+     * <p><a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_tlsext_status_type.html">SSL_set_tlsext_status_type</a>
+     * <p><a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html">Search for OCSP</a>
+     *
+     * @param ssl the SSL instance (SSL *)
+     */
+    public static native void setOcspResponse(long ssl, byte[] response);
+
+    /**
+     * Returns the OCSP response for the given {@link SSLEngine} or {@code null}
+     * if the server didn't provide a stapled OCSP response.
+     *
+     * <p>NOTE: This is only meant to be called for client {@link SSLEngine}s.
+     *
+     * <p><a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_tlsext_status_type.html">SSL_set_tlsext_status_type</a>
+     * <p><a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html">Search for OCSP</a>
+     *
+     * @param ssl the SSL instance (SSL *)
+     */
+    public static native byte[] getOcspResponse(long ssl);
 }

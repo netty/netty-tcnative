@@ -1987,3 +1987,129 @@ TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
     sk_X509_pop_free(chain, X509_free);
 }
 
+/**
+ * Enables OCSP stapling on the SSLEngine.
+ */
+TCN_IMPLEMENT_CALL(void, SSL, enableOcsp)(TCN_STDARGS, jlong ssl) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return;
+    }
+
+#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
+    tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
+
+#elif defined(TCN_OCSP_NOT_SUPPORTED)
+    tcn_ThrowException(e, "OCSP stapling is not supported");
+
+#elif defined(OPENSSL_IS_BORINGSSL)
+    SSL_enable_ocsp_stapling(ssl_);
+
+#else
+    if (SSL_set_tlsext_status_type(ssl_, TLSEXT_STATUSTYPE_ocsp) != 1L) {
+        tcn_ThrowException(e, "SSL_set_tlsext_status_type() failed");
+        return;
+    }
+#endif
+}
+
+/**
+ * Server: Sets OCSP response bytes.
+ */
+TCN_IMPLEMENT_CALL(void, SSL, setOcspResponse)(TCN_STDARGS, jlong ssl, jbyteArray response) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return;
+    }
+
+    jsize length = (*e)->GetArrayLength(e, response);
+    if (length <= 0) {
+        return;
+    }
+
+#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
+    tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
+
+#elif defined(TCN_OCSP_NOT_SUPPORTED)
+    tcn_ThrowException(e, "OCSP stapling is not supported");
+
+#elif defined(OPENSSL_IS_BORINGSSL)
+    uint8_t *value = OPENSSL_malloc(sizeof(uint8_t) * length);
+    if (value == NULL) {
+        tcn_ThrowException(e, "OPENSSL_malloc() returned null");
+        return;
+    }
+
+    (*e)->GetByteArrayRegion(e, response, 0, length, (jbyte*)value);
+    int code = SSL_set_ocsp_response(ssl_, value, (size_t)length);
+
+    OPENSSL_free(value);
+
+    if (code != 1) {
+        tcn_ThrowException(e, "SSL_set_ocsp_response() failed");
+        return;
+    }
+#else
+    //
+    // ATTENTION: This took a while to figure out but OpenSSL wants to (and will)
+    // free() this pointer on its own. Give it something it can free or it will crash.
+    //
+    unsigned char *value = OPENSSL_malloc(sizeof(unsigned char) * length);
+    if (value == NULL) {
+        tcn_ThrowException(e, "OPENSSL_malloc() returned null");
+        return;
+    }
+
+    (*e)->GetByteArrayRegion(e, response, 0, length, (jbyte*)value);
+    if (SSL_set_tlsext_status_ocsp_resp(ssl_, value, length) != 1L) {
+        OPENSSL_free(value);
+        tcn_ThrowException(e, "SSL_set_tlsext_status_ocsp_resp() failed");
+        return;
+    }
+#endif
+}
+
+/**
+ * Client: Returns the OCSP response as sent by the server or null
+ * if the server didn't provide a stapled OCSP response.
+ */
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getOcspResponse)(TCN_STDARGS, jlong ssl) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return NULL;
+    }
+
+#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
+    tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
+
+#elif defined(TCN_OCSP_NOT_SUPPORTED)
+    tcn_ThrowException(e, "OCSP stapling is not supported");
+
+#elif defined(OPENSSL_IS_BORINGSSL)
+    const uint8_t *response = NULL;
+    size_t length = 0;
+
+    SSL_get0_ocsp_response(ssl_, &response, &length);
+    if (response == NULL || length == 0) {
+        return NULL;
+    }
+
+    jbyteArray value = (*e)->NewByteArray(e, length);
+    (*e)->SetByteArrayRegion(e, value, 0, length, (jbyte*)response);
+    return value;
+
+#else
+    unsigned char *response = NULL;
+    jint length = (jint)SSL_get_tlsext_status_ocsp_resp(ssl_, &response);
+    if (response == NULL || length < 0) {
+        return NULL;
+    }
+
+    jbyteArray value = (*e)->NewByteArray(e, length);
+    (*e)->SetByteArrayRegion(e, value, 0, length, (jbyte*)response);
+    return value;
+#endif
+}

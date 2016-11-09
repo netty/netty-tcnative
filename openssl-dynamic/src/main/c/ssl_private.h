@@ -161,6 +161,12 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define TCN_X509_V_ERR_UNSPECIFIED (X509_V_ERR_UNSPECIFIED)
 #endif /*X509_V_ERR_UNSPECIFIED*/
 
+// OCSP stapling should be present in OpenSSL as of version 1.0.0 but we've
+// only tested 1.0.2 are therefore limiting us to that version or newer.
+#if OPENSSL_VERSION_NUMBER < 0x10002000L
+#define TCN_OCSP_NOT_SUPPORTED
+#endif
+
 typedef struct tcn_ssl_ctxt_t tcn_ssl_ctxt_t;
 
 typedef struct {
