@@ -407,6 +407,15 @@ public final class SSL {
     public static native void freeSSL(long ssl);
 
     /**
+     * Creates a BIO with the default max BIO size.
+     *
+     * @see #makeNetworkBIO(long, int)
+     */
+    public static long makeNetworkBIO(long ssl) {
+        return makeNetworkBIO0(ssl, 0);
+    }
+
+    /**
      * Wire up internal and network BIOs for the given SSL instance.
      *
      * <b>Warning: you must explicitly free this resource by calling freeBIO</b>
@@ -415,9 +424,14 @@ public final class SSL {
      * the provided SSL instance, you must call freeBIO on the returned network BIO.
      *
      * @param ssl the SSL instance (SSL *)
+     * @param maxBioSize The maximum size of the BIO. Pass 0 to use the default max size.
      * @return pointer to the Network BIO (BIO *)
      */
-    public static native long makeNetworkBIO(long ssl);
+    public static long makeNetworkBIO(long ssl, int maxBioSize) {
+        return makeNetworkBIO0(ssl, maxBioSize);
+    }
+
+    private static native long makeNetworkBIO0(long ssl, int maxBioSize);
 
     /**
      * BIO_free

@@ -938,9 +938,12 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
     SSL_free(ssl_);
 }
 
-// Make a BIO pair (network and internal) for the provided SSL * and return the network BIO
-TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO)(TCN_STDARGS,
-                                               jlong ssl /* SSL * */) {
+// Make a BIO pair (network and internal) for the provided SSL * which has a
+// maximum size of max_bio_size, and return the network BIO.
+// The value max_bio_size = 0 can be supplied to use the default BIO size.
+TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO0)(TCN_STDARGS,
+                                               jlong ssl /* SSL * */,
+                                               jint max_bio_size) {
     SSL *ssl_ = J2P(ssl, SSL *);
     BIO *internal_bio;
     BIO *network_bio;
@@ -950,7 +953,16 @@ TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO)(TCN_STDARGS,
         return 0;
     }
 
-    if (BIO_new_bio_pair(&internal_bio, 0, &network_bio, 0) != 1) {
+    if (max_bio_size < 0) {
+        tcn_ThrowException(e, "max_bio_size < 0");
+        return 0;
+    }
+
+    if (BIO_new_bio_pair(
+            &internal_bio,
+            (size_t) max_bio_size,
+            &network_bio,
+            (size_t) max_bio_size) != 1) {
         tcn_ThrowException(e, "BIO_new_bio_pair failed");
         return 0;
     }
