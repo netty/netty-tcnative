@@ -485,6 +485,13 @@ public final class SSL {
     public static native int readFromBIO(long bio, long rbuf, int rlen);
 
     /**
+     * BIO_should_retry
+     * @param bio the BIO.
+     * @return {@code true} if the failed BIO operation should be retried later.
+     */
+    public static native boolean shouldRetryBIO(long bio);
+
+    /**
      * SSL_write
      * @param ssl the SSL instance (SSL *)
      * @param wbuf
