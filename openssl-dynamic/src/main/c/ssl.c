@@ -1430,6 +1430,20 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, readFromBIO)(TCN_STDARGS,
     return BIO_read(b, r, rlen);
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSL, shouldRetryBIO)(TCN_STDARGS,
+                                                        jlong bio /* BIO * */) {
+    BIO *b = J2P(bio, BIO *);
+
+    if (b == NULL) {
+        tcn_ThrowException(e, "bio is null");
+        return 0;
+    }
+
+    UNREFERENCED_STDARGS;
+
+    return BIO_should_retry(b) ? JNI_TRUE : JNI_FALSE;
+}
+
 // Write up to wlen bytes of application data to the ssl BIO (encrypt)
 TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToSSL)(TCN_STDARGS,
                                                        jlong ssl /* SSL * */,
@@ -2539,6 +2553,13 @@ TCN_IMPLEMENT_CALL(jint, SSL, readFromBIO)(TCN_STDARGS, jlong bio, jlong rbuf, j
   UNREFERENCED(rlen);
   tcn_ThrowException(e, "Not implemented");
   return 0;
+}
+
+TCN_IMPLEMENT_CALL(jboolean, SSL, shouldRetryBIO)(TCN_STDARGS, jlong bio) {
+  UNREFERENCED(o);
+  UNREFERENCED(bio);
+  tcn_ThrowException(e, "Not implemented");
+  return JNI_FALSE;
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, writeToSSL)(TCN_STDARGS, jlong ssl, jlong wbuf, jint wlen) {
