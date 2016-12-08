@@ -511,18 +511,6 @@ EVP_PKEY *load_pem_key_bio(const char *password, const BIO *bio)
     return key;
 }
 
-static int ssl_X509_STORE_lookup(X509_STORE *store, int yype,
-                                 X509_NAME *name, X509_OBJECT *obj)
-{
-    X509_STORE_CTX ctx;
-    int rc;
-
-    X509_STORE_CTX_init(&ctx, store, NULL, NULL);
-    rc = X509_STORE_get_by_subject(&ctx, yype, name, obj);
-    X509_STORE_CTX_cleanup(&ctx);
-    return rc;
-}
-
 int tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey) {
 #if defined(OPENSSL_IS_BORINGSSL)
     // Workaround for https://bugs.chromium.org/p/boringssl/issues/detail?id=89#

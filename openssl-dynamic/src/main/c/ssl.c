@@ -475,49 +475,6 @@ static void ssl_thread_setup(apr_pool_t *p)
                               apr_pool_cleanup_null);
 }
 
-static int ssl_rand_choosenum(int l, int h)
-{
-    int i;
-    char buf[50];
-
-    apr_snprintf(buf, sizeof(buf), "%.0f",
-                 (((double)(rand()%RAND_MAX)/RAND_MAX)*(h-l)));
-    i = atoi(buf)+1;
-    if (i < l) i = l;
-    if (i > h) i = h;
-    return i;
-}
-
-static int ssl_rand_load_file(const char *file)
-{
-    int n;
-
-    if (file == NULL)
-        file = ssl_global_rand_file;
-    if (file && (strcmp(file, "builtin") == 0))
-        return -1;
-// BoringSsl doesn't support RAND_file_name, but RAND_status() returns 1 anyways
-#ifndef OPENSSL_IS_BORINGSSL
-    if (file == NULL) {
-        char buffer[APR_PATH_MAX];
-        file = RAND_file_name(buffer, sizeof(buffer));
-    }
-#endif
-    if (file) {
-#ifdef HAVE_SSL_RAND_EGD
-        if (strncmp(file, "egd:", 4) == 0) {
-            if ((n = RAND_egd(file + 4)) > 0)
-                return n;
-            else
-                return -1;
-        }
-#endif
-        if ((n = RAND_load_file(file, -1)) > 0)
-            return n;
-    }
-    return -1;
-}
-
 TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 {
     int r = 0;
