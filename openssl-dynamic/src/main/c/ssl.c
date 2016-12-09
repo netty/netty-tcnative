@@ -1543,7 +1543,7 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
 // The value max_bio_size = 0 can be supplied to use the default BIO size.
 TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO0)(TCN_STDARGS,
                                                jlong ssl /* SSL * */,
-                                               jint max_bio_size) {
+                                               jint maxInternalBIOSize, jint maxNetworkBIOSize) {
     SSL *ssl_ = J2P(ssl, SSL *);
     BIO *internal_bio;
     BIO *network_bio;
@@ -1553,16 +1553,21 @@ TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO0)(TCN_STDARGS,
         return 0;
     }
 
-    if (max_bio_size < 0) {
-        tcn_ThrowException(e, "max_bio_size < 0");
+    if (maxInternalBIOSize < 0) {
+        tcn_ThrowException(e, "maxInternalBIOSize < 0");
+        return 0;
+    }
+
+    if (maxNetworkBIOSize < 0) {
+        tcn_ThrowException(e, "maxNetworkBIOSize < 0");
         return 0;
     }
 
     if (BIO_new_bio_pair(
             &internal_bio,
-            (size_t) max_bio_size,
+            (size_t) maxInternalBIOSize,
             &network_bio,
-            (size_t) max_bio_size) != 1) {
+            (size_t) maxNetworkBIOSize) != 1) {
         tcn_ThrowException(e, "BIO_new_bio_pair failed");
         return 0;
     }
@@ -2600,9 +2605,12 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS, jlong ssl) {
   tcn_ThrowException(e, "Not implemented");
 }
 
-TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO)(TCN_STDARGS, jlong ssl) {
+TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO)(TCN_STDARGS, jlong ssl, jint maxInternalBIOSize, jint maxNetworkBIOSize) {
   UNREFERENCED(o);
   UNREFERENCED(ssl);
+  UNREFERENCED(maxInternalBIOSize);
+  UNREFERENCED(maxNetworkBIOSize);
+
   tcn_ThrowException(e, "Not implemented");
   return 0;
 }
