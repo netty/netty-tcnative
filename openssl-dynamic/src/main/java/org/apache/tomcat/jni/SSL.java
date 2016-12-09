@@ -535,7 +535,16 @@ public final class SSL {
      * @see #makeNetworkBIO(long, int)
      */
     public static long makeNetworkBIO(long ssl) {
-        return makeNetworkBIO0(ssl, 0);
+        return makeNetworkBIO(ssl, 0);
+    }
+
+    /**
+     * Creates a BIO with the given max BIO size.
+     *
+     * @see #makeNetworkBIO(long, int, int)
+     */
+    public static long makeNetworkBIO(long ssl, int maxBioSize) {
+        return makeNetworkBIO0(ssl, maxBioSize, maxBioSize);
     }
 
     /**
@@ -546,15 +555,19 @@ public final class SSL {
      * While the SSL's internal/application data BIO will be freed when freeSSL is called on
      * the provided SSL instance, you must call freeBIO on the returned network BIO.
      *
+     * Please see <a href="https://www.openssl.org/docs/man1.0.1/crypto/BIO_s_bio.html">man BIO_s_bio (example section)</a>
+     * for more details.
+     *
      * @param ssl the SSL instance (SSL *)
-     * @param maxBioSize The maximum size of the BIO. Pass 0 to use the default max size.
+     * @param maxInternalBIOSize The maximum size of the application side BIO. Pass 0 to use the default max size.
+     * @param maxNetworkBIOSize The maximum size of the network side BIO. Pass 0 to use the default max size.
      * @return pointer to the Network BIO (BIO *)
      */
-    public static long makeNetworkBIO(long ssl, int maxBioSize) {
-        return makeNetworkBIO0(ssl, maxBioSize);
+    public static long makeNetworkBIO(long ssl, int maxInternalBIOSize, int maxNetworkBIOSize) {
+        return makeNetworkBIO0(ssl, maxInternalBIOSize, maxNetworkBIOSize);
     }
 
-    private static native long makeNetworkBIO0(long ssl, int maxBioSize);
+    private static native long makeNetworkBIO0(long ssl, int maxInternalBIOSize, int maxNetworkBIOSize);
 
     /**
      * BIO_free
