@@ -49,8 +49,6 @@ static jclass    keyMaterialClass;
 static jfieldID  keyMaterialCertificateChainFieldId;
 static jfieldID  keyMaterialPrivateKeyFieldId;
 
-int tcn_parent_pid = 0;
-
 /* Called by the JVM when APR_JAVA is loaded */
 JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved) 
 {
@@ -83,15 +81,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved)
                    "<init>", "([B)V", JNI_ERR);
     TCN_GET_METHOD(env, jString_class, jString_getBytes,
                    "getBytes", "()[B", JNI_ERR);
-#ifdef WIN32
-    {
-        char *ppid = getenv(TCN_PARENT_IDE);
-        if (ppid)
-            tcn_parent_pid = atoi(ppid);
-    }
-#else
-    tcn_parent_pid = getppid();
-#endif
 
     TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
     TCN_LOAD_CLASS(env, keyMaterialClass, "io/netty/tcnative/jni/CertificateRequestedCallback$KeyMaterial", JNI_ERR);

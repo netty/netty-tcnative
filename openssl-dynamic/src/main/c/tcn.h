@@ -58,8 +58,6 @@
 #endif
 // End includes
 
-#define TCN_PARENT_IDE  "TCN_PARENT_ID"
-
 #define UNREFERENCED(P)      (P) = (P)
 #define UNREFERENCED_STDARGS e = e; o = o
 #ifdef WIN32
