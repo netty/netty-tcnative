@@ -155,86 +155,12 @@ jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
     return NULL;
 }
 
-jbyteArray tcn_new_arrayb(JNIEnv *env, const unsigned char *data, size_t len)
-{
-    jbyteArray bytes = (*env)->NewByteArray(env, (jsize)len);
-    if (bytes != NULL) {
-        (*env)->SetByteArrayRegion(env, bytes, 0, (jint)len, (jbyte *)data);
-    }
-    return bytes;
-}
-
-jobjectArray tcn_new_arrays(JNIEnv *env, size_t len)
-{
-    return (*env)->NewObjectArray(env, (jsize)len, jString_class, NULL);
-}
-
 jstring tcn_new_string(JNIEnv *env, const char *str)
 {
     if (!str)
         return NULL;
     else
         return (*env)->NewStringUTF(env, str);
-}
-
-char *tcn_get_string(JNIEnv *env, jstring jstr)
-{
-    jbyteArray bytes = NULL;
-    jthrowable exc;
-    char *result = NULL;
-
-    if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
-        return NULL; /* out of memory error */
-    }
-    bytes = (*env)->CallObjectMethod(env, jstr, jString_getBytes);
-    exc = (*env)->ExceptionOccurred(env);
-    if (!exc) {
-        jint len = (*env)->GetArrayLength(env, bytes);
-        result = (char *)malloc(len + 1);
-        if (result == NULL) {
-            TCN_THROW_OS_ERROR(env);
-            (*env)->DeleteLocalRef(env, bytes);
-            return 0;
-        }
-        (*env)->GetByteArrayRegion(env, bytes, 0, len, (jbyte *)result);
-        result[len] = '\0'; /* NULL-terminate */
-    }
-    else {
-        (*env)->DeleteLocalRef(env, exc);
-    }
-    (*env)->DeleteLocalRef(env, bytes);
-
-    return result;
-}
-
-char *tcn_strdup(JNIEnv *env, jstring jstr)
-{
-    char *result = NULL;
-    const char *cjstr;
-
-    cjstr = (const char *)((*env)->GetStringUTFChars(env, jstr, 0));
-    if (cjstr) {
-#ifdef WIN32
-        result = _strdup(cjstr);
-#else
-        result = strdup(cjstr);
-#endif
-        (*env)->ReleaseStringUTFChars(env, jstr, cjstr);
-    }
-    return result;
-}
-
-char *tcn_pstrdup(JNIEnv *env, jstring jstr, apr_pool_t *pool)
-{
-    char *result = NULL;
-    const char *cjstr;
-
-    cjstr = (const char *)((*env)->GetStringUTFChars(env, jstr, 0));
-    if (cjstr) {
-        result = apr_pstrdup(pool, cjstr);
-        (*env)->ReleaseStringUTFChars(env, jstr, cjstr);
-    }
-    return result;
 }
 
 TCN_IMPLEMENT_CALL(jboolean, Library, initialize0)(TCN_STDARGS)
@@ -396,17 +322,6 @@ TCN_IMPLEMENT_CALL(jboolean, Library, has)(TCN_STDARGS, jint what)
     return rv;
 }
 
-apr_pool_t *tcn_get_global_pool()
-{
-    if (!tcn_global_pool) {
-        if (apr_pool_create(&tcn_global_pool, NULL) != APR_SUCCESS) {
-            return NULL;
-        }
-        apr_atomic_init(tcn_global_pool);
-    }
-    return tcn_global_pool;
-}
-
 jclass tcn_get_string_class()
 {
     return jString_class;
@@ -425,11 +340,6 @@ jfieldID tcn_get_key_material_certificate_chain_field()
 jfieldID tcn_get_key_material_private_key_field()
 {
     return keyMaterialPrivateKeyFieldId;
-}
-
-JavaVM * tcn_get_java_vm()
-{
-    return tcn_global_vm;
 }
 
 jint tcn_get_java_env(JNIEnv **env)
