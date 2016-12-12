@@ -69,6 +69,8 @@
 #define SSL_aGOST94     0x00000100L /* GOST R 34.10-94 signature auth */
 #define SSL_aGOST01     0x00000200L /* GOST R 34.10-2001 signature auth */
 
+const char* TCN_UNKNOWN_AUTH_METHOD = "UNKNOWN";
+
 /* OpenSSL end */
 
 /*
@@ -96,7 +98,7 @@ const char* SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
         case SSL_aNULL:
             return SSL_TXT_DH "_anon";
         default:
-            return UNKNOWN_AUTH_METHOD;
+            return TCN_UNKNOWN_AUTH_METHOD;
             }
     case SSL_kKRB5:
         return SSL_TXT_KRB5;
@@ -114,10 +116,10 @@ const char* SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
         case SSL_aNULL:
             return SSL_TXT_ECDH "_anon";
         default:
-            return UNKNOWN_AUTH_METHOD;
+            return TCN_UNKNOWN_AUTH_METHOD;
             }
     default:
-        return UNKNOWN_AUTH_METHOD;
+        return TCN_UNKNOWN_AUTH_METHOD;
     }
 #else
     return SSL_CIPHER_get_kx_name(cipher);
@@ -197,6 +199,8 @@ int SSL_password_callback(char *buf, int bufsiz, int verify,
     buf[bufsiz - 1] = '\0';
     return (int)strlen(buf);
 }
+
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
 
 static unsigned char dh0512_p[]={
     0xD9,0xBA,0xBF,0xFD,0x69,0x38,0xC9,0x51,0x2D,0x19,0x37,0x39,
@@ -294,9 +298,7 @@ static unsigned char dhxxx2_g[]={
 
 static DH *get_dh(int idx)
 {
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
     DH *dh;
-
     if ((dh = DH_new()) == NULL)
         return NULL;
     switch (idx) {
@@ -320,10 +322,14 @@ static DH *get_dh(int idx)
     }
     else
         return dh;
-#else
     return NULL;
-#endif
 }
+#else
+static DH *get_dh(int idx)
+{
+    return NULL;
+}
+#endif
 
 DH *SSL_dh_get_tmp_param(int key_len)
 {

@@ -38,7 +38,6 @@
 #include "ssl_private.h"
 
 static int ssl_initialized = 0;
-static char *ssl_global_rand_file = NULL;
 extern apr_pool_t *tcn_global_pool;
 
 ENGINE *tcn_ssl_engine = NULL;
