@@ -125,7 +125,7 @@
 
 #define MAX_ALPN_NPN_PROTO_SIZE 65535
 
-static const char* UNKNOWN_AUTH_METHOD = "UNKNOWN";
+extern const char* TCN_UNKNOWN_AUTH_METHOD;
 
 /* ECC: make sure we have at least 1.0.0 */
 #if !defined(OPENSSL_NO_EC) && defined(TLSEXT_ECPOINTFORMAT_uncompressed)

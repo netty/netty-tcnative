@@ -1183,7 +1183,7 @@ static const char* authentication_method(const SSL* ssl) {
             ciphers = SSL_get_ciphers(ssl);
             if (ciphers == NULL || sk_SSL_CIPHER_num(ciphers) <= 0) {
                 // No cipher available so return UNKNOWN.
-                return UNKNOWN_AUTH_METHOD;
+                return TCN_UNKNOWN_AUTH_METHOD;
             }
             return SSL_cipher_authentication_method(sk_SSL_CIPHER_value(ciphers, 0));
         }
@@ -1339,6 +1339,9 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
 }
 
 static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
+#if defined(LIBRESSL_VERSION_NUMBER)
+    return -1;
+#else
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
     int ctype_num;
     jbyte* ctype_bytes;
@@ -1351,13 +1354,10 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     EVP_PKEY* pkey = NULL;
     jlong certChain;
     jlong privateKey;
-    tcn_get_java_env(&e);
     int certChainLen;
     int i;
 
-#if defined(LIBRESSL_VERSION_NUMBER)
-    return -1;
-#else
+    tcn_get_java_env(&e);
 
 #if OPENSSL_VERSION_NUMBER < 0x10002000L
     char ssl2_ctype = SSL3_CT_RSA_SIGN;
@@ -1444,7 +1444,7 @@ fail:
 
     // TODO: Would it be more correct to return 0 in this case we may not want to use any cert / private key ?
     return -1;
-#endif
+#endif /* defined(LIBRESSL_VERSION_NUMBER) */
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlong ctx, jobject callback)
