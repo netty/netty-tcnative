@@ -144,8 +144,13 @@ extern const char* TCN_UNKNOWN_AUTH_METHOD;
 #define OPENSSL_malloc_init CRYPTO_malloc_init
 #define X509_REVOKED_get0_serialNumber(x) x->serialNumber
 #define OpenSSL_version_num SSLeay
+#define BIO_get_init(x)       ((x)->init)
+#define BIO_set_init(x,v)     ((x)->init=(v))
+#define BIO_get_data(x)       ((x)->ptr)
+#define BIO_set_data(x,v)     ((x)->ptr=(v))
+#define BIO_set_shutdown(x,v) ((x)->shutdown=(v))
+#define BIO_get_shutdown(x)   ((x)->shutdown)
 #endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
-
 
 #define SSL_SELECTOR_FAILURE_NO_ADVERTISE                       0
 #define SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL            1

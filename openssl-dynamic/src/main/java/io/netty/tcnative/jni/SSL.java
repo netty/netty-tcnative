@@ -31,6 +31,8 @@
  */
 package io.netty.tcnative.jni;
 
+import java.nio.ByteBuffer;
+
 public final class SSL {
 
     private SSL() { }
@@ -234,43 +236,75 @@ public final class SSL {
     public static native int getError(long ssl, int ret);
 
     /**
-     * BIO_ctrl_pending
-     * @param bio BIO pointer (BIO *)
-     * @return
-     */
-    public static native int pendingWrittenBytesInBIO(long bio);
-
-    /**
-     * SSL_pending
-     * @param ssl SSL pointer (SSL *)
-     * @return
-     */
-    public static native int pendingReadableBytesInSSL(long ssl);
-
-    /**
      * BIO_write
-     * @param bio
-     * @param wbuf
-     * @param wlen
-     * @return
+     * @param bioAddress The address of a {@code BIO*}.
+     * @param wbufAddress The address of a native {@code char*}.
+     * @param wlen The length to write starting at {@code wbufAddress}.
+     * @return The number of bytes that were written.
+     * See <a href="https://www.openssl.org/docs/man1.0.1/crypto/BIO_write.html">BIO_write</a> for exceptional return values.
      */
-    public static native int writeToBIO(long bio, long wbuf, int wlen);
+    public static native int bioWrite(long bioAddress, long wbufAddress, int wlen);
 
     /**
-     * BIO_read
-     * @param bio
-     * @param rbuf
-     * @param rlen
-     * @return
+     * Initialize the BIO for the SSL instance. This is a custom BIO which is designed to play nicely with a direct
+     * {@link ByteBuffer}. Because it is a special BIO it requires special usage such that
+     * {@link #bioSetByteBuffer(long, long, int, boolean)} and {@link #bioClearByteBuffer(long)} are called in order to provide
+     * to supply data to SSL, and also to ensure the internal SSL buffering mechanism is expecting write at the appropriate times.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @param nonApplicationBufferSize The size of the internal buffer for write operations that are not
+     *                                 initiated directly by the application attempting to encrypt data.
+     *                                 Must be &gt{@code 0}.
+     * @return pointer to the Network BIO (BIO *).
+     *         The memory is owned by {@code ssl} and will be cleaned up by {@link #freeSSL(long)}.
      */
-    public static native int readFromBIO(long bio, long rbuf, int rlen);
+    public static native long bioNewByteBuffer(long ssl, int nonApplicationBufferSize);
 
     /**
-     * BIO_should_retry
-     * @param bio the BIO.
-     * @return {@code true} if the failed BIO operation should be retried later.
+     * Set the memory location which that OpenSSL's internal BIO will use to write encrypted data to, or read encrypted
+     * data from.
+     * <p>
+     * After you are done buffering data you should call {@link #bioClearByteBuffer(long)}.
+     * @param bio {@code BIO*}.
+     * @param bufferAddress The memory address (typically from a direct {@link ByteBuffer}) which will be used
+     *                    to either write encrypted data to, or read encrypted data from by OpenSSL's internal BIO pair.
+     * @param maxUsableBytes The maximum usable length in bytes starting at {@code bufferAddress}.
+     * @param isSSLWriteSink {@code true} if this buffer is expected to buffer data as a result of calls to {@code SSL_write}.
+     *                       {@code false} if this buffer is expected to buffer data as a result of calls to {@code SSL_read}.
      */
-    public static native boolean shouldRetryBIO(long bio);
+    public static native void bioSetByteBuffer(long bio, long bufferAddress, int maxUsableBytes, boolean isSSLWriteSink);
+
+    /**
+     * After you are done buffering data from {@link #bioSetByteBuffer(long, long, int, boolean)}, this will ensure the
+     * internal SSL write buffers are ready to capture data which may unexpectedly happen (e.g. handshake, renegotiation, etc..).
+     * @param bio {@code BIO*}.
+     */
+    public static native void bioClearByteBuffer(long bio);
+
+    /**
+     * Flush any pending bytes in the internal SSL write buffer.
+     * <p>
+     * This does the same thing as {@code BIO_flush} for a {@code BIO*} of type {@link #bioNewByteBuffer(long, int)} but
+     * returns the number of bytes that were flushed.
+     * @param bio {@code BIO*}.
+     * @return The number of bytes that were flushed.
+     */
+    public static native int bioFlushByteBuffer(long bio);
+
+    /**
+     * Get the remaining length of the {@link ByteBuffer} set by {@link #bioSetByteBuffer(long, long, int, boolean)}.
+     * @param bio {@code BIO*}.
+     * @return The remaining length of the {@link ByteBuffer} set by {@link #bioSetByteBuffer(long, long, int, boolean)}.
+     */
+    public static native int bioLengthByteBuffer(long bio);
+
+    /**
+     * Get the amount of data pending in buffer used for non-application writes.
+     * This value will not exceed the value configured in {@link #bioNewByteBuffer(long, int)}.
+     * @param bio {@code BIO*}.
+     * @return the amount of data pending in buffer used for non-application writes.
+     */
+    public static native int bioLengthNonApplication(long bio);
 
     /**
      * SSL_write
@@ -309,46 +343,6 @@ public final class SSL {
      * @param ssl the SSL instance (SSL *)
      */
     public static native void freeSSL(long ssl);
-
-    /**
-     * Creates a BIO with the default max BIO size.
-     *
-     * @see #makeNetworkBIO(long, int)
-     */
-    public static long makeNetworkBIO(long ssl) {
-        return makeNetworkBIO(ssl, 0);
-    }
-
-    /**
-     * Creates a BIO with the given max BIO size.
-     *
-     * @see #makeNetworkBIO(long, int, int)
-     */
-    public static long makeNetworkBIO(long ssl, int maxBioSize) {
-        return makeNetworkBIO0(ssl, maxBioSize, maxBioSize);
-    }
-
-    /**
-     * Wire up internal and network BIOs for the given SSL instance.
-     *
-     * <b>Warning: you must explicitly free this resource by calling freeBIO</b>
-     *
-     * While the SSL's internal/application data BIO will be freed when freeSSL is called on
-     * the provided SSL instance, you must call freeBIO on the returned network BIO.
-     *
-     * Please see <a href="https://www.openssl.org/docs/man1.0.1/crypto/BIO_s_bio.html">man BIO_s_bio (example section)</a>
-     * for more details.
-     *
-     * @param ssl the SSL instance (SSL *)
-     * @param maxInternalBIOSize The maximum size of the application side BIO. Pass 0 to use the default max size.
-     * @param maxNetworkBIOSize The maximum size of the network side BIO. Pass 0 to use the default max size.
-     * @return pointer to the Network BIO (BIO *)
-     */
-    public static long makeNetworkBIO(long ssl, int maxInternalBIOSize, int maxNetworkBIOSize) {
-        return makeNetworkBIO0(ssl, maxInternalBIOSize, maxNetworkBIOSize);
-    }
-
-    private static native long makeNetworkBIO0(long ssl, int maxInternalBIOSize, int maxNetworkBIOSize);
 
     /**
      * BIO_free
