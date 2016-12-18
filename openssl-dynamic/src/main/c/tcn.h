@@ -142,6 +142,7 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
         }                                           \
     TCN_END_MACRO
 
+#define TCN_MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /* Return global String class
  */

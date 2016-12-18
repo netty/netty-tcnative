@@ -29,6 +29,8 @@
  * limitations under the License.
  */
 
+#include <stdbool.h>
+#include <openssl/bio.h>
 #include "tcn.h"
 #include "apr_file_io.h"
 #include "apr_thread_mutex.h"
@@ -52,6 +54,17 @@ struct CRYPTO_dynlock_value {
     const char* file;
     int line;
     apr_thread_mutex_t *mutex;
+};
+
+struct TCN_bio_bytebuffer {
+    // Pointer arithmetic is done on this variable. The type must correspond to a "byte" size.
+    char* buffer;
+    char* nonApplicationBuffer;
+    jint  nonApplicationBufferSize;
+    jint  nonApplicationBufferOffset;
+    jint  nonApplicationBufferLength;
+    jint  bufferLength;
+    bool  bufferIsSSLWriteSink;
 };
 
 /*
@@ -221,6 +234,291 @@ static const jint supported_ssl_opts = 0
 #endif
      | 0;
 
+static jint tcn_flush_sslbuffer_to_bytebuffer(struct TCN_bio_bytebuffer* bioUserData) {
+    jint writeAmount = TCN_MIN(bioUserData->bufferLength, bioUserData->nonApplicationBufferLength) * sizeof(char);
+    jint writeChunk = bioUserData->nonApplicationBufferSize - bioUserData->nonApplicationBufferOffset;
+
+#ifdef NETTY_TCNATIVE_BIO_DEBUG
+    fprintf(stderr, "tcn_flush_sslbuffer_to_bytebuffer1 bioUserData->nonApplicationBufferLength %d bioUserData->nonApplicationBufferOffset %d writeChunk %d writeAmount %d\n", bioUserData->nonApplicationBufferLength, bioUserData->nonApplicationBufferOffset, writeChunk, writeAmount);
+#endif
+
+    // check if we need to account for wrap around when draining the internal SSL buffer.
+    if (writeAmount > writeChunk) {
+        jint newnonApplicationBufferOffset = writeAmount - writeChunk;
+        memcpy(bioUserData->buffer, &bioUserData->nonApplicationBuffer[bioUserData->nonApplicationBufferOffset], (size_t) writeChunk);
+        memcpy(&bioUserData->buffer[writeChunk], bioUserData->nonApplicationBuffer, (size_t) newnonApplicationBufferOffset);
+        bioUserData->nonApplicationBufferOffset = newnonApplicationBufferOffset;
+    } else {
+        memcpy(bioUserData->buffer, &bioUserData->nonApplicationBuffer[bioUserData->nonApplicationBufferOffset], (size_t) writeAmount);
+        bioUserData->nonApplicationBufferOffset += writeAmount;
+        if (bioUserData->nonApplicationBufferOffset == bioUserData->nonApplicationBufferSize) {
+            bioUserData->nonApplicationBufferOffset = 0;
+        }
+    }
+    bioUserData->nonApplicationBufferLength -= writeAmount;
+    bioUserData->bufferLength -= writeAmount;
+    bioUserData->buffer += writeAmount; // Pointer arithmetic based on char* type
+
+#ifdef NETTY_TCNATIVE_BIO_DEBUG
+    fprintf(stderr, "tcn_flush_sslbuffer_to_bytebuffer2 bioUserData->nonApplicationBufferLength %d bioUserData->nonApplicationBufferOffset %d\n", bioUserData->nonApplicationBufferLength, bioUserData->nonApplicationBufferOffset);
+#endif
+
+    return writeAmount;
+}
+
+static jint tcn_write_to_bytebuffer(BIO* bio, const char* in, int inl) {
+    jint writeAmount = 0;
+    jint writeChunk;
+    struct TCN_bio_bytebuffer* bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
+    TCN_ASSERT(bioUserData != NULL);
+
+#ifdef NETTY_TCNATIVE_BIO_DEBUG
+    fprintf(stderr, "tcn_write_to_bytebuffer bioUserData->bufferIsSSLWriteSink %d inl %d [%.*s]\n", bioUserData->bufferIsSSLWriteSink, inl, inl, in);
+#endif
+
+    if (in == NULL || inl <= 0) {
+        return 0;
+    }
+
+    // If the buffer is currently being used for reading then we have to use the internal SSL buffer to queue the data.
+    if (!bioUserData->bufferIsSSLWriteSink) {
+        jint nonApplicationBufferFreeSpace = bioUserData->nonApplicationBufferSize - bioUserData->nonApplicationBufferLength;
+        jint startIndex;
+
+#ifdef NETTY_TCNATIVE_BIO_DEBUG
+       fprintf(stderr, "tcn_write_to_bytebuffer nonApplicationBufferFreeSpace %d\n", nonApplicationBufferFreeSpace);
+#endif
+        if (nonApplicationBufferFreeSpace == 0) {
+            BIO_set_retry_write(bio); /* buffer is full */
+            return -1;
+        }
+
+        writeAmount = TCN_MIN(nonApplicationBufferFreeSpace, (jint) inl) * sizeof(char);
+        startIndex = bioUserData->nonApplicationBufferOffset + bioUserData->nonApplicationBufferLength;
+        writeChunk = bioUserData->nonApplicationBufferSize - startIndex;
+
+#ifdef NETTY_TCNATIVE_BIO_DEBUG
+        fprintf(stderr, "tcn_write_to_bytebuffer bioUserData->nonApplicationBufferLength %d bioUserData->nonApplicationBufferOffset %d startIndex %d writeChunk %d writeAmount %d\n", bioUserData->nonApplicationBufferLength, bioUserData->nonApplicationBufferOffset, startIndex, writeChunk, writeAmount);
+#endif
+
+        // check if the write will wrap around the buffer.
+        if (writeAmount > writeChunk) {
+            memcpy(&bioUserData->nonApplicationBuffer[startIndex], in, (size_t) writeChunk);
+            memcpy(bioUserData->nonApplicationBuffer, &in[writeChunk], (size_t) (writeAmount - writeChunk));
+        } else {
+            memcpy(&bioUserData->nonApplicationBuffer[startIndex], in, (size_t) writeAmount);
+        }
+        bioUserData->nonApplicationBufferLength += writeAmount;
+        // This write amount will not be used by Java, and doesn't correlate to the ByteBuffer source.
+        // The internal SSL buffer exists because a SSL_read operation may actually write data (e.g. handshake).
+        return writeAmount;
+    }
+
+    if (bioUserData->buffer == NULL || bioUserData->bufferLength == 0) {
+        BIO_set_retry_write(bio); /* no buffer to write into */
+        return -1;
+    }
+
+    // First check if we need to drain data queued in the internal SSL buffer.
+    if (bioUserData->nonApplicationBufferLength != 0) {
+        writeAmount = tcn_flush_sslbuffer_to_bytebuffer(bioUserData);
+    }
+
+    // Next write "in" into what ever space the ByteBuffer has available.
+    writeChunk = TCN_MIN(bioUserData->bufferLength, (jint) inl) * sizeof(char);
+
+#ifdef NETTY_TCNATIVE_BIO_DEBUG
+    fprintf(stderr, "tcn_write_to_bytebuffer2 writeChunk %d\n", writeChunk);
+#endif
+
+    memcpy(bioUserData->buffer, in, (size_t) writeChunk);
+    bioUserData->bufferLength -= writeChunk;
+    bioUserData->buffer += writeChunk; // Pointer arithmetic based on char* type
+
+    return writeAmount + writeChunk;
+}
+
+static jint tcn_read_from_bytebuffer(BIO* bio, char *out, int outl) {
+    jint readAmount;
+    struct TCN_bio_bytebuffer* bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
+    TCN_ASSERT(bioUserData != NULL);
+
+#ifdef NETTY_TCNATIVE_BIO_DEBUG
+    fprintf(stderr, "tcn_read_from_bytebuffer bioUserData->bufferIsSSLWriteSink %d outl %d [%.*s]\n", bioUserData->bufferIsSSLWriteSink, outl, outl, out);
+#endif
+
+    if (out == NULL || outl <= 0) {
+        return 0;
+    }
+
+    if (bioUserData->bufferIsSSLWriteSink || bioUserData->buffer == NULL || bioUserData->bufferLength == 0) {
+        // During handshake this may happen, and it means we are not setup to read yet.
+        BIO_set_retry_read(bio);
+        return -1;
+    }
+
+    readAmount = TCN_MIN(bioUserData->bufferLength, (jint) outl) * sizeof(char);
+
+#ifdef NETTY_TCNATIVE_BIO_DEBUG
+    fprintf(stderr, "tcn_read_from_bytebuffer readAmount %d\n", readAmount);
+#endif
+
+    memcpy(out, bioUserData->buffer, (size_t) readAmount);
+    bioUserData->bufferLength -= readAmount;
+    bioUserData->buffer += readAmount; // Pointer arithmetic based on char* type
+
+    return readAmount;
+}
+
+static int bio_java_bytebuffer_create(BIO* bio) {
+    struct TCN_bio_bytebuffer* bioUserData = (struct TCN_bio_bytebuffer*) OPENSSL_malloc(sizeof(struct TCN_bio_bytebuffer));
+    if (bioUserData == NULL) {
+        return 0;
+    }
+    // The actual ByteBuffer is set from java and may be swapped out for each operation.
+    bioUserData->buffer = NULL;
+    bioUserData->bufferLength = 0;
+    bioUserData->bufferIsSSLWriteSink = false;
+    bioUserData->nonApplicationBuffer = NULL;
+    bioUserData->nonApplicationBufferSize = 0;
+    bioUserData->nonApplicationBufferOffset = 0;
+    bioUserData->nonApplicationBufferLength = 0;
+
+    BIO_set_data(bio, bioUserData);
+
+    // In order to for OpenSSL to properly manage the lifetime of a BIO it relies on some shutdown and init state.
+    // The behavior expected by OpenSSL can be found here: https://www.openssl.org/docs/man1.1.0/crypto/BIO_set_data.html
+    BIO_set_shutdown(bio, 1);
+    BIO_set_init(bio, 1);
+
+    return 1;
+}
+
+static int bio_java_bytebuffer_destroy(BIO* bio) {
+    struct TCN_bio_bytebuffer* bioUserData;
+
+    if (bio == NULL) {
+        return 0;
+    }
+
+    bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
+    if (bioUserData == NULL) {
+        return 1;
+    }
+
+    if (bioUserData->nonApplicationBuffer != NULL) {
+        OPENSSL_free(bioUserData->nonApplicationBuffer);
+        bioUserData->nonApplicationBuffer = NULL;
+    }
+
+    // The buffer is not owned by tcn, so just free the native memory.
+    OPENSSL_free(bioUserData);
+    BIO_set_data(bio, NULL);
+
+    return 1;
+}
+
+static int bio_java_bytebuffer_write(BIO* bio, const char* in, int inl) {
+    BIO_clear_retry_flags(bio);
+    return (int) tcn_write_to_bytebuffer(bio, in, inl);
+}
+
+static int bio_java_bytebuffer_read(BIO* bio, char* out, int outl) {
+    BIO_clear_retry_flags(bio);
+    return (int) tcn_read_from_bytebuffer(bio, out, outl);
+}
+
+static int bio_java_bytebuffer_puts(BIO* bio, const char *in) {
+    BIO_clear_retry_flags(bio);
+    return (int) tcn_write_to_bytebuffer(bio, in, strlen(in));
+}
+
+static int bio_java_bytebuffer_gets(BIO* b, char* out, int outl) {
+    // Not supported https://www.openssl.org/docs/man1.0.2/crypto/BIO_write.html
+    return -2;
+}
+
+static long bio_java_bytebuffer_ctrl(BIO* bio, int cmd, long num, void* ptr) {
+    // see https://www.openssl.org/docs/man1.0.1/crypto/BIO_ctrl.html
+    switch (cmd) {
+        case BIO_CTRL_GET_CLOSE:
+            return (long) BIO_get_shutdown(bio);
+        case BIO_CTRL_SET_CLOSE:
+            BIO_set_shutdown(bio, (int) num);
+            return 1;
+        case BIO_CTRL_FLUSH:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, bioLengthByteBuffer)(TCN_STDARGS, jlong bioAddress) {
+    BIO* bio = J2P(bioAddress, BIO*);
+    struct TCN_bio_bytebuffer* bioUserData;
+
+    if (bio == NULL) {
+        tcn_ThrowException(e, "bio is null");
+        return 0;
+    }
+
+    bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
+    return bioUserData == NULL ? 0 : bioUserData->bufferLength;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, bioLengthNonApplication)(TCN_STDARGS, jlong bioAddress) {
+    BIO* bio = J2P(bioAddress, BIO*);
+    struct TCN_bio_bytebuffer* bioUserData;
+
+    if (bio == NULL) {
+        tcn_ThrowException(e, "bio is null");
+        return 0;
+    }
+
+    bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
+    return bioUserData == NULL ? 0 : bioUserData->nonApplicationBufferLength;
+}
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+static BIO_METHOD bio_java_bytebuffer_methods = {
+    BIO_TYPE_MEM,
+    "Java ByteBuffer",
+    bio_java_bytebuffer_write,
+    bio_java_bytebuffer_read,
+    bio_java_bytebuffer_puts,
+    bio_java_bytebuffer_gets,
+    bio_java_bytebuffer_ctrl,
+    bio_java_bytebuffer_create,
+    bio_java_bytebuffer_destroy,
+    NULL
+};
+#else
+static BIO_METHOD* bio_java_bytebuffer_methods = NULL;
+
+static void init_bio_methods(void) {
+    bio_java_bytebuffer_methods = BIO_meth_new(BIO_TYPE_MEM, "Java ByteBuffer");
+    BIO_meth_set_write(bio_java_bytebuffer_methods, &bio_java_bytebuffer_write);
+    BIO_meth_set_read(bio_java_bytebuffer_methods, &bio_java_bytebuffer_read);
+    BIO_meth_set_puts(bio_java_bytebuffer_methods, &bio_java_bytebuffer_puts);
+    BIO_meth_set_gets(bio_java_bytebuffer_methods, &bio_java_bytebuffer_gets);
+    BIO_meth_set_ctrl(bio_java_bytebuffer_methods, &bio_java_bytebuffer_ctrl);
+    BIO_meth_set_create(bio_java_bytebuffer_methods, &bio_java_bytebuffer_create);
+    BIO_meth_set_destroy(bio_java_bytebuffer_methods, &bio_java_bytebuffer_destroy);
+}
+
+static void free_bio_methods(void) {
+    BIO_meth_free(bio_java_bytebuffer_methods);
+}
+#endif
+
+static BIO_METHOD* BIO_java_bytebuffer() {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+    return &bio_java_bytebuffer_methods;
+#else
+    return bio_java_bytebuffer_methods;
+#endif
+}
+
 static int ssl_tmp_key_init_dh(int bits, int idx)
 {
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
@@ -278,6 +576,9 @@ static apr_status_t ssl_init_cleanup(void *data)
 #endif
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
     ERR_remove_thread_state(NULL);
+#endif
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+    free_bio_methods();
 #endif
 
     /* Don't call ERR_free_strings here; ERR_load_*_strings only
@@ -420,8 +721,6 @@ static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
 static void ssl_dyn_lock_function(int mode, struct CRYPTO_dynlock_value *l,
                            const char *file, int line)
 {
-
-
     if (mode & CRYPTO_LOCK) {
         apr_thread_mutex_lock(l->mutex);
     }
@@ -558,6 +857,10 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     /* For SSL_get_app_data2() and SSL_get_app_data3() at request time */
     SSL_init_app_data2_3_idx();
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+    init_bio_methods();
+#endif
+
     SSL_TMP_KEYS_INIT(r);
     if (r) {
         ERR_clear_error();
@@ -678,92 +981,69 @@ TCN_IMPLEMENT_CALL(jint, SSL, getError)(TCN_STDARGS,
     return SSL_get_error(ssl_, ret);
 }
 
-// How much did SSL write into this BIO?
-TCN_IMPLEMENT_CALL(jint /* nbytes */, SSL, pendingWrittenBytesInBIO)(TCN_STDARGS,
-                                                                     jlong bio /* BIO * */) {
-    BIO *b = J2P(bio, BIO *);
-
-    if (b == NULL) {
-        tcn_ThrowException(e, "bio is null");
-        return 0;
-    }
-
-    UNREFERENCED_STDARGS;
-
-    return BIO_ctrl_pending(b);
-}
-
-// How much is available for reading in the given SSL struct?
-TCN_IMPLEMENT_CALL(jint, SSL, pendingReadableBytesInSSL)(TCN_STDARGS, jlong ssl /* SSL * */) {
-    SSL *ssl_ = J2P(ssl, SSL *);
-
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
-
-    UNREFERENCED_STDARGS;
-
-    return SSL_pending(ssl_);
-}
-
 // Write wlen bytes from wbuf into bio
-TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToBIO)(TCN_STDARGS,
-                                                       jlong bio /* BIO * */,
-                                                       jlong wbuf /* char* */,
-                                                       jint wlen /* sizeof(wbuf) */) {
-    BIO *b = J2P(bio, BIO *);
-    void *w = J2P(wbuf, void *);
+TCN_IMPLEMENT_CALL(jint /* status */, SSL, bioWrite)(TCN_STDARGS,
+                                                     jlong bioAddress /* BIO* */,
+                                                     jlong wbufAddress /* char* */,
+                                                     jint wlen /* sizeof(wbuf) */) {
+    BIO* bio = J2P(bioAddress, BIO*);
+    void* wbuf = J2P(wbufAddress, void*);
 
-    if (b == NULL) {
+    if (bio == NULL) {
         tcn_ThrowException(e, "bio is null");
         return 0;
     }
-    if (w == NULL) {
+    if (wbuf == NULL) {
         tcn_ThrowException(e, "wbuf is null");
         return 0;
     }
 
     UNREFERENCED_STDARGS;
 
-    return BIO_write(b, w, wlen);
-
+    return BIO_write(bio, wbuf, wlen);
 }
 
-// Read up to rlen bytes from bio into rbuf
-TCN_IMPLEMENT_CALL(jint /* status */, SSL, readFromBIO)(TCN_STDARGS,
-                                                        jlong bio /* BIO * */,
-                                                        jlong rbuf /* char * */,
-                                                        jint rlen /* sizeof(rbuf) - 1 */) {
-    BIO *b = J2P(bio, BIO *);
-    void *r = J2P(rbuf, void *);
+TCN_IMPLEMENT_CALL(void, SSL, bioSetByteBuffer)(TCN_STDARGS,
+                                                jlong bioAddress /* BIO* */,
+                                                jlong bufferAddress /* Address for direct memory */,
+                                                jint maxUsableBytes /* max number of bytes to use */,
+                                                jboolean isSSLWriteSink) {
+    BIO* bio = J2P(bioAddress, BIO*);
+    char* buffer = J2P(bufferAddress, char*);
+    struct TCN_bio_bytebuffer* bioUserData = NULL;
+    TCN_ASSERT(bio != NULL);
+    TCN_ASSERT(buffer != NULL);
 
-    if (b == NULL) {
-        tcn_ThrowException(e, "bio is null");
-        return 0;
-    }
-    if (r == NULL) {
-        tcn_ThrowException(e, "rbuf is null");
-        return 0;
-    }
+    bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
+    TCN_ASSERT(bioUserData != NULL);
 
-    UNREFERENCED_STDARGS;
-
-    return BIO_read(b, r, rlen);
+    bioUserData->buffer = buffer;
+    bioUserData->bufferLength = maxUsableBytes;
+    bioUserData->bufferIsSSLWriteSink = (bool) isSSLWriteSink;
 }
 
-TCN_IMPLEMENT_CALL(jboolean, SSL, shouldRetryBIO)(TCN_STDARGS,
-                                                        jlong bio /* BIO * */) {
-    BIO *b = J2P(bio, BIO *);
+TCN_IMPLEMENT_CALL(void, SSL, bioClearByteBuffer)(TCN_STDARGS, jlong bioAddress) {
+    BIO* bio = J2P(bioAddress, BIO*);
+    struct TCN_bio_bytebuffer* bioUserData = NULL;
 
-    if (b == NULL) {
-        tcn_ThrowException(e, "bio is null");
-        return 0;
+    if (bio == NULL || (bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio)) == NULL) {
+        return;
     }
 
-    UNREFERENCED_STDARGS;
+    bioUserData->buffer = NULL;
+    bioUserData->bufferLength = 0;
+    bioUserData->bufferIsSSLWriteSink = false;
+}
 
-    return BIO_should_retry(b) ? JNI_TRUE : JNI_FALSE;
+TCN_IMPLEMENT_CALL(jint, SSL, bioFlushByteBuffer)(TCN_STDARGS, jlong bioAddress) {
+    BIO* bio = J2P(bioAddress, BIO*);
+    struct TCN_bio_bytebuffer* bioUserData;
+
+    return (bio == NULL ||
+           (bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio)) == NULL ||
+            bioUserData->nonApplicationBufferLength == 0 ||
+            bioUserData->buffer == NULL ||
+           !bioUserData->bufferIsSSLWriteSink) ? 0 : tcn_flush_sslbuffer_to_bytebuffer(bioUserData);
 }
 
 // Write up to wlen bytes of application data to the ssl BIO (encrypt)
@@ -860,45 +1140,47 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
     SSL_free(ssl_);
 }
 
-// Make a BIO pair (network and internal) for the provided SSL * which has a
-// maximum size of max_bio_size, and return the network BIO.
-// The value max_bio_size = 0 can be supplied to use the default BIO size.
-TCN_IMPLEMENT_CALL(jlong, SSL, makeNetworkBIO0)(TCN_STDARGS,
-                                               jlong ssl /* SSL * */,
-                                               jint maxInternalBIOSize, jint maxNetworkBIOSize) {
-    SSL *ssl_ = J2P(ssl, SSL *);
-    BIO *internal_bio;
-    BIO *network_bio;
+TCN_IMPLEMENT_CALL(jlong, SSL, bioNewByteBuffer)(TCN_STDARGS,
+                                                 jlong ssl /* SSL* */,
+                                                 jint nonApplicationBufferSize) {
+    SSL* ssl_ = J2P(ssl, SSL*);
+    BIO* bio;
+    struct TCN_bio_bytebuffer* bioUserData;
 
     if (ssl_ == NULL) {
         tcn_ThrowException(e, "ssl is null");
         return 0;
     }
 
-    if (maxInternalBIOSize < 0) {
-        tcn_ThrowException(e, "maxInternalBIOSize < 0");
+    if (nonApplicationBufferSize <= 0) {
+        tcn_ThrowException(e, "nonApplicationBufferSize <= 0");
         return 0;
     }
 
-    if (maxNetworkBIOSize < 0) {
-        tcn_ThrowException(e, "maxNetworkBIOSize < 0");
+    bio = BIO_new(BIO_java_bytebuffer());
+    if (bio == NULL) {
+        tcn_ThrowException(e, "BIO_new failed");
         return 0;
     }
 
-    if (BIO_new_bio_pair(
-            &internal_bio,
-            (size_t) maxInternalBIOSize,
-            &network_bio,
-            (size_t) maxNetworkBIOSize) != 1) {
-        tcn_ThrowException(e, "BIO_new_bio_pair failed");
+    bioUserData = BIO_get_data(bio);
+    if (bioUserData == NULL) {
+        BIO_free(bio);
+        tcn_ThrowException(e, "BIO_get_data failed");
         return 0;
     }
 
-    UNREFERENCED(o);
+    bioUserData->nonApplicationBuffer = (char*) OPENSSL_malloc(nonApplicationBufferSize * sizeof(char));
+    if (bioUserData->nonApplicationBuffer == NULL) {
+        BIO_free(bio);
+        tcn_Throw(e, "Failed to allocate internal buffer of size %d", nonApplicationBufferSize);
+        return 0;
+    }
+    bioUserData->nonApplicationBufferSize = nonApplicationBufferSize;
 
-    SSL_set_bio(ssl_, internal_bio, internal_bio);
+    SSL_set_bio(ssl_, bio, bio);
 
-    return P2J(network_bio);
+    return P2J(bio);
 }
 
 // Free a BIO * (typically, the network BIO)
