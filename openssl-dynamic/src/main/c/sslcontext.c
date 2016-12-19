@@ -593,6 +593,17 @@ cleanup:
     return rv;
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS, jlong ctx, jlong certs)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    BIO *b = J2P(certs, BIO *);
+
+    UNREFERENCED(o);
+    TCN_ASSERT(c != NULL);
+
+    return b != NULL && c->mode != SSL_MODE_CLIENT && SSL_CTX_use_client_CA_bio(c->ctx, b) > 0 ? JNI_TRUE : JNI_FALSE;
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDH)(TCN_STDARGS, jlong ctx,
                                                                   jstring file)
 {
@@ -1899,6 +1910,16 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificate)(TCN_STDARGS,
     return JNI_FALSE;
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS,
+                                                           jlong ctx,
+                                                           jlong certs)
+{
+    UNREFERENCED_STDARGS;
+    UNREFERENCED(ctx);
+    UNREFERENCED(certs);
+    return JNI_FALSE;
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setShutdownType)(TCN_STDARGS, jlong ctx,
                                                       jint type)
 {
@@ -1949,6 +1970,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     UNREFERENCED(idx);
     return JNI_FALSE;
 }
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobjectArray next_protos,
         jint selectorFailureBehavior)
 {
@@ -1956,7 +1978,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobje
     UNREFERENCED(ctx);
     UNREFERENCED(next_protos);
 }
-
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobjectArray alpn_protos,
         jint selectorFailureBehavior)
