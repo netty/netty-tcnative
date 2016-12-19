@@ -538,8 +538,7 @@ DH *SSL_callback_tmp_DH_4096(SSL *ssl, int export, int keylen)
  * format, possibly followed by a sequence of CA certificates that
  * should be sent to the peer in the SSL Certificate message.
  */
-int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file,
-                                  int skipfirst)
+int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipfirst)
 {
     BIO *bio;
     int n;
@@ -555,8 +554,7 @@ int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file,
     return n;
 }
 
-int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio,
-                                  int skipfirst)
+static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
 {
     X509 *x509;
     unsigned long err;
@@ -570,18 +568,29 @@ int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio,
         X509_free(x509);
     }
 
-    /* free a perhaps already configured extra chain */
-    SSL_CTX_clear_extra_chain_certs(ctx);
-
-    /* create new extra chain by loading the certs */
     n = 0;
-    while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
-        if (SSL_CTX_add_extra_chain_cert(ctx, x509) != 1) {
-            X509_free(x509);
-            return -1;
+    if (ca) {
+        while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
+            if (SSL_CTX_add_client_CA(ctx, x509) != 1) {
+                X509_free(x509);
+                return -1;
+            }
+            n++;
         }
-        n++;
+    } else {
+        /* free a perhaps already configured extra chain */
+        SSL_CTX_clear_extra_chain_certs(ctx);
+
+        /* create new extra chain by loading the certs */
+        while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
+            if (SSL_CTX_add_extra_chain_cert(ctx, x509) != 1) {
+                X509_free(x509);
+                return -1;
+            }
+            n++;
+        }
     }
+
     /* Make sure that only the error is just an EOF */
     if ((err = ERR_peek_error()) > 0) {
         if (!(   ERR_GET_LIB(err) == ERR_LIB_PEM
@@ -593,8 +602,18 @@ int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio,
     return n;
 }
 
-int SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio,
-                                  int skipfirst)
+int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio, bool skipfirst)
+{
+    return SSL_CTX_setup_certs(ctx, bio, skipfirst, false);
+}
+
+
+int SSL_CTX_use_client_CA_bio(SSL_CTX *ctx, BIO *bio)
+{
+    return SSL_CTX_setup_certs(ctx, bio, false, true);
+}
+
+int SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
 {
 #if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER))
     // Only supported on boringssl or openssl 1.0.2+

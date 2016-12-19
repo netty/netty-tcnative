@@ -441,6 +441,22 @@ public final class SSLContext {
         throws Exception;
 
     /**
+     * Set concatenated PEM-encoded CA Certificates for Client Auth
+     * <br>
+     * This directive sets the all-in-one BIO where you can assemble the
+     * Certificates of Certification Authorities (CA) whose clients you deal with.
+     * These are used for Client Authentication. Such a BIO is simply the
+     * concatenation of the various PEM-encoded Certificate files, in order of
+     * preference. This can be used alternatively and/or additionally to
+     * path.
+     * <br>
+     * @param ctx Server context to use.
+     * @param certBio Directory of PEM-encoded CA Certificates for Client Auth.
+     * @return {@code true} if successful, {@code false} otherwise.
+     */
+    public static native boolean setCACertificateBio(long ctx, long certBio);
+
+    /**
      * Set file for randomness
      * @param ctx Server or Client context to use.
      * @param file random file.
