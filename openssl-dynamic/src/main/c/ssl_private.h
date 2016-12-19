@@ -49,6 +49,8 @@
 #endif
 
 #include "apr_thread_rwlock.h"
+#include "apr_atomic.h"
+#include <stdbool.h>
 
 /* OpenSSL headers */
 #include <openssl/opensslv.h>
@@ -232,9 +234,10 @@ DH         *SSL_callback_tmp_DH_512(SSL *, int, int);
 DH         *SSL_callback_tmp_DH_1024(SSL *, int, int);
 DH         *SSL_callback_tmp_DH_2048(SSL *, int, int);
 DH         *SSL_callback_tmp_DH_4096(SSL *, int, int);
-int         SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, int);
-int         SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, int);
-int         SSL_use_certificate_chain_bio(SSL *, BIO *, int);
+int         SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, bool);
+int         SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, bool);
+int         SSL_CTX_use_client_CA_bio(SSL_CTX *, BIO *);
+int         SSL_use_certificate_chain_bio(SSL *, BIO *, bool);
 X509        *load_pem_cert_bio(const char *, const BIO *);
 EVP_PKEY    *load_pem_key_bio(const char *, const BIO *);
 int         tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey);
