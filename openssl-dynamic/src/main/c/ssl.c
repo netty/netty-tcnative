@@ -658,9 +658,6 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
         SSL_set_connect_state(ssl);
     }
 
-    // Setup verify and seed
-    SSL_set_verify_result(ssl, X509_V_OK);
-
     // Store for later usage in SSL_callback_SSL_verify
     SSL_set_app_data2(ssl, c);
     return P2J(ssl);

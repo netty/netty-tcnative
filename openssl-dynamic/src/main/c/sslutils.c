@@ -565,7 +565,6 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
     if (SSL_VERIFY_ERROR_IS_OPTIONAL(errnum) &&
         (verify == SSL_CVERIFY_OPTIONAL_NO_CA)) {
         ok = 1;
-        SSL_set_verify_result(ssl, X509_V_OK);
     }
 
     if (errdepth > depth) {
