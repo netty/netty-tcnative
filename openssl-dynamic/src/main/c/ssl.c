@@ -1014,7 +1014,7 @@ static int jbs_puts(BIO *b, const char *in)
     BIO_JAVA *j = NULL;
 
     if (BIO_get_init(b) && in != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)BIO_get_data(b);
+        j = (BIO_JAVA *)BIO_get_data(b);
         tcn_get_java_env(&e);
         ret = (*e)->CallIntMethod(e, j->cb.obj,
                                   j->cb.mid[2],
@@ -1032,7 +1032,7 @@ static int jbs_gets(BIO *b, char *out, int outl)
     int l;
 
     if (BIO_get_init(b) && out != NULL) {
-        BIO_JAVA *j = (BIO_JAVA *)BIO_get_data(b);
+        j = (BIO_JAVA *)BIO_get_data(b);
         tcn_get_java_env(&e);
         if ((o = (*e)->CallObjectMethod(e, j->cb.obj,
                             j->cb.mid[3], (jint)(outl - 1)))) {
