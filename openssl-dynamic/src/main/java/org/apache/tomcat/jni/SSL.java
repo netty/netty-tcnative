@@ -881,4 +881,32 @@ public final class SSL {
      * Free x509 chain ({@code STACK_OF(X509)} pointer).
      */
     public static native void freeX509Chain(long x509Chain);
+
+    /**
+     * Call SSL_get1_session.
+     * https://www.openssl.org/docs/man1.1.0/ssl/SSL_get1_session.html
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return pointer to SSL_SESSION instance (SSL_SESSION *)
+     */
+    public static native long getSession(long ssl);
+
+    /**
+     * Call SSL_set_session.
+     * https://www.openssl.org/docs/man1.0.1/ssl/SSL_set_session.html
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @param sess the SSL_SESSION instance (SSL_SESSION *)
+     * @return return value of SSL_set_session
+     */
+    public static native int setSession(long ssl, long sess);
+
+    /**
+     * Call SSL_SESSION_free.
+     * https://www.openssl.org/docs/man1.0.1/ssl/SSL_SESSION_free.html
+     *
+     * @param sess the SSL_SESSION instance (SSL_SESSION *)
+     */
+    public static native void freeSession(long sess);
+
 }
