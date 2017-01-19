@@ -434,6 +434,10 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
                 X509_free(x509);
                 return -1;
             }
+            // SSL_CTX_add_client_CA does not take ownership of the x509. It just calls X509_get_subject_name
+            // and make a duplicate of this value. So we should always free the x509 after this call.
+            // See https://github.com/netty/netty/issues/6249.
+            X509_free(x509);
             n++;
         }
     } else {
@@ -442,6 +446,7 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
 
         /* create new extra chain by loading the certs */
         while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
+            // SSL_CTX_add_extra_chain_cert transfers ownership of the x509 certificate if the method succeeds.
             if (SSL_CTX_add_extra_chain_cert(ctx, x509) != 1) {
                 X509_free(x509);
                 return -1;
