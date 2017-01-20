@@ -884,7 +884,7 @@ public final class SSL {
 
     /**
      * Call SSL_get1_session.
-     * https://www.openssl.org/docs/man1.1.0/ssl/SSL_get1_session.html
+     * @see <a href="https://www.openssl.org/docs/man1.1.0/ssl/SSL_get1_session.html">OpenSSL method SSL_get1_session()</a>
      *
      * @param ssl the SSL instance (SSL *)
      * @return pointer to SSL_SESSION instance (SSL_SESSION *)
@@ -893,7 +893,7 @@ public final class SSL {
 
     /**
      * Call SSL_set_session.
-     * https://www.openssl.org/docs/man1.0.1/ssl/SSL_set_session.html
+     * @see <a href="https://www.openssl.org/docs/man1.0.1/ssl/SSL_set_session.html">OpenSSL method SSL_set_session()</a>
      *
      * @param ssl the SSL instance (SSL *)
      * @param sess the SSL_SESSION instance (SSL_SESSION *)
@@ -903,7 +903,7 @@ public final class SSL {
 
     /**
      * Call SSL_SESSION_free.
-     * https://www.openssl.org/docs/man1.0.1/ssl/SSL_SESSION_free.html
+     * @see <a href="https://www.openssl.org/docs/man1.0.1/ssl/SSL_SESSION_free.html">OpenSSL method SSL_SESSION_free()</a>
      *
      * @param sess the SSL_SESSION instance (SSL_SESSION *)
      */
