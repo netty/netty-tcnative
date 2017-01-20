@@ -156,6 +156,7 @@
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=-std=c99" />
                           <arg value="-GNinja" />
                           <arg value=".." />
                         </exec>
