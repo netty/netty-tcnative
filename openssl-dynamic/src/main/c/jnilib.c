@@ -28,6 +28,10 @@
 
 #include "tcn_version.h"
 
+#ifndef OPENSSL_IS_BORINGSSL
+#include <io_netty_tcnative_jni_ocsp_Native_init.h>
+#endif
+
 #ifdef TCN_DO_STATISTICS
 extern void sp_poll_dump_statistics();
 extern void sp_network_dump_statistics();
@@ -110,6 +114,16 @@ JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved)
     TCN_GET_FIELD(env, keyMaterialClass, keyMaterialPrivateKeyFieldId,
                    "privateKey", "J", JNI_ERR);
 
+//
+// BoringSSL doesn't have OCSP support as far as I know.
+//   https://www.imperialviolet.org/2015/10/17/boringssl.html
+//
+#ifndef OPENSSL_IS_BORINGSSL
+    if (io_netty_tcnative_jni_ocsp_Native_OnLoad(env) != JNI_OK) {
+        return JNI_ERR;
+    }
+#endif
+
     return TCN_JNI_VERSION;
 }
 
@@ -138,6 +152,10 @@ JNIEXPORT void JNICALL JNI_OnUnload_netty_tcnative(JavaVM *vm, void *reserved)
 
     TCN_UNLOAD_CLASS(env, byteArrayClass);
     TCN_UNLOAD_CLASS(env, keyMaterialClass);
+
+#ifndef OPENSSL_IS_BORINGSSL
+    io_netty_tcnative_jni_ocsp_Native_OnUnLoad(env);
+#endif
 }
 
 /* Called by the JVM before the APR_JAVA is unloaded */
