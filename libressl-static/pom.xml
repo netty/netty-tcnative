@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.0.Beta1</version>
   </parent>
   <artifactId>netty-tcnative-libressl-static</artifactId>
   <packaging>jar</packaging>
@@ -94,19 +94,14 @@
             <configuration>
               <target>
                 <copy todir="${nativeJarWorkdir}">
-                  <zipfileset src="${defaultJarFile}"/>
+                  <zipfileset src="${defaultJarFile}" />
                 </copy>
                 <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
-                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native"/>
-                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$"
-                                to="META-INF/native/\1"/>
+                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
                 </copy>
-                <jar destfile="${nativeJarFile}"
-                     manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF"
-                     basedir="${nativeJarWorkdir}"
-                     index="true"
-                     excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST"/>
-                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar"/>
+                <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
               </target>
             </configuration>
           </execution>
@@ -143,11 +138,9 @@
                 </goals>
                 <configuration>
                   <target>
-                    <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslWindowsZip}"
-                         dest="${project.build.directory}/${libresslWindowsZip}"
-                         verbose="on"/>
+                    <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslWindowsZip}" dest="${project.build.directory}/${libresslWindowsZip}" verbose="on" />
                     <unzip src="${project.build.directory}/${libresslWindowsZip}" dest="${project.build.directory}/" />
-                    <move file="${project.build.directory}/${libresslWindows}" tofile="${sslHome}"/>
+                    <move file="${project.build.directory}/${libresslWindows}" tofile="${sslHome}" />
                   </target>
                 </configuration>
               </execution>
@@ -177,14 +170,11 @@
                 </goals>
                 <configuration>
                   <target>
-                    <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}"
-                         dest="${project.build.directory}/${libresslArchive}"
-                         verbose="on"/>
+                    <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}" dest="${project.build.directory}/${libresslArchive}" verbose="on" />
                     <checksum file="${project.build.directory}/${libresslArchive}" algorithm="SHA-256" property="${libresslSha256}" verifyProperty="isEqual" />
-                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/"
-                          resolveexecutable="true">
-                      <arg value="xfv"/>
-                      <arg value="${libresslArchive}"/>
+                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                      <arg value="xfv" />
+                      <arg value="${libresslArchive}" />
                     </exec>
                     <mkdir dir="${sslHome}" />
                     <exec executable="configure" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
