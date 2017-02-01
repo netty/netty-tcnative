@@ -186,36 +186,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include=".\src\address.c" />
     <ClCompile Include=".\src\bb.c" />
-    <ClCompile Include=".\src\dir.c" />
     <ClCompile Include=".\src\error.c" />
-    <ClCompile Include=".\src\file.c" />
-    <ClCompile Include=".\src\info.c" />
     <ClCompile Include=".\src\jnilib.c" />
-    <ClCompile Include=".\src\lock.c" />
-    <ClCompile Include=".\src\misc.c" />
-    <ClCompile Include=".\src\mmap.c" />
-    <ClCompile Include=".\src\multicast.c" />
-    <ClCompile Include=".\src\network.c" />
-    <ClCompile Include=".\src\os.c" />
-    <ClCompile Include=".\src\os_unix_system.c" />
-    <ClCompile Include=".\src\os_unix_uxpipe.c" />
-    <ClCompile Include=".\src\os_win32_ntpipe.c" />
-    <ClCompile Include=".\src\os_win32_registry.c" />
-    <ClCompile Include=".\src\os_win32_system.c" />
-    <ClCompile Include=".\src\poll.c" />
-    <ClCompile Include=".\src\pool.c" />
-    <ClCompile Include=".\src\proc.c" />
-    <ClCompile Include=".\src\shm.c" />
     <ClCompile Include=".\src\ssl.c" />
     <ClCompile Include=".\src\sslcontext.c" />
-    <ClCompile Include=".\src\sslinfo.c" />
-    <ClCompile Include=".\src\sslnetwork.c" />
     <ClCompile Include=".\src\sslutils.c" />
-    <ClCompile Include=".\src\stdlib.c" />
-    <ClCompile Include=".\src\thread.c" />
-    <ClCompile Include=".\src\user.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
