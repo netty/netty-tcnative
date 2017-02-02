@@ -2369,6 +2369,55 @@ TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
     sk_X509_pop_free(chain, X509_free);
 }
 
+TCN_IMPLEMENT_CALL(jlong, SSL, getSession)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    SSL_SESSION *sess = SSL_get1_session(ssl_);
+    return P2J(sess);
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, setSession)(TCN_STDARGS, jlong ssl, jlong sess)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+    SSL_SESSION *sess_ = J2P(sess, SSL_SESSION *);
+
+    if (ssl_ == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    if (sess_ == NULL) {
+        tcn_ThrowException(e, "sess is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    return (jint)SSL_set_session(ssl_, sess_);
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, freeSession)(TCN_STDARGS, jlong sess)
+{
+    SSL_SESSION *sess_ = J2P(sess, SSL_SESSION *);
+
+    if (sess_ == NULL) {
+        tcn_ThrowException(e, "sess is null");
+        return;
+    }
+
+    UNREFERENCED(o);
+
+    SSL_SESSION_free(sess_);
+}
+
 /*** End Apple API Additions ***/
 
 #else
@@ -2847,5 +2896,30 @@ TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
     UNREFERENCED(x509Chain);
     tcn_ThrowException(e, "Not implemented");
 }
+
+TCN_IMPLEMENT_CALL(jlong, SSL, getSession)(TCN_STDARGS, jlong ssl)
+{
+    UNREFERENCED(o);
+    UNREFERENCED(ssl);
+    tcn_ThrowException(e, "Not implemented");
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, setSession)(TCN_STDARGS, jlong ssl, jlong sess)
+{
+    UNREFERENCED(o);
+    UNREFERENCED(ssl);
+    UNREFERENCED(sess);
+    tcn_ThrowException(e, "Not implemented");
+    return 0;
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, freeSession)(TCN_STDARGS, jlong sess)
+{
+    UNREFERENCED(o);
+    UNREFERENCED(sess);
+    tcn_ThrowException(e, "Not implemented");
+}
+
 /*** End Apple API Additions ***/
 #endif
