@@ -166,42 +166,41 @@ typedef struct {
 } tcn_ssl_ticket_key_t;
 
 struct tcn_ssl_ctxt_t {
-    apr_pool_t              *pool;
-    SSL_CTX                 *ctx;
+    apr_pool_t*             pool;
+    SSL_CTX*                ctx;
+    /* pointer to the context verify store */
+    X509_STORE*             store;
 
-    unsigned char           context_id[SHA_DIGEST_LENGTH];
+    /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
+    unsigned char*          alpn_proto_data;
+    unsigned char*          next_proto_data;
+
+    /* for client or downstream server authentication */
+    char*                   password;
+
+    apr_thread_rwlock_t*    mutex; // Session ticket mutext
+    tcn_ssl_ticket_key_t*   ticket_keys;
+
+    /* certificate verifier callback */
+    jobject                 verifier;
+    jobject                 cert_requested_callback;
 
     int                     protocol;
     /* we are one or the other */
     int                     mode;
 
-    /* pointer to the context verify store */
-    X509_STORE              *store;
-
     /* for client or downstream server authentication */
     int                     verify_depth;
     int                     verify_mode;
-    char                    *password;
 
-    /* certificate verifier callback */
-    jobject verifier;
-    jmethodID verifier_method;
-
-    jobject cert_requested_callback;
-    jmethodID cert_requested_callback_method;
-
-    unsigned char           *next_proto_data;
     unsigned int            next_proto_len;
     int                     next_selector_failure_behavior;
 
-    /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
-    unsigned char           *alpn_proto_data;
     unsigned int            alpn_proto_len;
     int                     alpn_selector_failure_behavior;
 
-    apr_thread_rwlock_t     *mutex;
-    tcn_ssl_ticket_key_t    *ticket_keys;
     unsigned int            ticket_keys_len;
+    unsigned int            pad;
 
     /* TLS ticket key session resumption statistics */
 
@@ -213,6 +212,11 @@ struct tcn_ssl_ctxt_t {
     apr_uint32_t            ticket_keys_renew;
     // The client presented a ticket that did not match any key in the list.
     apr_uint32_t            ticket_keys_fail;
+
+    jmethodID               verifier_method;
+    jmethodID               cert_requested_callback_method;
+
+    unsigned char           context_id[SHA_DIGEST_LENGTH];
 };
 
 /*
