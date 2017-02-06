@@ -232,7 +232,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     c->mode     = mode;
     c->ctx      = ctx;
     c->pool     = p;
-    SSL_CTX_set_options(c->ctx, SSL_OP_ALL);
     if (!(protocol & SSL_PROTOCOL_SSLV2))
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv2);
     if (!(protocol & SSL_PROTOCOL_SSLV3))
@@ -262,6 +261,11 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
      * so that an acceptable cipher suite can be negotiated.
      */
     SSL_CTX_set_options(c->ctx, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+    /**
+     * These options may be set by default but can be dangerous in practice [1].
+     * [1] https://www.openssl.org/docs/man1.0.1/ssl/SSL_CTX_set_options.html
+     */
+    SSL_CTX_clear_options(c->ctx, SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION | SSL_OP_LEGACY_SERVER_CONNECT);
 
     /* Release idle buffers to the SSL_CTX free list */
     SSL_CTX_set_mode(c->ctx, SSL_MODE_RELEASE_BUFFERS);
@@ -347,11 +351,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setOptions)(TCN_STDARGS, jlong ctx,
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
-#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
-    /* Clear the flag if not supported */
-    if (opt & 0x00040000)
-        opt &= ~0x00040000;
-#endif
+
     SSL_CTX_set_options(c->ctx, opt);
 }
 
