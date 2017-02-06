@@ -51,6 +51,7 @@ public final class SSL {
     public static final int SSL_PROTOCOL_TLSV1 = (1<<2);
     public static final int SSL_PROTOCOL_TLSV1_1 = (1<<3);
     public static final int SSL_PROTOCOL_TLSV1_2 = (1<<4);
+
     /** TLS_*method according to https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_new.html */
     public static final int SSL_PROTOCOL_TLS   = (SSL_PROTOCOL_SSLV3 | SSL_PROTOCOL_TLSV1 | SSL_PROTOCOL_TLSV1_1 | SSL_PROTOCOL_TLSV1_2);
     public static final int SSL_PROTOCOL_ALL   = (SSL_PROTOCOL_SSLV2 | SSL_PROTOCOL_TLS);
@@ -67,97 +68,71 @@ public final class SSL {
     /* Use either SSL_VERIFY_NONE or SSL_VERIFY_PEER, the last 2 options
      * are 'ored' with SSL_VERIFY_PEER if they are desired
      */
-    public static final int SSL_VERIFY_NONE                 = 0;
-    public static final int SSL_VERIFY_PEER                 = 1;
-    public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 2;
-    public static final int SSL_VERIFY_CLIENT_ONCE          = 4;
+    private static native int sslVerifyNone();
+    private static native int sslVerifyPeer();
+    private static native int sslVerifyFailIfNoPeerCert();
+    private static native int sslVerifyClientOnce();
+
+    public static final int SSL_VERIFY_NONE                 = sslVerifyNone();
+    public static final int SSL_VERIFY_PEER                 = sslVerifyPeer();
+    public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = sslVerifyFailIfNoPeerCert();
+    public static final int SSL_VERIFY_CLIENT_ONCE          = sslVerifyClientOnce();
     public static final int SSL_VERIFY_PEER_STRICT          = (SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
 
-    public static final int SSL_OP_MICROSOFT_SESS_ID_BUG            = 0x00000001;
-    public static final int SSL_OP_NETSCAPE_CHALLENGE_BUG           = 0x00000002;
-    public static final int SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG = 0x00000008;
-    public static final int SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG      = 0x00000010;
-    public static final int SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER       = 0x00000020;
-    public static final int SSL_OP_MSIE_SSLV2_RSA_PADDING           = 0x00000040;
-    public static final int SSL_OP_SSLEAY_080_CLIENT_DH_BUG         = 0x00000080;
-    public static final int SSL_OP_TLS_D5_BUG                       = 0x00000100;
-    public static final int SSL_OP_TLS_BLOCK_PADDING_BUG            = 0x00000200;
-
-    /* Disable SSL 3.0/TLS 1.0 CBC vulnerability workaround that was added
-     * in OpenSSL 0.9.6d.  Usually (depending on the application protocol)
-     * the workaround is not needed.  Unfortunately some broken SSL/TLS
-     * implementations cannot handle it at all, which is why we include
-     * it in SSL_OP_ALL. */
-    public static final int SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS      = 0x00000800;
-
-    /* SSL_OP_ALL: various bug workarounds that should be rather harmless.
-     *             This used to be 0x000FFFFFL before 0.9.7. */
-    public static final int SSL_OP_ALL                              = 0x00000FFF;
-    /* As server, disallow session resumption on renegotiation */
-    public static final int SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000;
-    /* Don't use compression even if supported */
-    public static final int SSL_OP_NO_COMPRESSION                         = 0x00020000;
-    /* Permit unsafe legacy renegotiation */
-    public static final int SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION      = 0x00040000;
-    /* If set, always create a new key when using tmp_eddh parameters */
-    public static final int SSL_OP_SINGLE_ECDH_USE                  = 0x00080000;
-    /* If set, always create a new key when using tmp_dh parameters */
-    public static final int SSL_OP_SINGLE_DH_USE                    = 0x00100000;
-    /* Set on servers to choose the cipher according to the server's
-     * preferences */
-    public static final int SSL_OP_CIPHER_SERVER_PREFERENCE         = 0x00400000;
-    /* If set, a server will allow a client to issue a SSLv3.0 version number
-     * as latest version supported in the premaster secret, even when TLSv1.0
-     * (version 3.1) was announced in the client hello. Normally this is
-     * forbidden to prevent version rollback attacks. */
-    public static final int SSL_OP_TLS_ROLLBACK_BUG                 = 0x00800000;
-
-    public static final int SSL_OP_NO_SSLv2                         = 0x01000000;
-    public static final int SSL_OP_NO_SSLv3                         = 0x02000000;
-    public static final int SSL_OP_NO_TLSv1                         = 0x04000000;
-    public static final int SSL_OP_NO_TLSv1_2                       = 0x08000000;
-    public static final int SSL_OP_NO_TLSv1_1                       = 0x10000000;
-
-    public static final int SSL_OP_NO_TICKET                        = 0x00004000;
-
-    // SSL_OP_PKCS1_CHECK_1 and SSL_OP_PKCS1_CHECK_2 flags are unsupported
-    // in the current version of OpenSSL library. See ssl.h changes in commit
-    // 7409d7ad517650db332ae528915a570e4e0ab88b (30 Apr 2011) of OpenSSL.
     /**
-     * @deprecated Unsupported in the current version of OpenSSL
+     * Options that may impact security and may be set by default as defined in:
+     * <a href="https://www.openssl.org/docs/man1.0.1/ssl/SSL_CTX_set_options.html">SSL Docs</a>.
      */
-    @Deprecated
-    public static final int SSL_OP_PKCS1_CHECK_1                    = 0x08000000;
+    private static native int sslOpCipherServerPreference();
+    private static native int sslOpNoSSLv2();
+    private static native int sslOpNoSSLv3();
+    private static native int sslOpNoTLSv1();
+    private static native int sslOpNoTLSv11();
+    private static native int sslOpNoTLSv12();
+    private static native int sslOpNoTicket();
+
+    public static final int SSL_OP_CIPHER_SERVER_PREFERENCE = sslOpCipherServerPreference();
+    public static final int SSL_OP_NO_SSLv2 = sslOpNoSSLv2();
+    public static final int SSL_OP_NO_SSLv3 = sslOpNoSSLv3();
+    public static final int SSL_OP_NO_TLSv1 = sslOpNoTLSv1();
+    public static final int SSL_OP_NO_TLSv1_1 = sslOpNoTLSv11();
+    public static final int SSL_OP_NO_TLSv1_2 = sslOpNoTLSv12();
+    public static final int SSL_OP_NO_TICKET = sslOpNoTicket();
+
     /**
-     * @deprecated Unsupported in the current version of OpenSSL
+     * Options not defined in the OpenSSL docs but may impact security.
      */
-    @Deprecated
-    public static final int SSL_OP_PKCS1_CHECK_2                    = 0x10000000;
-    public static final int SSL_OP_NETSCAPE_CA_DN_BUG               = 0x20000000;
-    public static final int SSL_OP_NETSCAPE_DEMO_CIPHER_CHANGE_BUG  = 0x40000000;
+    private static native int sslOpNoCompression();
+
+    public static final int SSL_OP_NO_COMPRESSION = sslOpNoCompression();
 
     public static final int SSL_MODE_CLIENT         = 0;
     public static final int SSL_MODE_SERVER         = 1;
     public static final int SSL_MODE_COMBINED       = 2;
 
     /* Only support OFF and SERVER for now */
-    public static final long SSL_SESS_CACHE_OFF = 0x0000;
-    public static final long SSL_SESS_CACHE_SERVER = 0x0002;
+    private static native int sslSessCacheOff();
+    private static native int sslSessCacheServer();
+
+    public static final long SSL_SESS_CACHE_OFF = sslSessCacheOff();
+    public static final long SSL_SESS_CACHE_SERVER = sslSessCacheServer();
 
     public static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
     public static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
 
-    public static final int SSL_ST_CONNECT = 0x1000;
-    public static final int SSL_ST_ACCEPT =  0x2000;
+    private static native int sslStConnect();
+    private static native int sslStAccept();
 
-    public static final int SSL_MODE_ENABLE_PARTIAL_WRITE           = 0x00000001;
-    public static final int SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER     = 0x00000002;
-    public static final int SSL_MODE_AUTO_RETRY                     = 0x00000004;
-    public static final int SSL_MODE_NO_AUTO_CHAIN                  = 0x00000008;
-    public static final int SSL_MODE_RELEASE_BUFFERS                = 0x00000010;
-    public static final int SSL_MODE_SEND_CLIENTHELLO_TIME          = 0x00000020;
-    public static final int SSL_MODE_SEND_SERVERHELLO_TIME          = 0x00000040;
-    public static final int SSL_MODE_SEND_FALLBACK_SCSV             = 0x00000080;
+    public static final int SSL_ST_CONNECT = sslStConnect();
+    public static final int SSL_ST_ACCEPT =  sslStAccept();
+
+    private static native int sslModeEnablePartialWrite();
+    private static native int sslModeAcceptMovingWriteBuffer();
+    private static native int sslModeReleaseBuffers();
+
+    public static final int SSL_MODE_ENABLE_PARTIAL_WRITE           = sslModeEnablePartialWrite();
+    public static final int SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER     = sslModeAcceptMovingWriteBuffer();
+    public static final int SSL_MODE_RELEASE_BUFFERS                = sslModeReleaseBuffers();
 
     /* Return OpenSSL version number */
     public static native int version();
@@ -191,11 +166,6 @@ public final class SSL {
     /**
      * Return true if all the requested SSL_OP_* are supported by OpenSSL.
      *
-     * <i>Note that for versions of tcnative &lt; 1.1.25, this method will
-     * return <code>true</code> if and only if <code>op</code>=
-     * {@link #SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION} and tcnative
-     * supports that flag.</i>
-     *
      * @param op Bitwise-OR of all SSL_OP_* to test.
      *
      * @return true if all SSL_OP_* are supported by OpenSSL library.
@@ -206,18 +176,30 @@ public final class SSL {
      * Begin Twitter API additions
      */
 
-    public static final int SSL_SENT_SHUTDOWN = 1;
-    public static final int SSL_RECEIVED_SHUTDOWN = 2;
+    private static native int sslSendShutdown();
+    private static native int sslReceivedShutdown();
+    private static native int sslErrorNone();
+    private static native int sslErrorSSL();
+    private static native int sslErrorWantRead();
+    private static native int sslErrorWantWrite();
+    private static native int sslErrorWantX509Lookup();
+    private static native int sslErrorSyscall();
+    private static native int sslErrorZeroReturn();
+    private static native int sslErrorWantConnect();
+    private static native int sslErrorWantAccept();
 
-    public static final int SSL_ERROR_NONE             = 0;
-    public static final int SSL_ERROR_SSL              = 1;
-    public static final int SSL_ERROR_WANT_READ        = 2;
-    public static final int SSL_ERROR_WANT_WRITE       = 3;
-    public static final int SSL_ERROR_WANT_X509_LOOKUP = 4;
-    public static final int SSL_ERROR_SYSCALL          = 5; /* look at error stack/return value/errno */
-    public static final int SSL_ERROR_ZERO_RETURN      = 6;
-    public static final int SSL_ERROR_WANT_CONNECT     = 7;
-    public static final int SSL_ERROR_WANT_ACCEPT      = 8;
+    public static final int SSL_SENT_SHUTDOWN = sslSendShutdown();
+    public static final int SSL_RECEIVED_SHUTDOWN = sslReceivedShutdown();
+
+    public static final int SSL_ERROR_NONE             = sslErrorNone();
+    public static final int SSL_ERROR_SSL              = sslErrorSSL();
+    public static final int SSL_ERROR_WANT_READ        = sslErrorWantRead();
+    public static final int SSL_ERROR_WANT_WRITE       = sslErrorWantWrite();
+    public static final int SSL_ERROR_WANT_X509_LOOKUP = sslErrorWantX509Lookup();
+    public static final int SSL_ERROR_SYSCALL          = sslErrorSyscall(); /* look at error stack/return value/errno */
+    public static final int SSL_ERROR_ZERO_RETURN      = sslErrorZeroReturn();
+    public static final int SSL_ERROR_WANT_CONNECT     = sslErrorWantConnect();
+    public static final int SSL_ERROR_WANT_ACCEPT      = sslErrorWantAccept();
 
     /**
      * SSL_new

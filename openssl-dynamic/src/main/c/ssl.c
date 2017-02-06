@@ -746,6 +746,7 @@ static void ssl_dyn_destroy_function(struct CRYPTO_dynlock_value *l,
      */
     apr_pool_destroy(l->pool);
 }
+
 static void ssl_thread_setup(apr_pool_t *p)
 {
     int i;
@@ -771,6 +772,126 @@ static void ssl_thread_setup(apr_pool_t *p)
 
     apr_pool_cleanup_register(p, NULL, ssl_thread_cleanup,
                               apr_pool_cleanup_null);
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslVerifyNone)(TCN_STDARGS) {
+    return SSL_VERIFY_NONE;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslVerifyPeer)(TCN_STDARGS) {
+    return SSL_VERIFY_PEER;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslVerifyFailIfNoPeerCert)(TCN_STDARGS) {
+    return SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslVerifyClientOnce)(TCN_STDARGS) {
+    return SSL_VERIFY_CLIENT_ONCE;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslOpCipherServerPreference)(TCN_STDARGS) {
+    return SSL_OP_CIPHER_SERVER_PREFERENCE;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslOpNoSSLv2)(TCN_STDARGS) {
+    return SSL_OP_NO_SSLv2;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslOpNoSSLv3)(TCN_STDARGS) {
+    return SSL_OP_NO_SSLv3;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslOpNoTLSv1)(TCN_STDARGS) {
+    return SSL_OP_NO_TLSv1;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslOpNoTLSv11)(TCN_STDARGS) {
+    return SSL_OP_NO_TLSv1_1;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslOpNoTLSv12)(TCN_STDARGS) {
+    return SSL_OP_NO_TLSv1_2;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslOpNoTicket)(TCN_STDARGS) {
+    return SSL_OP_NO_TICKET;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslOpNoCompression)(TCN_STDARGS) {
+    return SSL_OP_NO_COMPRESSION;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslSessCacheOff)(TCN_STDARGS) {
+    return SSL_SESS_CACHE_OFF;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslSessCacheServer)(TCN_STDARGS) {
+    return SSL_SESS_CACHE_SERVER;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslStConnect)(TCN_STDARGS) {
+    return SSL_ST_CONNECT;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslStAccept)(TCN_STDARGS) {
+    return SSL_ST_ACCEPT;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslModeEnablePartialWrite)(TCN_STDARGS) {
+    return SSL_MODE_ENABLE_PARTIAL_WRITE;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslModeAcceptMovingWriteBuffer)(TCN_STDARGS) {
+    return SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslModeReleaseBuffers)(TCN_STDARGS) {
+    return SSL_MODE_RELEASE_BUFFERS;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslSendShutdown)(TCN_STDARGS) {
+    return SSL_SENT_SHUTDOWN;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslReceivedShutdown)(TCN_STDARGS) {
+    return SSL_RECEIVED_SHUTDOWN;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorNone)(TCN_STDARGS) {
+    return SSL_ERROR_NONE;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorSSL)(TCN_STDARGS) {
+    return SSL_ERROR_SSL;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorWantRead)(TCN_STDARGS) {
+    return SSL_ERROR_WANT_READ;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorWantWrite)(TCN_STDARGS) {
+    return SSL_ERROR_WANT_WRITE;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorWantX509Lookup)(TCN_STDARGS) {
+    return SSL_ERROR_WANT_X509_LOOKUP;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorSyscall)(TCN_STDARGS) {
+    return SSL_ERROR_SYSCALL;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorZeroReturn)(TCN_STDARGS) {
+    return SSL_ERROR_ZERO_RETURN;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorWantConnect)(TCN_STDARGS) {
+    return SSL_ERROR_WANT_CONNECT;
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, sslErrorWantAccept)(TCN_STDARGS) {
+    return SSL_ERROR_WANT_ACCEPT;
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
@@ -1557,12 +1678,6 @@ TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
 
     UNREFERENCED_STDARGS;
 
-#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
-    /* Clear the flag if not supported */
-    if (opt & 0x00040000) {
-        opt &= ~0x00040000;
-    }
-#endif
     SSL_set_options(ssl_, opt);
 }
 
