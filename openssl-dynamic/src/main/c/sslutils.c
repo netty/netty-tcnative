@@ -135,30 +135,25 @@ const char* SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
  */
 static int SSL_app_data2_idx = -1;
 static int SSL_app_data3_idx = -1;
-void SSL_init_app_data2_3_idx(void)
+static int SSL_app_data4_idx = -1;
+void SSL_init_app_data_idx()
 {
     int i;
 
-    if (SSL_app_data2_idx > -1) {
-        return;
+    if (SSL_app_data2_idx == -1) {
+        /* we _do_ need to call this two times */
+        for (i = 0; i <= 1; i++) {
+            SSL_app_data2_idx = SSL_get_ex_new_index(0, "tcn_ssl_ctxt_t*", NULL, NULL, NULL);
+        }
     }
 
-    /* we _do_ need to call this two times */
-    for (i = 0; i <= 1; i++) {
-        SSL_app_data2_idx =
-            SSL_get_ex_new_index(0,
-                                 "Second Application Data for SSL",
-                                 NULL, NULL, NULL);
+    if (SSL_app_data3_idx == -1) {
+        SSL_app_data3_idx = SSL_get_ex_new_index(0, "int* handshakeCount", NULL, NULL, NULL);
     }
 
-    if (SSL_app_data3_idx > -1) {
-        return;
+    if (SSL_app_data4_idx == -1) {
+        SSL_app_data4_idx = SSL_get_ex_new_index(0, "tcn_ssl_verify_config_t*", NULL, NULL, NULL);
     }
-
-    SSL_app_data3_idx =
-            SSL_get_ex_new_index(0,
-                                 "Third Application Data for SSL",
-                                  NULL, NULL, NULL);
 }
 
 void *SSL_get_app_data2(SSL *ssl)
@@ -180,6 +175,16 @@ void *SSL_get_app_data3(SSL *ssl)
 void SSL_set_app_data3(SSL *ssl, void *arg)
 {
     SSL_set_ex_data(ssl, SSL_app_data3_idx, arg);
+}
+
+void *SSL_get_app_data4(SSL *ssl)
+{
+    return SSL_get_ex_data(ssl, SSL_app_data4_idx);
+}
+
+void SSL_set_app_data4(SSL *ssl, void *arg)
+{
+    SSL_set_ex_data(ssl, SSL_app_data4_idx, arg);
 }
 
 int SSL_password_callback(char *buf, int bufsiz, int verify,
@@ -565,39 +570,29 @@ int tcn_X509_up_ref(X509* cert) {
 #endif
 }
 
-/*
- * This OpenSSL callback function is called when OpenSSL
- * does client authentication and verifies the certificate chain.
- */
-int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
-{
-   /* Get Apache context back through OpenSSL context */
-    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
-                                          SSL_get_ex_data_X509_STORE_CTX_idx());
-    tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
+int tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth) {
+    c->verify_depth = depth > 0 ? depth : 0;
 
-    /* Get verify ingredients */
-    int errnum   = X509_STORE_CTX_get_error(ctx);
-    int errdepth = X509_STORE_CTX_get_error_depth(ctx);
-    int verify   = c->verify_mode;
-    int depth    = c->verify_depth;
-
-    if (verify == SSL_CVERIFY_UNSET ||
-        verify == SSL_CVERIFY_NONE)
-        return 1;
-
-    if (SSL_VERIFY_ERROR_IS_OPTIONAL(errnum) &&
-        (verify == SSL_CVERIFY_OPTIONAL_NO_CA)) {
-        ok = 1;
+    switch (tcn_mode) {
+      case SSL_CVERIFY_IGNORED:
+        switch (c->verify_mode) {
+          case SSL_CVERIFY_NONE:
+            return SSL_VERIFY_NONE;
+          case SSL_CVERIFY_OPTIONAL:
+            return SSL_VERIFY_PEER;
+          default:
+            return (SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+        }
+      case SSL_CVERIFY_NONE:
+        c->verify_mode = SSL_CVERIFY_NONE;
+        return SSL_VERIFY_NONE;
+      case SSL_CVERIFY_OPTIONAL:
+        c->verify_mode = SSL_CVERIFY_OPTIONAL;
+        return SSL_VERIFY_PEER;
+      default:
+        c->verify_mode = SSL_CVERIFY_REQUIRED;
+        return SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
     }
-
-    if (errdepth > depth) {
-        /* TODO: Some logging
-         * Certificate Verification: Certificate Chain too long
-         */
-        ok = 0;
-    }
-    return ok;
 }
 
 int SSL_callback_next_protos(SSL *ssl, const unsigned char **data,

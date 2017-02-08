@@ -286,11 +286,10 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
 
         SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH);
     }
-    /* Set default Certificate verification level
-     * and depth for the Client Authentication
-     */
-    c->verify_depth  = 1;
-    c->verify_mode   = SSL_CVERIFY_UNSET;
+
+    // Default depth is 100 and disabled according to https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html.
+    c->verify_config.verify_depth  = 100;
+    c->verify_config.verify_mode   = SSL_CVERIFY_NONE;
 
     /* Set default password callback */
     SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *)SSL_password_callback);
@@ -467,39 +466,16 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
     }
 }
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx,
-                                                jint level, jint depth)
+TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint level, jint depth)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    int verify = SSL_VERIFY_NONE;
 
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
-    c->verify_mode = level;
+    TCN_ASSERT(c != NULL);
 
-    if (c->verify_mode == SSL_CVERIFY_UNSET)
-        c->verify_mode = SSL_CVERIFY_NONE;
-    if (depth > 0)
-        c->verify_depth = depth;
-    /*
-     *  Configure callbacks for SSL context
-     */
-    if (c->verify_mode == SSL_CVERIFY_REQUIRE)
-        verify |= SSL_VERIFY_PEER_STRICT;
-    if ((c->verify_mode == SSL_CVERIFY_OPTIONAL) ||
-        (c->verify_mode == SSL_CVERIFY_OPTIONAL_NO_CA))
-        verify |= SSL_VERIFY_PEER;
-    if (!c->store) {
-        if (SSL_CTX_set_default_verify_paths(c->ctx)) {
-            c->store = SSL_CTX_get_cert_store(c->ctx);
-            X509_STORE_set_flags(c->store, 0);
-        }
-        else {
-            /* XXX: See if this is fatal */
-        }
-    }
-
-    SSL_CTX_set_verify(c->ctx, verify, SSL_callback_SSL_verify);
+    // No need to set the callback for SSL_CTX_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
+    SSL_CTX_set_verify(c->ctx, tcn_set_verify_config(&c->verify_config, level, depth), NULL);
+    SSL_CTX_set_verify_depth(c->ctx, c->verify_config.verify_depth);
 }
 
 static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
@@ -1205,12 +1181,22 @@ static const char* authentication_method(const SSL* ssl) {
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    TCN_ASSERT(ssl != NULL);
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
+    TCN_ASSERT(c != NULL);
+    tcn_ssl_verify_config_t* verify_config = SSL_get_app_data4(ssl);
+    TCN_ASSERT(verify_confg != NULL);
 
     // Get a stack of all certs in the chain
     STACK_OF(X509) *sk = ctx->untrusted;
 
-    int len = sk_X509_num(sk);
+    // SSL_CTX_set_verify_depth() and SSL_set_verify_depth() set the limit up to which depth certificates in a chain are
+    // used during the verification procedure. If the certificate chain is longer than allowed, the certificates above
+    // the limit are ignored. Error messages are generated as if these certificates would not be present,
+    // most likely a X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY will be issued.
+    // https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
+    const int totalQueuedLength = sk_X509_num(sk);
+    int len = TCN_MIN(verify_config->verify_depth, totalQueuedLength);
     unsigned i;
     X509 *cert;
     int length;
@@ -1254,8 +1240,16 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     authMethod = authentication_method(ssl);
     authMethodString = (*e)->NewStringUTF(e, authMethod);
 
-    result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,
-            authMethodString);
+    result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
+
+    // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
+    // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
+    if (result == X509_V_ERR_UNSPECIFIED && len < totalQueuedLength) {
+        result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
+    }
+
+    // TODO(scott): if verify_config->verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
+    // succeed for some of the "informational" error messages (e.g. X509_V_ERR_EMAIL_MISMATCH ?)
 
     // Set the correct error so it will be included in the alert.
     X509_STORE_CTX_set_error(ctx, result);
