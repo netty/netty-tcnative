@@ -521,12 +521,8 @@ static BIO_METHOD* BIO_java_bytebuffer() {
 
 static int ssl_tmp_key_init_dh(int bits, int idx)
 {
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
-    if (!(SSL_temp_keys[idx] =
-          SSL_dh_get_tmp_param(bits)))
-        return 1;
-    else
-        return 0;
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED) || defined(LIBRESSL_VERSION_NUMBER)
+    return (SSL_temp_keys[idx] = SSL_dh_get_tmp_param(bits)) ? 0 : 1;
 #else
     return 0;
 #endif
