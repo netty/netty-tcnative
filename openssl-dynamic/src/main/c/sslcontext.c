@@ -506,7 +506,6 @@ static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
 {
     BIO *bio = NULL;
     EVP_PKEY *key = NULL;
-    int i;
 
     if ((bio = BIO_new(BIO_s_file())) == NULL) {
         return NULL;
@@ -516,14 +515,8 @@ static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
         return NULL;
     }
 
-    for (i = 0; i < 3; i++) {
-        key = PEM_read_bio_PrivateKey(bio, NULL,
-                    (pem_password_cb *)SSL_password_callback,
-                    (void *)c->password);
-        if (key != NULL)
-            break;
-        BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
-    }
+    key = PEM_read_bio_PrivateKey(bio, NULL, (pem_password_cb *)SSL_password_callback, (void *)c->password);
+
     BIO_free(bio);
     return key;
 }
