@@ -137,6 +137,10 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslErrorWantAccep
     return SSL_ERROR_WANT_ACCEPT;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslMaxPlaintextLength)(TCN_STDARGS) {
+    return SSL3_RT_MAX_PLAIN_LENGTH;
+}
+
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, x509CheckFlagAlwaysCheckSubject)(TCN_STDARGS) {
 #ifdef X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT
     return X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT;
