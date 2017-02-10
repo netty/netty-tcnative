@@ -92,6 +92,27 @@ struct TCN_bio_bytebuffer {
     R |= SSL_TMP_KEY_INIT_DH(2048);             \
     R |= SSL_TMP_KEY_INIT_DH(4096)
 
+#if !defined(OPENSSL_IS_BORINGSSL)
+// This is the maximum overhead when encrypting plaintext as defined by
+// <a href="https://www.ietf.org/rfc/rfc5246.txt">rfc5264</a>,
+// <a href="https://www.ietf.org/rfc/rfc5289.txt">rfc5289</a> and openssl implementation itself.
+//
+// Please note that we use a padding of 16 here as openssl uses PKC#5 which uses 16 bytes while the spec itself
+// allow up to 255 bytes. 16 bytes is the max for PKC#5 (which handles it the same way as PKC#7) as we use a block
+// size of 16. See <a href="https://tools.ietf.org/html/rfc5652#section-6.3">rfc5652#section-6.3</a>.
+//
+// 16 (IV) + 48 (MAC) + 1 (Padding_length field) + 15 (Padding) + 1 (ContentType) + 2 (ProtocolVersion) + 2 (Length)
+//
+// TODO(scott): We may need to review this calculation once TLS 1.3 becomes available.
+//              Which may add a KeyUpdate in front of the current record.
+#define TCN_MAX_ENCRYPTED_PACKET_LENGTH (16 + 48 + 1 + 15 + 1 + 2 + 2)
+
+// This also includes the header overhead for TLS 1.2 and below.
+// See SSL#getMaxWrapOverhead for the overhead based upon the SSL*
+// TODO(scott): this may be an over estimate because we don't account for short headers.
+#define TCN_MAX_SEAL_OVERHEAD_LENGTH (TCN_MAX_ENCRYPTED_PACKET_LENGTH + SSL3_RT_HEADER_LENGTH)
+#endif /*!defined(OPENSSL_IS_BORINGSSL)*/
+
 static jint tcn_flush_sslbuffer_to_bytebuffer(struct TCN_bio_bytebuffer* bioUserData) {
     jint writeAmount = TCN_MIN(bioUserData->bufferLength, bioUserData->nonApplicationBufferLength) * sizeof(char);
     jint writeChunk = bioUserData->nonApplicationBufferSize - bioUserData->nonApplicationBufferOffset;
@@ -909,6 +930,11 @@ TCN_IMPLEMENT_CALL(jint, SSL, bioFlushByteBuffer)(TCN_STDARGS, jlong bioAddress)
            !bioUserData->bufferIsSSLWriteSink) ? 0 : tcn_flush_sslbuffer_to_bytebuffer(bioUserData);
 }
 
+TCN_IMPLEMENT_CALL(jint, SSL, sslPending)(TCN_STDARGS, jlong ssl) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    return ssl_ != NULL ? SSL_pending(ssl_) : 0;
+}
+
 // Write up to wlen bytes of application data to the ssl BIO (encrypt)
 TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToSSL)(TCN_STDARGS,
                                                        jlong ssl /* SSL * */,
@@ -1452,6 +1478,50 @@ TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
     UNREFERENCED_STDARGS;
 
     return SSL_get_options(ssl_);
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, setMode)(TCN_STDARGS, jlong sslAddress, jint mode)
+{
+    SSL* ssl = J2P(sslAddress, SSL*);
+
+    if (ssl == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    return (jint) SSL_set_mode(ssl, mode);
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, getMode)(TCN_STDARGS, jlong sslAddress)
+{
+    SSL* ssl = J2P(sslAddress, SSL*);
+
+    if (ssl == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+    return (jint) SSL_get_mode(ssl);
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, getMaxWrapOverhead)(TCN_STDARGS, jlong sslAddress)
+{
+    SSL* ssl = J2P(sslAddress, SSL*);
+
+    if (ssl == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+        return 0;
+    }
+
+#ifdef OPENSSL_IS_BORINGSSL
+    return (jint) SSL_max_seal_overhead(ssl);
+#else
+    // TODO(scott): When OpenSSL supports something like SSL_max_seal_overhead ... use it!
+    // TODO(scott): If we support SSL_MODE_CBC_RECORD_SPLITTING this must be calculated dynamically!
+    // TLS 1.3 requires an extra bit for the header.
+    return (jint) (SSL_version(ssl) >= TLS1_3_VERSION ? TCN_MAX_SEAL_OVERHEAD_LENGTH + 1
+                                                      : TCN_MAX_SEAL_OVERHEAD_LENGTH);
+#endif
 }
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)

@@ -124,6 +124,11 @@ extern const char* TCN_UNKNOWN_AUTH_METHOD;
 #define HAVE_ECC              1
 #endif
 
+// TODO(scott): remove this as OpenSSL supports it in older version, or we drop support for older versions.
+#ifndef TLS1_3_VERSION
+#define TLS1_3_VERSION 0x0304
+#endif
+
 /* OpenSSL 1.0.2 compatibility */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 #define TLS_method SSLv23_method

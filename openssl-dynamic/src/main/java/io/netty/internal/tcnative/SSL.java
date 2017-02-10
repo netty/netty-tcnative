@@ -90,6 +90,8 @@ public final class SSL {
     public static final int SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER     = sslModeAcceptMovingWriteBuffer();
     public static final int SSL_MODE_RELEASE_BUFFERS                = sslModeReleaseBuffers();
 
+    public static final int SSL_MAX_PLAINTEXT_LENGTH = sslMaxPlaintextLength();
+
     // https://www.openssl.org/docs/man1.0.2/crypto/X509_check_host.html
     public static final int X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT = x509CheckFlagAlwaysCheckSubject();
     public static final int X509_CHECK_FLAG_NO_WILD_CARDS = x509CheckFlagDisableWildCards();
@@ -233,6 +235,14 @@ public final class SSL {
      * @return the amount of data pending in buffer used for non-application writes.
      */
     public static native int bioLengthNonApplication(long bio);
+
+    /**
+     * The number of bytes pending in SSL which can be read immediately.
+     * See <a href="https://www.openssl.org/docs/man1.0.1/ssl/SSL_pending.html">SSL_pending</a>.
+     * @param ssl the SSL instance (SSL *)
+     * @return The number of bytes pending in SSL which can be read immediately.
+     */
+    public static native int sslPending(long ssl);
 
     /**
      * SSL_write
@@ -435,6 +445,31 @@ public final class SSL {
      * @return options  See SSL.SSL_OP_* for option flags.
      */
     public static native int getOptions(long ssl);
+
+    /**
+     * Call SSL_set_mode
+     *
+     * @param ssl the SSL instance (SSL *).
+     * @param mode the mode
+     * @return the set mode.
+     */
+    public static native int setMode(long ssl, int mode);
+
+    /**
+     * Call SSL_get_mode
+     *
+     * @param ssl the SSL instance (SSL *).
+     * @return the mode.
+     */
+    public static native int getMode(long ssl);
+
+    /**
+     * Get the maximum overhead, in bytes, of wrapping (a.k.a sealing) a record with ssl.
+     * See <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_max_seal_overhead">SSL_max_seal_overhead</a>.
+     * @param ssl the SSL instance (SSL *).
+     * @return Maximum overhead, in bytes, of wrapping (a.k.a sealing) a record with ssl.
+     */
+    public static native int getMaxWrapOverhead(long ssl);
 
     /**
      * Returns all Returns the cipher suites that are available for negotiation in an SSL handshake.
