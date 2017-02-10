@@ -72,8 +72,7 @@
 #define TCN_STDARGS     JNIEnv *e, jobject o
 
 #define TCN_IMPLEMENT_CALL(RT, CL, FN)  \
-    JNIEXPORT RT JNICALL Java_io_netty_tcnative_jni_##CL##_##FN
-
+    JNIEXPORT RT JNICALL Java_io_netty_internal_tcnative_##CL##_##FN
 
 /* Private helper functions */
 void            tcn_Throw(JNIEnv *, const char *, ...);

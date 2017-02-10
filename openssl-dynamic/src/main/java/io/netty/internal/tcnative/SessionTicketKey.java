@@ -14,7 +14,7 @@
  * under the License.
  */
 
-package io.netty.tcnative.jni;
+package io.netty.internal.tcnative;
 
 /**
  * Session Ticket Key

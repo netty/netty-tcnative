@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.netty.tcnative.jni;
+package io.netty.internal.tcnative;
 
 /**
  * Is called during handshake and hooked into openssl via {@code SSL_CTX_set_cert_verify_callback}.

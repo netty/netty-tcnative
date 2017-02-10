@@ -30,7 +30,7 @@
  *  limitations under the License.
  */
 
-package io.netty.tcnative.jni;
+package io.netty.internal.tcnative;
 
 import java.nio.ByteBuffer;
 
