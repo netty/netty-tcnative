@@ -1465,7 +1465,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
         SSL_CTX_set_client_cert_cb(c->ctx, NULL);
     } else {
         jclass callback_class = (*e)->GetObjectClass(e, callback);
-        jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(J[B[[B)Lio/netty/tcnative/jni/CertificateRequestedCallback$KeyMaterial;");
+        jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(J[B[[B)Lio/netty/internal/tcnative/CertificateRequestedCallback$KeyMaterial;");
         if (method == NULL) {
             return;
         }

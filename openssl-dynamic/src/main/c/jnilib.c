@@ -68,7 +68,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved)
     apr_version(&apv);
     apvn = apv.major * 1000 + apv.minor * 100 + apv.patch;
     if (apvn < 1201) {
-        tcn_Throw(env, "Unupported APR version (%s)",
+        tcn_Throw(env, "Unsupported APR version (%s)",
                   apr_version_string());
         return JNI_ERR;
     }
@@ -83,7 +83,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved)
                    "getBytes", "()[B", JNI_ERR);
 
     TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
-    TCN_LOAD_CLASS(env, keyMaterialClass, "io/netty/tcnative/jni/CertificateRequestedCallback$KeyMaterial", JNI_ERR);
+    TCN_LOAD_CLASS(env, keyMaterialClass, "io/netty/internal/tcnative/CertificateRequestedCallback$KeyMaterial", JNI_ERR);
 
     TCN_GET_FIELD(env, keyMaterialClass, keyMaterialCertificateChainFieldId,
                    "certificateChain", "J", JNI_ERR);
