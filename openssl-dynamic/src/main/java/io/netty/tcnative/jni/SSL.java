@@ -38,11 +38,6 @@ public final class SSL {
     private SSL() { }
 
     /*
-     * Type definitions mostly from mod_ssl
-     */
-    public static final int UNSET            = -1;
-
-    /*
      * Define the SSL Protocol options
      */
     public static final int SSL_PROTOCOL_NONE  = 0;
@@ -58,20 +53,10 @@ public final class SSL {
     /*
      * Define the SSL verify levels
      */
-    public static final int SSL_CVERIFY_UNSET          = UNSET;
-    public static final int SSL_CVERIFY_NONE           = 0;
-    public static final int SSL_CVERIFY_OPTIONAL       = 1;
-    public static final int SSL_CVERIFY_REQUIRE        = 2;
-    public static final int SSL_CVERIFY_OPTIONAL_NO_CA = 3;
-
-    /* Use either SSL_VERIFY_NONE or SSL_VERIFY_PEER, the last 2 options
-     * are 'ored' with SSL_VERIFY_PEER if they are desired
-     */
-    public static final int SSL_VERIFY_NONE                 = 0;
-    public static final int SSL_VERIFY_PEER                 = 1;
-    public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 2;
-    public static final int SSL_VERIFY_CLIENT_ONCE          = 4;
-    public static final int SSL_VERIFY_PEER_STRICT          = (SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+    public static final int SSL_CVERIFY_IGNORED            = -1;
+    public static final int SSL_CVERIFY_NONE               = 0;
+    public static final int SSL_CVERIFY_OPTIONAL           = 1;
+    public static final int SSL_CVERIFY_REQUIRED           = 2;
 
     public static final int SSL_OP_MICROSOFT_SESS_ID_BUG            = 0x00000001;
     public static final int SSL_OP_NETSCAPE_CHALLENGE_BUG           = 0x00000002;
@@ -457,14 +442,12 @@ public final class SSL {
      * but before the HTTP response is sent.
      * <br />
      * The following levels are available for level:
-     * <pre>
-     * SSL_CVERIFY_NONE           - No client Certificate is required at all
-     * SSL_CVERIFY_OPTIONAL       - The client may present a valid Certificate
-     * SSL_CVERIFY_REQUIRE        - The client has to present a valid Certificate
-     * SSL_CVERIFY_OPTIONAL_NO_CA - The client may present a valid Certificate
-     *                              but it need not to be (successfully) verifiable
-     * </pre>
-     * <br />
+     * <ul>
+     * <li>{@link #SSL_CVERIFY_IGNORED} - The level is ignored. Only depth will change.</li>
+     * <li>{@link #SSL_CVERIFY_NONE} - No client Certificate is required at all</li>
+     * <li>{@link #SSL_CVERIFY_OPTIONAL} - The client may present a valid Certificate</li>
+     * <li>{@link #SSL_CVERIFY_REQUIRED} - The client has to present a valid Certificate</li>
+     * </ul>
      * The depth actually is the maximum number of intermediate certificate issuers,
      * i.e. the number of CA certificates which are max allowed to be followed while
      * verifying the client certificate. A depth of 0 means that self-signed client

@@ -108,22 +108,12 @@
 #define SSL_DEFAULT_CACHE_SIZE  (256)
 #define SSL_DEFAULT_VHOST_NAME  ("_default_:443")
 
-#define SSL_CVERIFY_UNSET           (-1)
-#define SSL_CVERIFY_NONE            (0)
-#define SSL_CVERIFY_OPTIONAL        (1)
-#define SSL_CVERIFY_REQUIRE         (2)
-#define SSL_CVERIFY_OPTIONAL_NO_CA  (3)
-#define SSL_VERIFY_PEER_STRICT      (SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT)
+#define SSL_CVERIFY_IGNORED             (-1)
+#define SSL_CVERIFY_NONE                (0)
+#define SSL_CVERIFY_OPTIONAL            (1)
+#define SSL_CVERIFY_REQUIRED            (2)
 
 #define SSL_TO_APR_ERROR(X)         (APR_OS_START_USERERR + 1000 + X)
-
-#define SSL_VERIFY_ERROR_IS_OPTIONAL(errnum) \
-   ((errnum == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) \
-    || (errnum == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN) \
-    || (errnum == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) \
-    || (errnum == X509_V_ERR_CERT_UNTRUSTED) \
-    || (errnum == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE))
-
 
 #define MAX_ALPN_NPN_PROTO_SIZE 65535
 
@@ -170,70 +160,75 @@ typedef struct {
     unsigned char   aes_key[SSL_SESSION_TICKET_AES_KEY_LEN];
 } tcn_ssl_ticket_key_t;
 
+typedef struct {
+    int verify_depth;
+    int verify_mode;
+} tcn_ssl_verify_config_t;
+
 struct tcn_ssl_ctxt_t {
-    apr_pool_t*             pool;
-    SSL_CTX*                ctx;
-    /* pointer to the context verify store */
-    X509_STORE*             store;
+    apr_pool_t*              pool;
+    SSL_CTX*                 ctx;
 
     /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
-    unsigned char*          alpn_proto_data;
-    unsigned char*          next_proto_data;
+    unsigned char*           alpn_proto_data;
+    unsigned char*           next_proto_data;
 
     /* for client or downstream server authentication */
-    char*                   password;
+    char*                    password;
 
-    apr_thread_rwlock_t*    mutex; // Session ticket mutext
-    tcn_ssl_ticket_key_t*   ticket_keys;
+    apr_thread_rwlock_t*     mutex; // Session ticket mutext
+    tcn_ssl_ticket_key_t*    ticket_keys;
 
     /* certificate verifier callback */
-    jobject                 verifier;
-    jobject                 cert_requested_callback;
+    jobject                  verifier;
+    jmethodID                verifier_method;
 
-    int                     protocol;
+    jobject                  cert_requested_callback;
+    jmethodID                cert_requested_callback_method;
+
+    tcn_ssl_verify_config_t  verify_config;
+
+    int                      protocol;
     /* we are one or the other */
-    int                     mode;
+    int                      mode;
 
-    /* for client or downstream server authentication */
-    int                     verify_depth;
-    int                     verify_mode;
+    unsigned int             next_proto_len;
+    int                      next_selector_failure_behavior;
 
-    unsigned int            next_proto_len;
-    int                     next_selector_failure_behavior;
+    unsigned int             alpn_proto_len;
+    int                      alpn_selector_failure_behavior;
 
-    unsigned int            alpn_proto_len;
-    int                     alpn_selector_failure_behavior;
-
-    unsigned int            ticket_keys_len;
-    unsigned int            pad;
+    unsigned int             ticket_keys_len;
+    unsigned int             pad;
 
     /* TLS ticket key session resumption statistics */
 
     // The client did not present a ticket and we issued a new one.
-    apr_uint32_t            ticket_keys_new;
+    apr_uint32_t             ticket_keys_new;
     // The client presented a ticket derived from the primary key
-    apr_uint32_t            ticket_keys_resume;
+    apr_uint32_t             ticket_keys_resume;
     // The client presented a ticket derived from an older key, and we upgraded to the primary key.
-    apr_uint32_t            ticket_keys_renew;
+    apr_uint32_t             ticket_keys_renew;
     // The client presented a ticket that did not match any key in the list.
-    apr_uint32_t            ticket_keys_fail;
+    apr_uint32_t             ticket_keys_fail;
 
-    jmethodID               verifier_method;
-    jmethodID               cert_requested_callback_method;
-
-    unsigned char           context_id[SHA_DIGEST_LENGTH];
+    unsigned char            context_id[SHA_DIGEST_LENGTH];
 };
 
 /*
  *  Additional Functions
  */
-void        SSL_init_app_data2_3_idx(void);
+void        SSL_init_app_data_idx(void);
 // The app_data2 is used to store the tcn_ssl_ctxt_t pointer for the SSL instance.
 void       *SSL_get_app_data2(SSL *);
 void        SSL_set_app_data2(SSL *, void *);
 // The app_data3 is used to store the handshakeCount pointer for the SSL instance.
 void       *SSL_get_app_data3(SSL *);
 void        SSL_set_app_data3(SSL *, void *);
+// The app_data4 is used to store the tcn_ssl_verify_config_t pointer for the SSL instance.
+// This will initially point back to the tcn_ssl_ctxt_t in tcn_ssl_ctxt_t.
+void       *SSL_get_app_data4(SSL *);
+void        SSL_set_app_data4(SSL *, void *);
 int         SSL_password_callback(char *, int, int, void *);
 DH         *SSL_dh_get_tmp_param(int);
 DH         *SSL_callback_tmp_DH(SSL *, int, int);
@@ -249,9 +244,9 @@ int         SSL_CTX_use_client_CA_bio(SSL_CTX *, BIO *);
 int         SSL_use_certificate_chain_bio(SSL *, BIO *, bool);
 X509        *load_pem_cert_bio(const char *, const BIO *);
 EVP_PKEY    *load_pem_key_bio(const char *, const BIO *);
+int         tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth);
 int         tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey);
 int         tcn_X509_up_ref(X509* cert);
-int         SSL_callback_SSL_verify(int, X509_STORE_CTX *);
 int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);
 int         SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int,void *);
 int         SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);

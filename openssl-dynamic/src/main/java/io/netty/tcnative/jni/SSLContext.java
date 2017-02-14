@@ -378,14 +378,12 @@ public final class SSLContext {
      * but before the HTTP response is sent.
      * <br>
      * The following levels are available for level:
-     * <PRE>
-     * SSL_CVERIFY_NONE           - No client Certificate is required at all
-     * SSL_CVERIFY_OPTIONAL       - The client may present a valid Certificate
-     * SSL_CVERIFY_REQUIRE        - The client has to present a valid Certificate
-     * SSL_CVERIFY_OPTIONAL_NO_CA - The client may present a valid Certificate
-     *                              but it need not to be (successfully) verifiable
-     * </PRE>
-     * <br>
+     * <ul>
+     * <li>{@link SSL#SSL_CVERIFY_IGNORED} - The level is ignored. Only depth will change.</li>
+     * <li>{@link SSL#SSL_CVERIFY_NONE} - No client Certificate is required at all</li>
+     * <li>{@link SSL#SSL_CVERIFY_OPTIONAL} - The client may present a valid Certificate</li>
+     * <li>{@link SSL#SSL_CVERIFY_REQUIRED} - The client has to present a valid Certificate</li>
+     * </ul>
      * The depth actually is the maximum number of intermediate certificate issuers,
      * i.e. the number of CA certificates which are max allowed to be followed while
      * verifying the client certificate. A depth of 0 means that self-signed client
