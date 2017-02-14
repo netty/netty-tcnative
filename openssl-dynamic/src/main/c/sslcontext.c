@@ -1235,11 +1235,20 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 
     result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
 
+#ifdef X509_V_ERR_UNSPECIFIED
     // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
     // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
     if (result == X509_V_ERR_UNSPECIFIED && len < totalQueuedLength) {
         result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
     }
+#else
+    // HACK!
+    // LibreSSL 2.4.x doesn't support the X509_V_ERR_UNSPECIFIED so we introduce a work around to make sure a supported alert is used.
+    // This should be reverted when we support LibreSSL 2.5.x (which does support X509_V_ERR_UNSPECIFIED).
+    if (result == 1) {
+        result = len < totalQueuedLength ? X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY : X509_V_ERR_CERT_REJECTED;
+    }
+#endif
 
     // TODO(scott): if verify_config->verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
     // succeed for some of the "informational" error messages (e.g. X509_V_ERR_EMAIL_MISMATCH ?)
