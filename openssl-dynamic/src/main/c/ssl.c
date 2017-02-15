@@ -251,13 +251,14 @@ static jint tcn_flush_sslbuffer_to_bytebuffer(struct TCN_bio_bytebuffer* bioUser
     } else {
         memcpy(bioUserData->buffer, &bioUserData->nonApplicationBuffer[bioUserData->nonApplicationBufferOffset], (size_t) writeAmount);
         bioUserData->nonApplicationBufferOffset += writeAmount;
-        if (bioUserData->nonApplicationBufferOffset == bioUserData->nonApplicationBufferSize) {
-            bioUserData->nonApplicationBufferOffset = 0;
-        }
     }
     bioUserData->nonApplicationBufferLength -= writeAmount;
     bioUserData->bufferLength -= writeAmount;
     bioUserData->buffer += writeAmount; // Pointer arithmetic based on char* type
+
+    if (bioUserData->nonApplicationBufferLength == 0) {
+        bioUserData->nonApplicationBufferOffset = 0;
+    }
 
 #ifdef NETTY_TCNATIVE_BIO_DEBUG
     fprintf(stderr, "tcn_flush_sslbuffer_to_bytebuffer2 bioUserData->nonApplicationBufferLength %d bioUserData->nonApplicationBufferOffset %d\n", bioUserData->nonApplicationBufferLength, bioUserData->nonApplicationBufferOffset);
