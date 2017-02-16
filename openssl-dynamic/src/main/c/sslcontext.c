@@ -1245,7 +1245,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     // HACK!
     // LibreSSL 2.4.x doesn't support the X509_V_ERR_UNSPECIFIED so we introduce a work around to make sure a supported alert is used.
     // This should be reverted when we support LibreSSL 2.5.x (which does support X509_V_ERR_UNSPECIFIED).
-    if (result == 1) {
+    if (result == TCN_X509_V_ERR_UNSPECIFIED) {
         result = len < totalQueuedLength ? X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY : X509_V_ERR_CERT_REJECTED;
     }
 #endif
