@@ -152,6 +152,15 @@ extern const char* TCN_UNKNOWN_AUTH_METHOD;
 
 extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 
+// HACK!
+// LibreSSL 2.4.x doesn't support the X509_V_ERR_UNSPECIFIED so we introduce a work around to make sure a supported alert is used.
+// This should be reverted when we support LibreSSL 2.5.x (which does support X509_V_ERR_UNSPECIFIED).
+#ifndef X509_V_ERR_UNSPECIFIED
+#define TCN_X509_V_ERR_UNSPECIFIED 99999
+#else
+#define TCN_X509_V_ERR_UNSPECIFIED (X509_V_ERR_UNSPECIFIED)
+#endif /*X509_V_ERR_UNSPECIFIED*/
+
 typedef struct tcn_ssl_ctxt_t tcn_ssl_ctxt_t;
 
 typedef struct {
