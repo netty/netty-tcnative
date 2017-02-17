@@ -571,7 +571,9 @@ int tcn_X509_up_ref(X509* cert) {
 }
 
 int tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth) {
-    c->verify_depth = depth > 0 ? depth : 0;
+    if (depth >= 0) {
+        c->verify_depth = depth;
+    }
 
     switch (tcn_mode) {
       case SSL_CVERIFY_IGNORED:
