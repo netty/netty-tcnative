@@ -891,6 +891,38 @@ TCN_IMPLEMENT_CALL(jint, SSL, sslErrorWantAccept)(TCN_STDARGS) {
     return SSL_ERROR_WANT_ACCEPT;
 }
 
+TCN_IMPLEMENT_CALL(jint, SSL, x509CheckFlagAlwaysCheckSubject)(TCN_STDARGS) {
+#ifdef X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT
+    return X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT;
+#else
+    return 0;
+#endif
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, x509CheckFlagDisableWildCards)(TCN_STDARGS) {
+#ifdef X509_CHECK_FLAG_NO_WILD_CARDS
+    return X509_CHECK_FLAG_NO_WILD_CARDS;
+#else
+    return 0;
+#endif
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, x509CheckFlagNoPartialWildCards)(TCN_STDARGS) {
+#ifdef X509_CHECK_FLAG_NO_PARTIAL_WILD_CARDS
+    return X509_CHECK_FLAG_NO_PARTIAL_WILD_CARDS;
+#else
+    return 0;
+#endif
+}
+
+TCN_IMPLEMENT_CALL(jint, SSL, x509CheckFlagMultiLabelWildCards)(TCN_STDARGS) {
+#ifdef X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS
+    return X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS;
+#else
+    return 0;
+#endif
+}
+
 TCN_IMPLEMENT_CALL(jint, SSL, x509vOK)(TCN_STDARGS) {
     return X509_V_OK;
 }
@@ -1979,6 +2011,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jin
            tcn_ThrowException(e, "failed to allocate tcn_ssl_verify_config_t");
            return;
        }
+       // Copy the verify depth form the context in case depth is <0.
+       verify_config->verify_depth = c->verify_config.verify_depth;
        SSL_set_app_data4(ssl_, verify_config);
     }
 
@@ -2199,6 +2233,30 @@ TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName)(TCN_STDARGS, jlong ssl, jstring
     }
 
     TCN_FREE_CSTRING(hostname);
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong sslAddress, jint flags, jstring hostnameString) {
+    SSL* ssl = J2P(sslAddress, SSL*);
+
+    if (ssl == NULL) {
+        tcn_ThrowException(e, "ssl is null");
+    } else {
+        const char* hostname = hostnameString == NULL ? NULL : (*e)->GetStringUTFChars(e, hostnameString, 0);
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
+        X509_VERIFY_PARAM* param = SSL_get0_param(ssl);
+        X509_VERIFY_PARAM_set_hostflags(param, flags);
+        if (X509_VERIFY_PARAM_set1_host(param, hostname, 0) != 1) {
+            char err[ERR_LEN];
+            ERR_error_string(ERR_get_error(), err);
+            tcn_Throw(e, "X509_VERIFY_PARAM_set1_host error (%s)", err);
+        }
+#else
+        if (hostname != NULL && hostname[0] != '\0') {
+            tcn_ThrowException(e, "hostname verification requires OpenSSL 1.0.2+");
+        }
+#endif
+        (*e)->ReleaseStringUTFChars(e, hostnameString, hostname);
+    }
 }
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong ssl) {

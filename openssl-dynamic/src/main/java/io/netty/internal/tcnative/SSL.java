@@ -114,6 +114,17 @@ public final class SSL {
     public static final int SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER     = sslModeAcceptMovingWriteBuffer();
     public static final int SSL_MODE_RELEASE_BUFFERS                = sslModeReleaseBuffers();
 
+    private static native int x509CheckFlagAlwaysCheckSubject();
+    private static native int x509CheckFlagDisableWildCards();
+    private static native int x509CheckFlagNoPartialWildCards();
+    private static native int x509CheckFlagMultiLabelWildCards();
+
+    // https://www.openssl.org/docs/man1.0.2/crypto/X509_check_host.html
+    public static final int X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT = x509CheckFlagAlwaysCheckSubject();
+    public static final int X509_CHECK_FLAG_NO_WILD_CARDS = x509CheckFlagDisableWildCards();
+    public static final int X509_CHECK_FLAG_NO_PARTIAL_WILD_CARDS = x509CheckFlagNoPartialWildCards();
+    public static final int X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS = x509CheckFlagMultiLabelWildCards();
+
     /* x509 certificate verification errors */
     static native int x509vOK();
     static native int x509vErrUnspecified();
@@ -504,7 +515,7 @@ public final class SSL {
      * @param ssl the SSL instance (SSL *)
      * @param level Type of Client Certificate verification.
      * @param depth Maximum depth of CA Certificates in Client Certificate
-     *              verification.
+     *              verification. Ignored if value is {@code <0}.
      */
     public static native void setVerify(long ssl, int level, int depth);
 
@@ -596,6 +607,16 @@ public final class SSL {
      * @param hostname the hostname
      */
     public static native void setTlsExtHostName(long ssl, String hostname);
+
+    /**
+     * Explicitly control <a href="https://wiki.openssl.org/index.php/Hostname_validation">hostname validation</a>
+     * <a href="https://www.openssl.org/docs/man1.0.2/crypto/X509_check_host.html">see X509_check_host for X509_CHECK_FLAG* definitions</a>.
+     * Values are defined as a bitmask of {@code X509_CHECK_FLAG*} values.
+     * @param ssl the SSL instance (SSL*).
+     * @param flags a bitmask of {@code X509_CHECK_FLAG*} values.
+     * @param hostname the hostname which is expected for validation.
+     */
+    public static native void setHostNameValidation(long ssl, int flags, String hostname);
 
     public static native String[] authenticationMethods(long ssl);
 
