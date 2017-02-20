@@ -205,7 +205,7 @@ int SSL_password_callback(char *buf, int bufsiz, int verify,
     return (int)strlen(buf);
 }
 
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED) || defined(LIBRESSL_VERSION_NUMBER)
 
 static unsigned char dh0512_p[]={
     0xD9,0xBA,0xBF,0xFD,0x69,0x38,0xC9,0x51,0x2D,0x19,0x37,0x39,
