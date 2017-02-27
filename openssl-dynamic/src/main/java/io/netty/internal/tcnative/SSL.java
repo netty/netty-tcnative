@@ -33,6 +33,8 @@ package io.netty.internal.tcnative;
 
 import java.nio.ByteBuffer;
 
+import static io.netty.internal.tcnative.NativeStaticallyReferencedJniMethods.*;
+
 public final class SSL {
 
     private SSL() { }
@@ -59,18 +61,6 @@ public final class SSL {
     public static final int SSL_CVERIFY_OPTIONAL           = 1;
     public static final int SSL_CVERIFY_REQUIRED           = 2;
 
-    /**
-     * Options that may impact security and may be set by default as defined in:
-     * <a href="https://www.openssl.org/docs/man1.0.1/ssl/SSL_CTX_set_options.html">SSL Docs</a>.
-     */
-    private static native int sslOpCipherServerPreference();
-    private static native int sslOpNoSSLv2();
-    private static native int sslOpNoSSLv3();
-    private static native int sslOpNoTLSv1();
-    private static native int sslOpNoTLSv11();
-    private static native int sslOpNoTLSv12();
-    private static native int sslOpNoTicket();
-
     public static final int SSL_OP_CIPHER_SERVER_PREFERENCE = sslOpCipherServerPreference();
     public static final int SSL_OP_NO_SSLv2 = sslOpNoSSLv2();
     public static final int SSL_OP_NO_SSLv3 = sslOpNoSSLv3();
@@ -79,20 +69,11 @@ public final class SSL {
     public static final int SSL_OP_NO_TLSv1_2 = sslOpNoTLSv12();
     public static final int SSL_OP_NO_TICKET = sslOpNoTicket();
 
-    /**
-     * Options not defined in the OpenSSL docs but may impact security.
-     */
-    private static native int sslOpNoCompression();
-
     public static final int SSL_OP_NO_COMPRESSION = sslOpNoCompression();
 
     public static final int SSL_MODE_CLIENT         = 0;
     public static final int SSL_MODE_SERVER         = 1;
     public static final int SSL_MODE_COMBINED       = 2;
-
-    /* Only support OFF and SERVER for now */
-    private static native int sslSessCacheOff();
-    private static native int sslSessCacheServer();
 
     public static final long SSL_SESS_CACHE_OFF = sslSessCacheOff();
     public static final long SSL_SESS_CACHE_SERVER = sslSessCacheServer();
@@ -100,98 +81,18 @@ public final class SSL {
     public static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
     public static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
 
-    private static native int sslStConnect();
-    private static native int sslStAccept();
-
     public static final int SSL_ST_CONNECT = sslStConnect();
     public static final int SSL_ST_ACCEPT =  sslStAccept();
-
-    private static native int sslModeEnablePartialWrite();
-    private static native int sslModeAcceptMovingWriteBuffer();
-    private static native int sslModeReleaseBuffers();
 
     public static final int SSL_MODE_ENABLE_PARTIAL_WRITE           = sslModeEnablePartialWrite();
     public static final int SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER     = sslModeAcceptMovingWriteBuffer();
     public static final int SSL_MODE_RELEASE_BUFFERS                = sslModeReleaseBuffers();
-
-    private static native int x509CheckFlagAlwaysCheckSubject();
-    private static native int x509CheckFlagDisableWildCards();
-    private static native int x509CheckFlagNoPartialWildCards();
-    private static native int x509CheckFlagMultiLabelWildCards();
 
     // https://www.openssl.org/docs/man1.0.2/crypto/X509_check_host.html
     public static final int X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT = x509CheckFlagAlwaysCheckSubject();
     public static final int X509_CHECK_FLAG_NO_WILD_CARDS = x509CheckFlagDisableWildCards();
     public static final int X509_CHECK_FLAG_NO_PARTIAL_WILD_CARDS = x509CheckFlagNoPartialWildCards();
     public static final int X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS = x509CheckFlagMultiLabelWildCards();
-
-    /* x509 certificate verification errors */
-    static native int x509vOK();
-    static native int x509vErrUnspecified();
-    static native int x509vErrUnableToGetIssuerCert();
-    static native int x509vErrUnableToGetCrl();
-    static native int x509vErrUnableToDecryptCertSignature();
-    static native int x509vErrUnableToDecryptCrlSignature();
-    static native int x509vErrUnableToDecodeIssuerPublicKey();
-    static native int x509vErrCertSignatureFailure();
-    static native int x509vErrCrlSignatureFailure();
-    static native int x509vErrCertNotYetValid();
-    static native int x509vErrCertHasExpired();
-    static native int x509vErrCrlNotYetValid();
-    static native int x509vErrCrlHasExpired();
-    static native int x509vErrErrorInCertNotBeforeField();
-    static native int x509vErrErrorInCertNotAfterField();
-    static native int x509vErrErrorInCrlLastUpdateField();
-    static native int x509vErrErrorInCrlNextUpdateField();
-    static native int x509vErrOutOfMem();
-    static native int x509vErrDepthZeroSelfSignedCert();
-    static native int x509vErrSelfSignedCertInChain();
-    static native int x509vErrUnableToGetIssuerCertLocally();
-    static native int x509vErrUnableToVerifyLeafSignature();
-    static native int x509vErrCertChainTooLong();
-    static native int x509vErrCertRevoked();
-    static native int x509vErrInvalidCa();
-    static native int x509vErrPathLengthExceeded();
-    static native int x509vErrInvalidPurpose();
-    static native int x509vErrCertUntrusted();
-    static native int x509vErrCertRejected();
-    static native int x509vErrSubjectIssuerMismatch();
-    static native int x509vErrAkidSkidMismatch();
-    static native int x509vErrAkidIssuerSerialMismatch();
-    static native int x509vErrKeyUsageNoCertSign();
-    static native int x509vErrUnableToGetCrlIssuer();
-    static native int x509vErrUnhandledCriticalExtension();
-    static native int x509vErrKeyUsageNoCrlSign();
-    static native int x509vErrUnhandledCriticalCrlExtension();
-    static native int x509vErrInvalidNonCa();
-    static native int x509vErrProxyPathLengthExceeded();
-    static native int x509vErrKeyUsageNoDigitalSignature();
-    static native int x509vErrProxyCertificatesNotAllowed();
-    static native int x509vErrInvalidExtension();
-    static native int x509vErrInvalidPolicyExtension();
-    static native int x509vErrNoExplicitPolicy();
-    static native int x509vErrDifferntCrlScope();
-    static native int x509vErrUnsupportedExtensionFeature();
-    static native int x509vErrUnnestedResource();
-    static native int x509vErrPermittedViolation();
-    static native int x509vErrExcludedViolation();
-    static native int x509vErrSubtreeMinMax();
-    static native int x509vErrApplicationVerification();
-    static native int x509vErrUnsupportedConstraintType();
-    static native int x509vErrUnsupportedConstraintSyntax();
-    static native int x509vErrUnsupportedNameSyntax();
-    static native int x509vErrCrlPathValidationError();
-    static native int x509vErrPathLoop();
-    static native int x509vErrSuiteBInvalidVersion();
-    static native int x509vErrSuiteBInvalidAlgorithm();
-    static native int x509vErrSuiteBInvalidCurve();
-    static native int x509vErrSuiteBInvalidSignatureAlgorithm();
-    static native int x509vErrSuiteBLosNotAllowed();
-    static native int x509vErrSuiteBCannotSignP384WithP256();
-    static native int x509vErrHostnameMismatch();
-    static native int x509vErrEmailMismatch();
-    static native int x509vErrIpAddressMismatch();
-    static native int x509vErrDaneNoMatch();
 
     /* Return OpenSSL version number */
     public static native int version();
@@ -234,18 +135,6 @@ public final class SSL {
     /*
      * Begin Twitter API additions
      */
-
-    private static native int sslSendShutdown();
-    private static native int sslReceivedShutdown();
-    private static native int sslErrorNone();
-    private static native int sslErrorSSL();
-    private static native int sslErrorWantRead();
-    private static native int sslErrorWantWrite();
-    private static native int sslErrorWantX509Lookup();
-    private static native int sslErrorSyscall();
-    private static native int sslErrorZeroReturn();
-    private static native int sslErrorWantConnect();
-    private static native int sslErrorWantAccept();
 
     public static final int SSL_SENT_SHUTDOWN = sslSendShutdown();
     public static final int SSL_RECEIVED_SHUTDOWN = sslReceivedShutdown();
