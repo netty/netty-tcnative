@@ -29,6 +29,7 @@ AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
 
 ${CFLAGS="-O3 -Werror -fno-omit-frame-pointer -Wunused-variable"}
+${CXXFLAGS="-O3 -Werror -fno-omit-frame-pointer -Wunused-variable"}
 
 ## -----------------------------------------------
 ## Application Checks

@@ -156,7 +156,8 @@
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
-                          <arg value="-DCMAKE_C_FLAGS_RELEASE=-std=c99" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=-std=c99 -O3 -fno-omit-frame-pointer" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer" />
                           <arg value="-GNinja" />
                           <arg value=".." />
                         </exec>
@@ -227,6 +228,7 @@
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
                     <configureArg>--with-apr=${aprHome}</configureArg>
+                    <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -Wunused-variable</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
                     <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
                   </configureArgs>

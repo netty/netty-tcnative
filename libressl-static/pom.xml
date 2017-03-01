@@ -178,7 +178,7 @@
                     </exec>
                     <mkdir dir="${sslHome}" />
                     <exec executable="configure" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
-                      <arg line="--disable-shared --prefix=${sslHome} CFLAGS=-fPIC" />
+                      <arg line="--disable-shared --prefix=${sslHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
                     </exec>
                     <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true" />
                     <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
