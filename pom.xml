@@ -75,6 +75,7 @@
     <msvcSslIncludeDirs>${sslHome}/include</msvcSslIncludeDirs>
     <msvcSslLibDirs>${sslHome}/lib</msvcSslLibDirs>
     <msvcSslLibs>ssleay32.lib;libeay32.lib</msvcSslLibs>
+    <strip.skip>false</strip.skip>
   </properties>
 
   <build>
