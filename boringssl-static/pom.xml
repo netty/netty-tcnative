@@ -181,7 +181,10 @@
 
                     <!-- Strip on linux. See https://github.com/netty/netty-tcnative/issues/129 -->
                     <if>
-                      <equals arg1="${os.detected.name}" arg2="linux" />
+                      <and>
+                        <equals arg1="${os.detected.name}" arg2="linux" />
+                        <equals arg1="${strip.skip}" arg2="false" />
+                      </and>
                       <then>
                         <exec executable="strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
                           <arg value="libnetty-tcnative.so" />
