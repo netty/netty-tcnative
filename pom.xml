@@ -383,7 +383,7 @@
                     </exec>
                     <mkdir dir="${aprHome}" />
                     <exec executable="configure" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
-                      <arg line="--disable-shared --prefix=${aprHome} CFLAGS=-fPIC" />
+                      <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
                     </exec>
                     <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
                     <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
