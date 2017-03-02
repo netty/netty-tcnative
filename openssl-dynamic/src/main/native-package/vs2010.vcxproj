@@ -189,6 +189,7 @@
     <ClCompile Include=".\src\bb.c" />
     <ClCompile Include=".\src\error.c" />
     <ClCompile Include=".\src\jnilib.c" />
+    <ClCompile Include=".\src\native_constants.c" />
     <ClCompile Include=".\src\ssl.c" />
     <ClCompile Include=".\src\sslcontext.c" />
     <ClCompile Include=".\src\sslutils.c" />
