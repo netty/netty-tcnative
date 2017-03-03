@@ -65,13 +65,17 @@ public interface CertificateRequestedCallback {
 
         /**
          * Returns a {@code EVP_PKEY} pointer
+         *
+         * @return the {@code EVP_PKEY} pointer
          */
         public final long privateKey() {
             return privateKey;
         }
 
         /**
-         * Returns a x509 chain ({@code STACK_OF(X509)} pointer).
+         * Returns a x509 chain ({@code STACK_OF(X509)} pointer)
+         *
+         * @return thex509 chain ({@code STACK_OF(X509)} pointer)
          */
         public final long certificateChain() {
             return certificateChain;

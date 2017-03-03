@@ -49,7 +49,7 @@ public final class SSL {
     public static final int SSL_PROTOCOL_TLSV1_1 = (1<<3);
     public static final int SSL_PROTOCOL_TLSV1_2 = (1<<4);
 
-    /** TLS_*method according to https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_new.html */
+    /** TLS_*method according to <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_new.html">SSL_CTX_new</a> */
     public static final int SSL_PROTOCOL_TLS   = (SSL_PROTOCOL_SSLV3 | SSL_PROTOCOL_TLSV1 | SSL_PROTOCOL_TLSV1_1 | SSL_PROTOCOL_TLSV1_2);
     public static final int SSL_PROTOCOL_ALL   = (SSL_PROTOCOL_SSLV2 | SSL_PROTOCOL_TLS);
 
@@ -114,12 +114,16 @@ public final class SSL {
 
     /**
      * Initialize new in-memory BIO that is located in the secure heap.
+     *
      * @return New BIO handle
+     * @throws Exception if an error happened.
      */
     public static native long newMemBIO() throws Exception;
 
     /**
      * Return last SSL error string
+     *
+     * @return the last SSL error string.
      */
     public static native String getLastError();
 
@@ -162,6 +166,7 @@ public final class SSL {
      * SSL_get_error
      * @param ssl SSL pointer (SSL *)
      * @param ret TLS/SSL I/O return value
+     * @return the error code
      */
     public static native int getError(long ssl, int ret);
 
@@ -184,7 +189,7 @@ public final class SSL {
      * @param ssl the SSL instance (SSL *)
      * @param nonApplicationBufferSize The size of the internal buffer for write operations that are not
      *                                 initiated directly by the application attempting to encrypt data.
-     *                                 Must be &gt{@code 0}.
+     *                                 Must be &gt;{@code 0}.
      * @return pointer to the Network BIO (BIO *).
      *         The memory is owned by {@code ssl} and will be cleaned up by {@link #freeSSL(long)}.
      */
@@ -239,32 +244,32 @@ public final class SSL {
     /**
      * SSL_write
      * @param ssl the SSL instance (SSL *)
-     * @param wbuf
-     * @param wlen
-     * @return
+     * @param wbuf the memory address of the buffer
+     * @param wlen the length
+     * @return the number of written bytes
      */
     public static native int writeToSSL(long ssl, long wbuf, int wlen);
 
     /**
      * SSL_read
      * @param ssl the SSL instance (SSL *)
-     * @param rbuf
-     * @param rlen
-     * @return
+     * @param rbuf the memory address of the buffer
+     * @param rlen the length
+     * @return the number of read bytes
      */
     public static native int readFromSSL(long ssl, long rbuf, int rlen);
 
     /**
      * SSL_get_shutdown
      * @param ssl the SSL instance (SSL *)
-     * @return
+     * @return the return code of {@code SSL_get_shutdown}
      */
     public static native int getShutdown(long ssl);
 
     /**
      * SSL_set_shutdown
      * @param ssl the SSL instance (SSL *)
-     * @param mode
+     * @param mode the mode to use
      */
     public static native void setShutdown(long ssl, int mode);
 
@@ -276,54 +281,55 @@ public final class SSL {
 
     /**
      * BIO_free
-     * @param bio
+     * @param bio the BIO
      */
     public static native void freeBIO(long bio);
 
     /**
      * SSL_shutdown
      * @param ssl the SSL instance (SSL *)
-     * @return
+     * @return the return code of {@code SSL_shutdown}
      */
     public static native int shutdownSSL(long ssl);
 
     /**
      * Get the error number representing the last error OpenSSL encountered on this thread.
-     * @return
+     * @return the last error code for the calling thread.
      */
     public static native int getLastErrorNumber();
 
     /**
      * SSL_get_cipher
      * @param ssl the SSL instance (SSL *)
-     * @return
+     * @return the name of the current cipher.
      */
     public static native String getCipherForSSL(long ssl);
 
     /**
      * SSL_get_version
      * @param ssl the SSL instance (SSL *)
-     * @return
+     * @return the version.
      */
     public static native String getVersion(long ssl);
 
     /**
      * SSL_do_handshake
      * @param ssl the SSL instance (SSL *)
+     * @return the return code of {@code SSL_do_handshake}.
      */
     public static native int doHandshake(long ssl);
 
     /**
      * SSL_in_init
-     * @param SSL
-     * @return
+     * @param ssl the SSL instance (SSL *)
+     * @return the return code of {@code SSL_in_init}.
      */
-    public static native int isInInit(long SSL);
+    public static native int isInInit(long ssl);
 
     /**
      * SSL_get0_next_proto_negotiated
      * @param ssl the SSL instance (SSL *)
-     * @return
+     * @return the name of the negotiated proto
      */
     public static native String getNextProtoNegotiated(long ssl);
 
@@ -334,21 +340,29 @@ public final class SSL {
     /**
      * SSL_get0_alpn_selected
      * @param ssl the SSL instance (SSL *)
-     * @return
+     * @return the name of the selected ALPN protocol
      */
     public static native String getAlpnSelected(long ssl);
 
     /**
-     * Get the peer certificate chain or {@code null} if non was send.
+     * Get the peer certificate chain or {@code null} if none was send.
+     * @param ssl the SSL instance (SSL *)
+     * @return the chain or {@code null} if none was send
      */
     public static native byte[][] getPeerCertChain(long ssl);
 
     /**
      * Get the peer certificate or {@code null} if non was send.
+     * @param ssl the SSL instance (SSL *)
+     * @return the peer certificate or {@code null} if none was send
      */
     public static native byte[] getPeerCertificate(long ssl);
-    /*
-     * Get the error number representing for the given {@code errorNumber}.
+
+    /**
+     * Get the error string representing for the given {@code errorNumber}.
+     *
+     * @param errorNumber the error number / code
+     * @return the error string
      */
     public static native String getErrorString(long errorNumber);
 
@@ -377,7 +391,7 @@ public final class SSL {
     /**
      * Set Type of Client Certificate verification and Maximum depth of CA Certificates
      * in Client Certificate verification.
-     * <br />
+     * <p>
      * This directive sets the Certificate verification level for the Client
      * Authentication. Notice that this directive can be used both in per-server
      * and per-directory context. In per-server context it applies to the client
@@ -385,7 +399,7 @@ public final class SSL {
      * is established. In per-directory context it forces a SSL renegotiation with
      * the reconfigured client verification level after the HTTP request was read
      * but before the HTTP response is sent.
-     * <br />
+     * <p>
      * The following levels are available for level:
      * <ul>
      * <li>{@link #SSL_CVERIFY_IGNORED} - The level is ignored. Only depth will change.</li>
@@ -438,7 +452,7 @@ public final class SSL {
 
     /**
      * Returns the cipher suites available for negotiation in SSL handshake.
-     * <br />
+     * <p>
      * This complex directive uses a colon-separated cipher-spec string consisting
      * of OpenSSL cipher specifications to configure the Cipher Suite the client
      * is permitted to negotiate in the SSL handshake phase. Notice that this
@@ -449,6 +463,8 @@ public final class SSL {
      * was read but before the HTTP response is sent.
      * @param ssl the SSL instance (SSL *)
      * @param ciphers an SSL cipher specification
+     * @return {@code true} if successful
+     * @throws Exception if an error happened
      */
     public static native boolean setCipherSuites(long ssl, String ciphers)
             throws Exception;
@@ -486,6 +502,7 @@ public final class SSL {
      * Call SSL_set_state.
      *
      * @param ssl the SSL instance (SSL *)
+     * @param state the state to set
      */
     public static native void setState(long ssl, int state);
 
@@ -507,6 +524,12 @@ public final class SSL {
      */
     public static native void setHostNameValidation(long ssl, int flags, String hostname);
 
+    /**
+     * Return the methods used for authentication.
+     *
+     * @param ssl the SSL instance (SSL*)
+     * @return the methods
+     */
     public static native String[] authenticationMethods(long ssl);
 
     /**
@@ -551,6 +574,7 @@ public final class SSL {
      * @param keyBio Private Key BIO to use if not in cert.
      * @param password Certificate password. If null and certificate
      *                 is encrypted.
+     * @throws Exception if an error happened
      */
     public static native void setCertificateBio(
             long ssl, long certBio, long keyBio, String password) throws Exception;
@@ -564,11 +588,18 @@ public final class SSL {
      * {@link CertificateRequestedCallback} the ownership goes over to OpenSsl / Tcnative and so calling
      * {@link #freePrivateKey(long)} should <strong>NOT</strong> be done in this case. Otherwise you may
      * need to call {@link #freePrivateKey(long)} to decrement the reference count and free memory.
+     *
+     * @param privateKeyBio the pointer to the {@code BIO} that contains the private key
+     * @param password the password or {@code null} if no password is needed
+     * @return {@code EVP_PKEY} pointer
+     * @throws Exception if an error happened
      */
     public static native long parsePrivateKey(long privateKeyBio, String password) throws Exception;
 
     /**
      * Free private key ({@code EVP_PKEY} pointer).
+     *
+     * @param privateKey {@code EVP_PKEY} pointer
      */
     public static native void freePrivateKey(long privateKey);
 
@@ -581,11 +612,17 @@ public final class SSL {
      * {@link CertificateRequestedCallback} the ownership goes over to OpenSsl / Tcnative and and so calling
      * {@link #freeX509Chain(long)} should <strong>NOT</strong> be done in this case. Otherwise you may
      * need to call {@link #freeX509Chain(long)} to decrement the reference count and free memory.
+     *
+     * @param x509ChainBio the pointer to the {@code BIO} that contains the X509 chain
+     * @return {@code STACK_OF(X509)} pointer
+     * @throws Exception if an error happened
      */
     public static native long parseX509Chain(long x509ChainBio) throws Exception;
 
     /**
      * Free x509 chain ({@code STACK_OF(X509)} pointer).
+     *
+     * @param x509Chain {@code STACK_OF(X509)} pointer
      */
     public static native void freeX509Chain(long x509Chain);
 }
