@@ -211,7 +211,10 @@
 
                     <mkdir dir="${sslHome}" />
                     <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg line="-O3 -fno-omit-frame-pointer -fPIC no-shared --prefix=${sslHome} --openssldir=${sslHome}" />
+                      <arg line="-O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
+                    </exec>
+                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                      <arg value="depend" />
                     </exec>
                     <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
                     <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
