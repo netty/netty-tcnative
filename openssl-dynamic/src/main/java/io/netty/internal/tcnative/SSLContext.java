@@ -54,6 +54,8 @@ public final class SSLContext {
      * SSL_MODE_SERVER
      * SSL_MODE_COMBINED
      * </PRE>
+     * @return the SSLContext struct
+     * @throws Exception if an error happened
      */
     public static native long make(int protocol, int mode)
         throws Exception;
@@ -106,9 +108,10 @@ public final class SSLContext {
      * was read but before the HTTP response is sent.
      * @param ctx Server or Client context to use.
      * @param ciphers An SSL cipher specification.
+     * @return {@code true} if successful
+     * @throws Exception if an error happened
      */
-    public static native boolean setCipherSuite(long ctx, String ciphers)
-        throws Exception;
+    public static native boolean setCipherSuite(long ctx, String ciphers) throws Exception;
 
     /**
      * Set File of PEM-encoded Server CA Certificates
@@ -129,9 +132,9 @@ public final class SSLContext {
      * @param file File of PEM-encoded Server CA Certificates.
      * @param skipfirst Skip first certificate if chain file is inside
      *                  certificate file.
+     * @return {@code true} if successful
      */
-    public static native boolean setCertificateChainFile(long ctx, String file,
-                                                         boolean skipfirst);
+    public static native boolean setCertificateChainFile(long ctx, String file, boolean skipfirst);
     /**
      * Set BIO of PEM-encoded Server CA Certificates
      * <p>
@@ -151,12 +154,11 @@ public final class SSLContext {
      * @param bio BIO of PEM-encoded Server CA Certificates.
      * @param skipfirst Skip first certificate if chain file is inside
      *                  certificate file.
+     * @return {@code true} if successful
      */
     public static native boolean setCertificateChainBio(long ctx, long bio, boolean skipfirst);
 
     /**
-     * @deprecated Use {@link #setCertificate(long, String, String, String)}
-     * <p>
      * Set Certificate
      * <p>
      * Point setCertificateFile at a PEM encoded certificate.  If
@@ -176,38 +178,12 @@ public final class SSLContext {
      * @param key Private Key file to use if not in cert.
      * @param password Certificate password. If null and certificate
      *                 is encrypted, password prompt will be displayed.
-     * @param idx deprecated and ignored.
-     */
-    @Deprecated
-    public static boolean setCertificate(long ctx, String cert, String key, String password, int idx) throws Exception {
-        return setCertificate(ctx, cert, key, password);
-    }
-
-    /**
-     * Set Certificate
-     * <p>
-     * Point setCertificateFile at a PEM encoded certificate.  If
-     * the certificate is encrypted, then you will be prompted for a
-     * pass phrase.  Note that a kill -HUP will prompt again. A test
-     * certificate can be generated with `make certificate' under
-     * built time. Keep in mind that if you've both a RSA and a DSA
-     * certificate you can configure both in parallel (to also allow
-     * the use of DSA ciphers, etc.)
-     * <p>
-     * If the key is not combined with the certificate, use key param
-     * to point at the key file.  Keep in mind that if
-     * you've both a RSA and a DSA private key you can configure
-     * both in parallel (to also allow the use of DSA ciphers, etc.)
-     * @param ctx Server or Client context to use.
-     * @param cert Certificate file.
-     * @param key Private Key file to use if not in cert.
-     * @param password Certificate password. If null and certificate
-     *                 is encrypted, password prompt will be displayed.
+     * @return {@code true} if successful
+     * @throws Exception if an error happened
      */
     public static native boolean setCertificate(long ctx, String cert, String key, String password) throws Exception;
 
     /**
-     * @deprecated Use {@link #setCertificateBio(long, long, long, String)}
      * Set Certificate
      * <p>
      * Point setCertificate at a PEM encoded certificate stored in a BIO. If
@@ -227,95 +203,187 @@ public final class SSLContext {
      * @param keyBio Private Key BIO to use if not in cert.
      * @param password Certificate password. If null and certificate
      *                 is encrypted, password prompt will be displayed.
-     * @param idx deprecated and ignored.
+     * @return {@code true} if successful
+     * @throws Exception if an error happened
      */
-    @Deprecated
-    public static boolean setCertificateBio(
-            long ctx, long certBio, long keyBio, String password, int idx) throws Exception {
-        return setCertificateBio(ctx, certBio, keyBio, password);
-    }
-
-    /**
-     * Set Certificate
-     * <p>
-     * Point setCertificate at a PEM encoded certificate stored in a BIO. If
-     * the certificate is encrypted, then you will be prompted for a
-     * pass phrase.  Note that a kill -HUP will prompt again. A test
-     * certificate can be generated with `make certificate' under
-     * built time. Keep in mind that if you've both a RSA and a DSA
-     * certificate you can configure both in parallel (to also allow
-     * the use of DSA ciphers, etc.)
-     * <p>
-     * If the key is not combined with the certificate, use key param
-     * to point at the key file.  Keep in mind that if
-     * you've both a RSA and a DSA private key you can configure
-     * both in parallel (to also allow the use of DSA ciphers, etc.)
-     * @param ctx Server or Client context to use.
-     * @param certBio Certificate BIO.
-     * @param keyBio Private Key BIO to use if not in cert.
-     * @param password Certificate password. If null and certificate
-     *                 is encrypted, password prompt will be displayed.
-     */
-    public static native boolean setCertificateBio(
-            long ctx, long certBio, long keyBio, String password) throws Exception;
+    public static native boolean setCertificateBio(long ctx, long certBio, long keyBio, String password) throws Exception;
 
     /**
      * Set the size of the internal session cache.
-     * http://www.openssl.org/docs/ssl/SSL_CTX_sess_set_cache_size.html
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_set_cache_size.html">man SSL_CTX_sess_set_cache_size</a>
+     * @param ctx Server or Client context to use.
+     * @param size the size of the cache
+     * @return the previous set value
      */
     public static native long setSessionCacheSize(long ctx, long size);
 
     /**
      * Get the size of the internal session cache.
-     * http://www.openssl.org/docs/ssl/SSL_CTX_sess_get_cache_size.html
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_get_cache_size.html">man SSL_CTX_sess_get_cache_size</a>
+     * @param ctx Server or Client context to use.
+     * @return the current value
      */
     public static native long getSessionCacheSize(long ctx);
 
     /**
      * Set the timeout for the internal session cache in seconds.
-     * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_set_timeout.html">man SSL_CTX_set_timeout</a>
+     * @param ctx Server or Client context to use.
+     * @param timeoutSeconds the timeout of the cache
+     * @return the previous set value
      */
     public static native long setSessionCacheTimeout(long ctx, long timeoutSeconds);
 
     /**
      * Get the timeout for the internal session cache in seconds.
-     * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_get_timeout.html">man SSL_CTX_get_timeout</a>
+     * @param ctx Server or Client context to use
+     * @return the current value
      */
     public static native long getSessionCacheTimeout(long ctx);
 
     /**
      * Set the mode of the internal session cache and return the previous used mode.
+     * @param ctx Server or Client context to use
+     * @param mode the mode of the cache
+     * @return the previous set value
      */
     public static native long setSessionCacheMode(long ctx, long mode);
 
     /**
      * Get the mode of the current used internal session cache.
+     *
+     * @param ctx Server or Client context to use
+     * @return the current mode
      */
     public static native long getSessionCacheMode(long ctx);
 
     /**
      * Session resumption statistics methods.
-     * http://www.openssl.org/docs/ssl/SSL_CTX_sess_number.html
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
      */
     public static native long sessionAccept(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionAcceptGood(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionAcceptRenegotiate(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionCacheFull(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionCbHits(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionConnect(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionConnectGood(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionConnectRenegotiate(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionHits(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionMisses(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionNumber(long ctx);
+
+    /**
+     * Session resumption statistics methods.
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_sess_number.html">man SSL_CTX_sess_number</a>
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionTimeouts(long ctx);
 
     /**
      * TLS session ticket key resumption statistics.
+     *
+     * @param ctx Server or Client context to use
+     * @return the current number
      */
     public static native long sessionTicketKeyNew(long ctx);
+
+    /**
+     * TLS session ticket key resumption statistics.
+     *
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionTicketKeyResume(long ctx);
+
+    /**
+     * TLS session ticket key resumption statistics.
+     *
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionTicketKeyRenew(long ctx);
+
+    /**
+     * TLS session ticket key resumption statistics.
+     *
+     * @param ctx Server or Client context to use
+     * @return the current number
+     */
     public static native long sessionTicketKeyFail(long ctx);
 
     /**
@@ -324,8 +392,10 @@ public final class SSLContext {
      * <p> The first key in the list is the primary key. Tickets dervied from the other keys
      * in the list will be accepted but updated to a new ticket using the primary key. This
      * is useful for implementing ticket key rotation.
+     * See <a href="https://tools.ietf.org/html/rfc5077">RFC 5077</a>
      *
-     * @see <a href="https://tools.ietf.org/html/rfc5077">RFC 5077</a>
+     * @param ctx Server or Client context to use
+     * @param keys the {@link SessionTicketKey}s
      */
     public static void setSessionTicketKeys(long ctx, SessionTicketKey[] keys) {
         if (keys == null || keys.length == 0) {
@@ -443,8 +513,8 @@ public final class SSLContext {
     public static native void setTmpDHLength(long ctx, int length);
 
     /**
-     * Set the context within which session be reused (server side only)
-     * http://www.openssl.org/docs/ssl/SSL_CTX_set_session_id_context.html
+     * Set the context within which session be reused (server side only).
+     * See <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_set_session_id_context.html">man SSL_CTX_set_session_id_context</a>
      *
      * @param ctx Server context to use.
      * @param sidCtx can be any kind of binary data, it is therefore possible to use e.g. the name

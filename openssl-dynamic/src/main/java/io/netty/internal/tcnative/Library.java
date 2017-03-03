@@ -101,6 +101,9 @@ public final class Library {
 
     /**
      * Calls {@link #initialize(String, String)} with {@code "provided"} and {@code null}.
+     *
+     * @return {@code true} if initialization was successful
+     * @throws Exception if an error happens during initialization
      */
     public static boolean initialize() throws Exception {
         return initialize("provided", null);
@@ -110,8 +113,9 @@ public final class Library {
      * Setup native library. This is the first method that must be called!
      *
      * @param libraryName the name of the library to load
-     * @param engine Support for external a Crypto Device ("engine"),
-     *                usually
+     * @param engine Support for external a Crypto Device ("engine"), usually
+     * @return {@code true} if initialization was successful
+     * @throws Exception if an error happens during initialization
      */
     public static boolean initialize(String libraryName, String engine) throws Exception {
         if (_instance == null) {
@@ -121,11 +125,12 @@ public final class Library {
                 _instance = new Library(libraryName);
             int aprMajor  = version(0x11);
 
-            boolean aprHasThreads = has(2);
             if (aprMajor < 1) {
                 throw new UnsatisfiedLinkError("Unsupported APR Version (" +
                                                aprVersionString() + ")");
             }
+
+            boolean aprHasThreads = has(2);
             if (!aprHasThreads) {
                 throw new UnsatisfiedLinkError("Missing APR_HAS_THREADS");
             }
