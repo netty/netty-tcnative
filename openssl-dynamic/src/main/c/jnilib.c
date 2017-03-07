@@ -82,6 +82,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved)
     TCN_GET_METHOD(env, jString_class, jString_getBytes,
                    "getBytes", "()[B", JNI_ERR);
 
+    // Load the class which makes JNI references available in a static scope before loading any other classes.
+    if ((*env)->FindClass(env, "io/netty/internal/tcnative/NativeStaticallyReferencedJniMethods") == NULL) {
+        return JNI_ERR;
+    }
+
     TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
     TCN_LOAD_CLASS(env, keyMaterialClass, "io/netty/internal/tcnative/CertificateRequestedCallback$KeyMaterial", JNI_ERR);
 
