@@ -487,6 +487,15 @@ public final class SSLContext {
     public static native void setCertRequestedCallback(long ctx, CertificateRequestedCallback callback);
 
     /**
+     * Allow to hook {@link SniHostNameMatcher} into the sni processing.
+     * This will call {@code SSL_CTX_set_tlsext_servername_callback} and so replace the default
+     * callback used by openssl
+     * @param ctx Server or Client context to use.
+     * @param matcher the matcher to call during sni hostname matching.
+     */
+    public static native void setSniHostnameMatcher(long ctx, SniHostNameMatcher matcher);
+
+    /**
      * Set next protocol for next protocol negotiation extension
      * @param ctx Server context to use.
      * @param nextProtos protocols in priority order

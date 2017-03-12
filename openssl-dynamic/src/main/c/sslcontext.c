@@ -62,6 +62,13 @@ static apr_status_t ssl_context_cleanup(void *data)
         }
         c->cert_requested_callback_method = NULL;
 
+        if (c->sni_hostname_matcher != NULL) {
+            tcn_get_java_env(&e);
+            (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
+            c->sni_hostname_matcher = NULL;
+        }
+        c->sni_hostname_matcher_method = NULL;
+
         if (c->next_proto_data != NULL) {
             free(c->next_proto_data);
             c->next_proto_data = NULL;
@@ -1477,6 +1484,59 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
         c->cert_requested_callback_method = method;
 
         SSL_CTX_set_client_cert_cb(c->ctx, cert_requested);
+    }
+}
+
+static int ssl_servername_cb(SSL *ssl, int *ad, void *arg)
+{
+    JNIEnv *e = NULL;
+    tcn_ssl_ctxt_t *c = arg;
+    jstring servername_str = NULL;
+    jboolean result;
+
+    const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+    if (servername != NULL) {
+        tcn_get_java_env(&e);
+        servername_str = (*e)->NewStringUTF(e, servername);
+        result = (*e)->CallBooleanMethod(e, c->sni_hostname_matcher, c->sni_hostname_matcher_method, P2J(ssl), servername_str);
+
+        // We need to delete the local references so we not leak memory as this method is called via callback.
+        (*e)->DeleteLocalRef(e, servername_str);
+
+        return result == JNI_FALSE ? SSL_TLSEXT_ERR_ALERT_FATAL : SSL_TLSEXT_ERR_OK;
+    }
+    return SSL_TLSEXT_ERR_OK;
+}
+
+TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong ctx, jobject matcher)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+
+    // Delete the reference to the previous specified matcher if needed.
+    if (c->sni_hostname_matcher != NULL) {
+        (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
+    }
+
+    if (matcher == NULL) {
+        c->sni_hostname_matcher = NULL;
+
+        SSL_CTX_set_tlsext_servername_callback(c->ctx, NULL);
+        SSL_CTX_set_tlsext_servername_arg(c->ctx, NULL);
+    } else {
+        jclass matcher_class = (*e)->GetObjectClass(e, matcher);
+        jmethodID method = (*e)->GetMethodID(e, matcher_class, "match", "(JLjava/lang/String;)Z");
+        if (method == NULL) {
+            return;
+        }
+
+        c->sni_hostname_matcher = (*e)->NewGlobalRef(e, matcher);
+        c->sni_hostname_matcher_method = method;
+
+        SSL_CTX_set_tlsext_servername_callback(c->ctx, ssl_servername_cb);
+        SSL_CTX_set_tlsext_servername_arg(c->ctx, c);
     }
 }
 
