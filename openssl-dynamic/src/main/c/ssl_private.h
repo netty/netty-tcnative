@@ -200,6 +200,9 @@ struct tcn_ssl_ctxt_t {
     jobject                  cert_requested_callback;
     jmethodID                cert_requested_callback_method;
 
+    jobject                  sni_hostname_matcher;
+    jmethodID                sni_hostname_matcher_method;
+
     tcn_ssl_verify_config_t  verify_config;
 
     int                      protocol;
