@@ -100,6 +100,17 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
 
     UNREFERENCED(o);
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+    // TODO this is very hacky as io.netty.handler.ssl.OpenSsl#doesSupportProtocol also uses this method to test for supported protocols. Furthermore
+    // in OpenSSL 1.1.0 the way protocols are enable/disabled changes
+    // (SSL_OP_NO_SSLv3,... are deprecated and you should use: https://www.openssl.org/docs/man1.1.0/ssl/SSL_CTX_set_max_proto_version.html)
+    if (mode == SSL_MODE_CLIENT)
+        ctx = SSL_CTX_new(TLS_client_method());
+    else if (mode == SSL_MODE_SERVER)
+        ctx = SSL_CTX_new(TLS_server_method());
+    else
+        ctx = SSL_CTX_new(TLS_method());
+#else
     switch (protocol) {
     case SSL_PROTOCOL_TLS:
     case SSL_PROTOCOL_ALL:
@@ -151,7 +162,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
 #endif
         break;
     case SSL_PROTOCOL_SSLV2:
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L) && !defined(OPENSSL_NO_SSL2)
+#ifndef OPENSSL_NO_SSL2
         if (mode == SSL_MODE_CLIENT)
             ctx = SSL_CTX_new(SSLv2_client_method());
         else if (mode == SSL_MODE_SERVER)
@@ -200,7 +211,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
             break;
         }
 #endif
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L) && !defined(OPENSSL_NO_SSL2)
+#ifndef OPENSSL_NO_SSL2
         if (protocol & SSL_PROTOCOL_SSLV2) {
             if (mode == SSL_MODE_CLIENT)
                 ctx = SSL_CTX_new(SSLv2_client_method());
@@ -214,6 +225,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         tcn_Throw(e, "Unsupported SSL protocol (%d)", protocol);
         goto cleanup;
     }
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
 
     if (ctx == NULL) {
         char err[256];
@@ -282,7 +294,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
                (unsigned long)((sizeof SSL_DEFAULT_VHOST_NAME) - 1),
                &(c->context_id[0]), NULL, EVP_sha1(), NULL);
     if (mode) {
-#ifdef HAVE_ECC
+#if defined(HAVE_ECC) && (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER))
         /* Set default (nistp256) elliptic curve for ephemeral ECDH keys */
         EC_KEY *ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
         SSL_CTX_set_tmp_ecdh(c->ctx, ecdh);
@@ -1174,8 +1186,11 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     TCN_ASSERT(verify_confg != NULL);
 
     // Get a stack of all certs in the chain
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
     STACK_OF(X509) *sk = ctx->untrusted;
-
+#else
+    STACK_OF(X509) *sk = X509_STORE_CTX_get0_untrusted(ctx);
+#endif
     // SSL_CTX_set_verify_depth() and SSL_set_verify_depth() set the limit up to which depth certificates in a chain are
     // used during the verification procedure. If the certificate chain is longer than allowed, the certificates above
     // the limit are ignored. Error messages are generated as if these certificates would not be present,
