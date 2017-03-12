@@ -63,13 +63,13 @@ static apr_status_t ssl_context_cleanup(void *data)
         c->cert_requested_callback_method = NULL;
 
         if (c->next_proto_data != NULL) {
-            free(c->next_proto_data);
+            OPENSSL_free(c->next_proto_data);
             c->next_proto_data = NULL;
         }
         c->next_proto_len = 0;
 
         if (c->alpn_proto_data != NULL) {
-            free(c->alpn_proto_data);
+            OPENSSL_free(c->alpn_proto_data);
             c->alpn_proto_data = NULL;
         }
         c->alpn_proto_len = 0;
@@ -77,12 +77,13 @@ static apr_status_t ssl_context_cleanup(void *data)
         apr_thread_rwlock_destroy(c->mutex);
 
         if (c->ticket_keys != NULL) {
-            free(c->ticket_keys);
+            OPENSSL_free(c->ticket_keys);
             c->ticket_keys = NULL;
         }
         c->ticket_keys_len = 0;
 
         if (c->password != NULL) {
+            // Just use free(...) as we used strdup(...) to create the stored password.
             free(c->password);
             c->password = NULL;
         }
@@ -779,7 +780,7 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
         return -1;
     }
 
-    p_data = (unsigned char *) malloc(p_data_size);
+    p_data = (unsigned char *) OPENSSL_malloc(p_data_size);
     if (p_data == NULL) {
         // Not enough memory?
         return -1;
@@ -823,7 +824,7 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
     } else {
         if (*proto_data != NULL) {
             // Free old data
-            free(*proto_data);
+            OPENSSL_free(*proto_data);
         }
         // Decrement pointer again as we incremented it while creating the protocols in wire format.
         p_data -= p_data_len;
@@ -1129,7 +1130,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     cnt = (*e)->GetArrayLength(e, keys) / SSL_SESSION_TICKET_KEY_SIZE;
     b = (*e)->GetByteArrayElements(e, keys, NULL);
 
-    ticket_keys = malloc(sizeof(tcn_ssl_ticket_key_t) * cnt);
+    ticket_keys = OPENSSL_malloc(sizeof(tcn_ssl_ticket_key_t) * cnt);
 
     for (i = 0; i < cnt; ++i) {
         key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
@@ -1142,7 +1143,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
 
     apr_thread_rwlock_wrlock(c->mutex);
     if (c->ticket_keys) {
-        free(c->ticket_keys);
+        OPENSSL_free(c->ticket_keys);
     }
     c->ticket_keys_len = cnt;
     c->ticket_keys = ticket_keys;
@@ -1490,12 +1491,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
 
-    buf = malloc(len);
+    buf = OPENSSL_malloc(len);
 
     (*e)->GetByteArrayRegion(e, sidCtx, 0, len, (jbyte*) buf);
 
     res = SSL_CTX_set_session_id_context(c->ctx, buf, len);
-    free(buf);
+    OPENSSL_free(buf);
 
     if (res == 1) {
         return JNI_TRUE;
