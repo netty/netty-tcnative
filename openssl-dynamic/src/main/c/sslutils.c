@@ -78,51 +78,76 @@ const char* TCN_UNKNOWN_AUTH_METHOD = "UNKNOWN";
  * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
  */
 const char* SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
-#ifndef OPENSSL_IS_BORINGSSL
-    switch (cipher->algorithm_mkey)
-        {
-    case SSL_kRSA:
-        return SSL_TXT_RSA;
-    case SSL_kDHr:
-        return SSL_TXT_DH "_" SSL_TXT_RSA;
-
-    case SSL_kDHd:
-        return SSL_TXT_DH "_" SSL_TXT_DSS;
-    case SSL_kEDH:
-        switch (cipher->algorithm_auth)
-            {
-        case SSL_aDSS:
-            return "DHE_" SSL_TXT_DSS;
-        case SSL_aRSA:
-            return "DHE_" SSL_TXT_RSA;
-        case SSL_aNULL:
-            return SSL_TXT_DH "_anon";
+#ifdef OPENSSL_IS_BORINGSSL
+	return SSL_CIPHER_get_kx_name(cipher);
+#elif OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+    switch (SSL_CIPHER_get_kx_nid(cipher)) {
+        case NID_kx_rsa:
+            return SSL_TXT_RSA;
+        case NID_kx_dhe:
+            switch (SSL_CIPHER_get_auth_nid(cipher)) {
+                case NID_auth_dss:
+                    return "DHE_" SSL_TXT_DSS;
+                case NID_auth_rsa:
+                    return "DHE_" SSL_TXT_RSA;
+                case NID_auth_null:
+                    return SSL_TXT_DH "_anon";
+                default:
+                    return TCN_UNKNOWN_AUTH_METHOD;
+            }
+        case NID_kx_ecdhe:
+            switch (SSL_CIPHER_get_auth_nid(cipher)) {
+                case NID_auth_ecdsa:
+                    return "ECDHE_" SSL_TXT_ECDSA;
+                case NID_auth_rsa:
+                    return "ECDHE_" SSL_TXT_RSA;
+                case NID_auth_null:
+                    return SSL_TXT_ECDH "_anon";
+                default:
+                    return TCN_UNKNOWN_AUTH_METHOD;
+            }
         default:
             return TCN_UNKNOWN_AUTH_METHOD;
-            }
-    case SSL_kKRB5:
-        return SSL_TXT_KRB5;
-    case SSL_kECDHr:
-        return SSL_TXT_ECDH "_" SSL_TXT_RSA;
-    case SSL_kECDHe:
-        return SSL_TXT_ECDH "_" SSL_TXT_ECDSA;
-    case SSL_kEECDH:
-        switch (cipher->algorithm_auth)
-            {
-        case SSL_aECDSA:
-            return "ECDHE_" SSL_TXT_ECDSA;
-        case SSL_aRSA:
-            return "ECDHE_" SSL_TXT_RSA;
-        case SSL_aNULL:
-            return SSL_TXT_ECDH "_anon";
-        default:
-            return TCN_UNKNOWN_AUTH_METHOD;
-            }
-    default:
-        return TCN_UNKNOWN_AUTH_METHOD;
     }
 #else
-    return SSL_CIPHER_get_kx_name(cipher);
+    switch (cipher->algorithm_mkey) {
+        case SSL_kRSA:
+            return SSL_TXT_RSA;
+        case SSL_kDHr:
+            return SSL_TXT_DH "_" SSL_TXT_RSA;
+        case SSL_kDHd:
+            return SSL_TXT_DH "_" SSL_TXT_DSS;
+        case SSL_kEDH:
+            switch (cipher->algorithm_auth) {
+                case SSL_aDSS:
+                    return "DHE_" SSL_TXT_DSS;
+                case SSL_aRSA:
+                    return "DHE_" SSL_TXT_RSA;
+                case SSL_aNULL:
+                    return SSL_TXT_DH "_anon";
+                default:
+                    return TCN_UNKNOWN_AUTH_METHOD;
+            }
+        case SSL_kKRB5:
+            return SSL_TXT_KRB5;
+        case SSL_kECDHr:
+            return SSL_TXT_ECDH "_" SSL_TXT_RSA;
+        case SSL_kECDHe:
+            return SSL_TXT_ECDH "_" SSL_TXT_ECDSA;
+        case SSL_kEECDH:
+            switch (cipher->algorithm_auth) {
+                case SSL_aECDSA:
+                    return "ECDHE_" SSL_TXT_ECDSA;
+                case SSL_aRSA:
+                    return "ECDHE_" SSL_TXT_RSA;
+                case SSL_aNULL:
+                    return SSL_TXT_ECDH "_anon";
+                default:
+                    return TCN_UNKNOWN_AUTH_METHOD;
+            }
+        default:
+            return TCN_UNKNOWN_AUTH_METHOD;
+    }
 #endif
 
 }
