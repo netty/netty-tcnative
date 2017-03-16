@@ -91,10 +91,9 @@ public final class Library {
      */
     private static native boolean initialize0();
 
-    /* Internal function for loading APR Features */
-    private static native boolean has(int what);
-    /* Internal function for loading APR Features */
-    private static native int version(int what);
+    private static native boolean aprHasThreads();
+
+    private static native int aprMajorVersion();
 
     /* APR_VERSION_STRING */
     private static native String aprVersionString();
@@ -119,19 +118,14 @@ public final class Library {
      */
     public static boolean initialize(String libraryName, String engine) throws Exception {
         if (_instance == null) {
-            if (libraryName == null)
-                _instance = new Library();
-            else
-                _instance = new Library(libraryName);
-            int aprMajor  = version(0x11);
+            _instance = libraryName == null ? new Library() : new Library(libraryName);
 
-            if (aprMajor < 1) {
+            if (aprMajorVersion() < 1) {
                 throw new UnsatisfiedLinkError("Unsupported APR Version (" +
                                                aprVersionString() + ")");
             }
 
-            boolean aprHasThreads = has(2);
-            if (!aprHasThreads) {
+            if (!aprHasThreads()) {
                 throw new UnsatisfiedLinkError("Missing APR_HAS_THREADS");
             }
         }

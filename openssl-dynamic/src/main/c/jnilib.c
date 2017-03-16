@@ -171,28 +171,13 @@ TCN_IMPLEMENT_CALL(jboolean, Library, initialize0)(TCN_STDARGS)
     return JNI_TRUE;
 }
 
-TCN_IMPLEMENT_CALL(jint, Library, version)(TCN_STDARGS, jint what)
+TCN_IMPLEMENT_CALL(jint, Library, aprMajorVersion)(TCN_STDARGS)
 {
     apr_version_t apv;
 
     UNREFERENCED_STDARGS;
     apr_version(&apv);
-
-    switch (what) {
-        case 0x11:
-            return apv.major;
-        break;
-        case 0x12:
-            return apv.minor;
-        break;
-        case 0x13:
-            return apv.patch;
-        break;
-        case 0x14:
-            return apv.is_dev;
-        break;
-    }
-    return 0;
+    return apv.major;
 }
 
 TCN_IMPLEMENT_CALL(jstring, Library, aprVersionString)(TCN_STDARGS)
@@ -201,119 +186,14 @@ TCN_IMPLEMENT_CALL(jstring, Library, aprVersionString)(TCN_STDARGS)
     return AJP_TO_JSTRING(apr_version_string());
 }
 
-TCN_IMPLEMENT_CALL(jboolean, Library, has)(TCN_STDARGS, jint what)
+TCN_IMPLEMENT_CALL(jboolean, Library, aprHasThreads)(TCN_STDARGS)
 {
-    jboolean rv = JNI_FALSE;
     UNREFERENCED_STDARGS;
-    switch (what) {
-        case 0:
-#if APR_HAVE_IPV6
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 1:
-#if APR_HAS_SHARED_MEMORY
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 2:
 #if APR_HAS_THREADS
-            rv = JNI_TRUE;
+    return JNI_TRUE;
+#else
+    return JNI_FALSE;
 #endif
-        break;
-        case 3:
-#if APR_HAS_SENDFILE
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 4:
-#if APR_HAS_MMAP
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 5:
-#if APR_HAS_FORK
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 6:
-#if APR_HAS_RANDOM
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 7:
-#if APR_HAS_OTHER_CHILD
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 8:
-#if APR_HAS_DSO
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 9:
-#if APR_HAS_SO_ACCEPTFILTER
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 10:
-#if APR_HAS_UNICODE_FS
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 11:
-#if APR_HAS_PROC_INVOKED
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 12:
-#if APR_HAS_USER
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 13:
-#if APR_HAS_LARGE_FILES
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 14:
-#if APR_HAS_XTHREAD_FILES
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 15:
-#if APR_HAS_OS_UUID
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 16:
-#if APR_IS_BIGENDIAN
-            rv = JNI_TRUE;
-#endif
-        break;
-
-        case 17:
-#if APR_FILES_AS_SOCKETS
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 18:
-#if APR_CHARSET_EBCDIC
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 19:
-#if APR_TCP_NODELAY_INHERITED
-            rv = JNI_TRUE;
-#endif
-        break;
-        case 20:
-#if APR_O_NONBLOCK_INHERITED
-            rv = JNI_TRUE;
-#endif
-        break;
-    }
-    return rv;
 }
 
 jclass tcn_get_string_class()
