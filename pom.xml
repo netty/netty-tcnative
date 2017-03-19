@@ -76,6 +76,7 @@
     <msvcSslLibDirs>${sslHome}/lib</msvcSslLibDirs>
     <msvcSslLibs>ssleay32.lib;libeay32.lib</msvcSslLibs>
     <strip.skip>false</strip.skip>
+    <os.detection.classifierWithLikes>alpine</os.detection.classifierWithLikes>
   </properties>
 
   <build>

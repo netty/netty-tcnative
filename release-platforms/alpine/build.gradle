@@ -1,0 +1,10 @@
+apply plugin: 'io.netty.gradle.plugins.docker-build-plugin'
+
+dockerBuild {
+    baseImage = 'openjdk:8-jdk-alpine'
+    runCommands = [
+            'apk add --update build-base autoconf automake libtool ' +
+                    'apr-util apr-util-dev git cmake ninja go linux-headers util-linux-dev',
+    ]
+    script = defaultDockerBuildScript
+}
