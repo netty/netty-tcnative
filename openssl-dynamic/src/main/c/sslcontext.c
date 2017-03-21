@@ -232,7 +232,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     c->protocol = protocol;
     c->mode     = mode;
     c->ctx      = ctx;
-    c->pool     = p;
+
     if (!(protocol & SSL_PROTOCOL_SSLV2))
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv2);
     if (!(protocol & SSL_PROTOCOL_SSLV3))
@@ -301,12 +301,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *) c->password);
 
     apr_thread_rwlock_create(&c->mutex, p);
-    /*
-     * Let us cleanup the ssl context when the pool is destroyed
-     */
-    apr_pool_cleanup_register(p, (const void *)c,
-                              ssl_context_cleanup,
-                              apr_pool_cleanup_null);
 
     return P2J(c);
 cleanup:
@@ -322,10 +316,8 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, free)(TCN_STDARGS, jlong ctx)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
-    /* Run and destroy the cleanup callback */
-    int result = apr_pool_cleanup_run(c->pool, c, ssl_context_cleanup);
-    apr_pool_destroy(c->pool);
-    return result;
+
+    return ssl_context_cleanup(c);
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setContextId)(TCN_STDARGS, jlong ctx,
