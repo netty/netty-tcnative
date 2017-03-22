@@ -378,7 +378,7 @@
                     <supportedProjectType>jar</supportedProjectType>
                   </supportedProjectTypes>
                   <instructions>
-                    <Export-Package>org.apache.tomcat.jni.*</Export-Package>
+                    <Export-Package>io.netty.internal.tcnative.*</Export-Package>
                     <Bundle-NativeCode>
                       META-INF/native/libnetty-tcnative-osx-x86_64.jnilib;osname=macos;osname=macosx;processor=x86_64,
                       META-INF/native/libnetty-tcnative-linux-x86_64.so;osname=linux;processor=x86_64,
