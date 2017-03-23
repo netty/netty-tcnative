@@ -62,7 +62,6 @@
               <windowsBuildTool>msbuild</windowsBuildTool>
               <configureArgs>
                 <configureArg>--with-ssl=${sslHome}</configureArg>
-                <configureArg>--with-apr=${aprHome}</configureArg>
               </configureArgs>
             </configuration>
           </execution>
@@ -75,7 +74,6 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
-            <Apr-Version>${aprVersion}</Apr-Version>
             <LibreSSL-Version>${libresslVersion}</LibreSSL-Version>
           </instructions>
         </configuration>

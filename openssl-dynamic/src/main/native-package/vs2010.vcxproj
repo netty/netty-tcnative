@@ -193,6 +193,10 @@
     <ClCompile Include=".\src\ssl.c" />
     <ClCompile Include=".\src\sslcontext.c" />
     <ClCompile Include=".\src\sslutils.c" />
+    <ClCompile Include=".\src\tcn_atomic.cpp" />
+    <ClCompile Include=".\src\tcn_lock.cpp" />
+    <ClCompile Include=".\src\tcn_lock_rw.cpp" />
+    <ClCompile Include=".\src\tcn_thread.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -63,9 +63,8 @@ public final class SSLContext {
     /**
      * Free the resources used by the Context
      * @param ctx Server or Client context to free.
-     * @return APR Status code.
      */
-    public static native int free(long ctx);
+    public static native void free(long ctx);
 
     /**
      * Set Session context id. Usually host:port combination.

@@ -167,9 +167,6 @@
                   <libDirectory>${nativeLibOnlyDir}</libDirectory>
                   <forceAutogen>${forceAutogen}</forceAutogen>
                   <forceConfigure>${forceConfigure}</forceConfigure>
-                  <configureArgs>
-                    <configureArg>--with-apr=/usr/local/opt/apr/libexec/</configureArg>
-                  </configureArgs>
                 </configuration>
                 <goals>
                   <goal>generate</goal>

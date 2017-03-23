@@ -38,20 +38,17 @@
 #endif
 
 #include "tcn.h"
-#include "apr_version.h"
-#include "apr_atomic.h"
-#include "apr_strings.h"
 #include "bb.h"
 #include "native_constants.h"
 #include "ssl.h"
 #include "sslcontext.h"
 #include "error.h"
+#include <string.h>
 
 #ifndef TCN_JNI_VERSION
 #define TCN_JNI_VERSION JNI_VERSION_1_6
 #endif
 
-apr_pool_t *tcn_global_pool = NULL;
 static JavaVM     *tcn_global_vm = NULL;
 
 static jclass    jString_class;
@@ -88,45 +85,6 @@ jstring tcn_new_string(JNIEnv *env, const char *str)
         return NULL;
     else
         return (*env)->NewStringUTF(env, str);
-}
-
-TCN_IMPLEMENT_CALL(jboolean, Library, initialize0)(TCN_STDARGS)
-{
-
-    UNREFERENCED_STDARGS;
-    if (!tcn_global_pool) {
-        apr_initialize();
-        if (apr_pool_create(&tcn_global_pool, NULL) != APR_SUCCESS) {
-            return JNI_FALSE;
-        }
-        apr_atomic_init(tcn_global_pool);
-    }
-    return JNI_TRUE;
-}
-
-TCN_IMPLEMENT_CALL(jint, Library, aprMajorVersion)(TCN_STDARGS)
-{
-    apr_version_t apv;
-
-    UNREFERENCED_STDARGS;
-    apr_version(&apv);
-    return apv.major;
-}
-
-TCN_IMPLEMENT_CALL(jstring, Library, aprVersionString)(TCN_STDARGS)
-{
-    UNREFERENCED(o);
-    return AJP_TO_JSTRING(apr_version_string());
-}
-
-TCN_IMPLEMENT_CALL(jboolean, Library, aprHasThreads)(TCN_STDARGS)
-{
-    UNREFERENCED_STDARGS;
-#if APR_HAS_THREADS
-    return JNI_TRUE;
-#else
-    return JNI_FALSE;
-#endif
 }
 
 jclass tcn_get_string_class()
@@ -288,22 +246,7 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
 
 #endif /* TCN_NOT_DYNAMIC */
 
-// JNI Method Registration Table Begin
-static const JNINativeMethod method_table[] = {
-  { TCN_METHOD_TABLE_ENTRY(initialize0, ()Z, Library) },
-  { TCN_METHOD_TABLE_ENTRY(aprMajorVersion, ()I, Library) },
-  { TCN_METHOD_TABLE_ENTRY(aprVersionString, ()Ljava/lang/String;, Library) },
-  { TCN_METHOD_TABLE_ENTRY(aprHasThreads, ()Z, Library) },
-};
-
-static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
-// JNI Method Registration Table End
-
 jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
-    if (netty_internal_tcnative_util_register_natives(env, packagePrefix, "io/netty/internal/tcnative/Library", method_table, method_table_size) != 0) {
-        return JNI_ERR;
-    }
-
     // Load all c modules that we depend upon
     if (netty_internal_tcnative_Error_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
         return JNI_ERR;
@@ -321,21 +264,6 @@ jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* package
     if (netty_internal_tcnative_SSLContext_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
         return JNI_ERR;
     }
-
-    apr_version_t apv;
-    int apvn;
-
-    /* Before doing anything else check if we have a valid
-     * APR version.
-     */
-    apr_version(&apv);
-    apvn = apv.major * 1000 + apv.minor * 100 + apv.patch;
-    if (apvn < 1201) {
-        tcn_Throw(env, "Unsupported APR version (%s)",
-                  apr_version_string());
-        return JNI_ERR;
-    }
-
 
     /* Initialize global java.lang.String class */
     TCN_LOAD_CLASS(env, jString_class, "java/lang/String", JNI_ERR);
@@ -365,11 +293,7 @@ jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* package
 }
 
 void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
-    if (tcn_global_pool != NULL) {
-        TCN_UNLOAD_CLASS(env, jString_class);
-        apr_terminate();
-    }
-
+    TCN_UNLOAD_CLASS(env, jString_class);
     TCN_UNLOAD_CLASS(env, byteArrayClass);
     TCN_UNLOAD_CLASS(env, keyMaterialClass);
 

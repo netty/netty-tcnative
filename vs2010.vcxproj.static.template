@@ -96,7 +96,7 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -124,7 +124,7 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -152,7 +152,7 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -178,7 +178,7 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -193,6 +193,10 @@
     <ClCompile Include=".\src\ssl.c" />
     <ClCompile Include=".\src\sslcontext.c" />
     <ClCompile Include=".\src\sslutils.c" />
+    <ClCompile Include=".\src\tcn_atomic.cpp" />
+    <ClCompile Include=".\src\tcn_lock.cpp" />
+    <ClCompile Include=".\src\tcn_lock_rw.cpp" />
+    <ClCompile Include=".\src\tcn_thread.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

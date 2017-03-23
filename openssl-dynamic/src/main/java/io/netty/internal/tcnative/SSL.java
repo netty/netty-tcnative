@@ -112,9 +112,9 @@ public final class SSL {
      *
      * @param engine Support for external a Crypto Device ("engine"),
      *                usually a hardware accelerator card for crypto operations.
-     * @return APR status code
+     * @return {@code true} if initialized.
      */
-    static native int initialize(String engine);
+    static native void initialize(String engine);
 
     /**
      * Initialize new in-memory BIO that is located in the secure heap.

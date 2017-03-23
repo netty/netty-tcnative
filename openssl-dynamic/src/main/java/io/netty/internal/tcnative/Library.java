@@ -91,26 +91,13 @@ public final class Library {
         }
     }
 
-    /* create global TCN's APR pool
-     * This has to be the first call to TCN library.
-     */
-    private static native boolean initialize0();
-
-    private static native boolean aprHasThreads();
-
-    private static native int aprMajorVersion();
-
-    /* APR_VERSION_STRING */
-    private static native String aprVersionString();
-
     /**
      * Calls {@link #initialize(String, String)} with {@code "provided"} and {@code null}.
      *
-     * @return {@code true} if initialization was successful
      * @throws Exception if an error happens during initialization
      */
-    public static boolean initialize() throws Exception {
-        return initialize("provided", null);
+    public static void initialize() throws Exception {
+        initialize("provided", null);
     }
 
     /**
@@ -118,22 +105,12 @@ public final class Library {
      *
      * @param libraryName the name of the library to load
      * @param engine Support for external a Crypto Device ("engine"), usually
-     * @return {@code true} if initialization was successful
      * @throws Exception if an error happens during initialization
      */
-    public static boolean initialize(String libraryName, String engine) throws Exception {
+    public static void initialize(String libraryName, String engine) throws Exception {
         if (_instance == null) {
             _instance = libraryName == null ? new Library() : new Library(libraryName);
-
-            if (aprMajorVersion() < 1) {
-                throw new UnsatisfiedLinkError("Unsupported APR Version (" +
-                                               aprVersionString() + ")");
-            }
-
-            if (!aprHasThreads()) {
-                throw new UnsatisfiedLinkError("Missing APR_HAS_THREADS");
-            }
         }
-        return initialize0() && SSL.initialize(engine) == 0;
+        SSL.initialize(engine);
     }
 }

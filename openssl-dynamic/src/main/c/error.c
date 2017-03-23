@@ -30,7 +30,6 @@
  */
 
 #include "tcn.h"
-#include "apr_strings.h"
 
 static jclass exceptionClass;
 static jclass nullPointerExceptionClass;
@@ -47,23 +46,16 @@ void tcn_ThrowNullPointerException(JNIEnv *env, const char *msg)
 {
     (*env)->ThrowNew(env, nullPointerExceptionClass, msg);
 }
+
 void tcn_Throw(JNIEnv *env, const char *fmt, ...)
 {
     char msg[TCN_BUFFER_SZ] = {'\0'};
     va_list ap;
 
     va_start(ap, fmt);
-    apr_vsnprintf(msg, TCN_BUFFER_SZ, fmt, ap);
+    vsnprintf(msg, TCN_BUFFER_SZ, fmt, ap);
     tcn_ThrowException(env, msg);
     va_end(ap);
-}
-
-void tcn_ThrowAPRException(JNIEnv *e, apr_status_t err)
-{
-    char serr[512] = {0};
-
-    apr_strerror(err, serr, 512);
-    tcn_ThrowException(e, serr);
 }
 
 jint netty_internal_tcnative_Error_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
@@ -78,3 +70,4 @@ void netty_internal_tcnative_Error_JNI_OnUnLoad(JNIEnv* env) {
      TCN_UNLOAD_CLASS(env, exceptionClass);
      TCN_UNLOAD_CLASS(env, nullPointerExceptionClass);
  }
+
