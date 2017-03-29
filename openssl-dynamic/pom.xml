@@ -107,6 +107,10 @@
           <family>windows</family>
         </os>
       </activation>
+      <properties>
+        <!-- Skip tests on windows as its not easy to load the openssl library we link against in the tests -->
+        <skipTests>true</skipTests>
+      </properties>
       <build>
         <plugins>
           <plugin>
