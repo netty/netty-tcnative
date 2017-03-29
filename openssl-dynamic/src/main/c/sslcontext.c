@@ -1354,7 +1354,7 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
 }
 
 static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
-#if defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
     return -1;
 #else
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
@@ -1374,25 +1374,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 
     tcn_get_java_env(&e);
 
-#if OPENSSL_VERSION_NUMBER < 0x10002000L
-    char ssl2_ctype = SSL3_CT_RSA_SIGN;
-    switch (ssl->version) {
-        case SSL2_VERSION:
-            ctype_bytes = (jbyte*) &ssl2_ctype;
-            ctype_num = 1;
-            break;
-        case SSL3_VERSION:
-        case TLS1_VERSION:
-        case TLS1_1_VERSION:
-        case TLS1_2_VERSION:
-        case DTLS1_VERSION:
-            ctype_bytes = (jbyte*) ssl->s3->tmp.ctype;
-            ctype_num = ssl->s3->tmp.ctype_num;
-            break;
-    }
-#else
     ctype_num = SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
-#endif
     if (ctype_num <= 0) {
         // Use no certificate
         return 0;
