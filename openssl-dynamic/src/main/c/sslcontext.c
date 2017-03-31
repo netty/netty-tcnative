@@ -1508,10 +1508,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
     // Delete the reference to the previous specified matcher if needed.
     if (c->sni_hostname_matcher != NULL) {
         (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
+        c->sni_hostname_matcher = NULL;
     }
 
     if (matcher == NULL) {
-        c->sni_hostname_matcher = NULL;
+        c->sni_hostname_matcher_method = NULL;
 
         SSL_CTX_set_tlsext_servername_callback(c->ctx, NULL);
         SSL_CTX_set_tlsext_servername_arg(c->ctx, NULL);
@@ -1519,6 +1520,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
         jclass matcher_class = (*e)->GetObjectClass(e, matcher);
         jmethodID method = (*e)->GetMethodID(e, matcher_class, "match", "(JLjava/lang/String;)Z");
         if (method == NULL) {
+            c->sni_hostname_matcher_method = NULL;
             return;
         }
 
