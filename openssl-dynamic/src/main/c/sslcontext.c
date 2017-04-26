@@ -1190,7 +1190,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
     TCN_ASSERT(c != NULL);
     tcn_ssl_verify_config_t* verify_config = SSL_get_app_data4(ssl);
-    TCN_ASSERT(verify_confg != NULL);
+    TCN_ASSERT(verify_config != NULL);
 
     // Get a stack of all certs in the chain
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
