@@ -166,9 +166,10 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define TCN_X509_V_ERR_UNSPECIFIED (X509_V_ERR_UNSPECIFIED)
 #endif /*X509_V_ERR_UNSPECIFIED*/
 
-// OCSP stapling should be present in OpenSSL as of version 1.0.0 but we've
-// only tested 1.0.2 are therefore limiting us to that version or newer.
-#if OPENSSL_VERSION_NUMBER < 0x10002000L
+// OCSP stapling should be present in OpenSSL as of version 1.0.0 but
+// we've only tested 1.0.2 and we need to support 1.0.1 because the
+// dynamically linked version of netty-tcnative is built with 1.0.1.
+#if OPENSSL_VERSION_NUMBER < 0x10001000L
 #define TCN_OCSP_NOT_SUPPORTED
 #endif
 
