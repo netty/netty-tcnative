@@ -120,7 +120,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
 #else
     switch (protocol) {
     case SSL_PROTOCOL_TLS:
-    case SSL_PROTOCOL_ALL:
         if (mode == SSL_MODE_CLIENT)
             ctx = SSL_CTX_new(SSLv23_client_method());
         else if (mode == SSL_MODE_SERVER)
