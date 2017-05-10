@@ -38,6 +38,7 @@
 #include "apr_strings.h"
 #include "apr_portable.h"
 #include "ssl_private.h"
+#include "ssl.h"
 
 static int ssl_initialized = 0;
 extern apr_pool_t *tcn_global_pool;
@@ -1823,7 +1824,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
     }
 }
 
-TCN_IMPLEMENT_CALL(long, SSL, parsePrivateKey)(TCN_STDARGS, jlong privateKeyBio, jstring password)
+TCN_IMPLEMENT_CALL(jlong, SSL, parsePrivateKey)(TCN_STDARGS, jlong privateKeyBio, jstring password)
 {
     EVP_PKEY* pkey = NULL;
     BIO *bio = J2P(privateKeyBio, BIO *);
@@ -1856,7 +1857,7 @@ TCN_IMPLEMENT_CALL(void, SSL, freePrivateKey)(TCN_STDARGS, jlong privateKey)
     EVP_PKEY_free(key); // Safe to call with NULL as well.
 }
 
-TCN_IMPLEMENT_CALL(long, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
+TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 {
     BIO *cert_bio = J2P(x509ChainBio, BIO *);
     X509* cert = NULL;
@@ -2036,3 +2037,85 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getOcspResponse)(TCN_STDARGS, jlong ssl) {
     return value;
 #endif
 }
+
+// JNI Method Registration Table Begin
+static const JNINativeMethod method_table[] = {
+  { TCN_METHOD_TABLE_ENTRY(bioLengthByteBuffer, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(bioLengthNonApplication, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(version, ()I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(versionString, ()Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(initialize, (Ljava/lang/String;)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(newMemBIO, ()J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getLastError, ()Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getLastErrorNumber, ()I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(newSSL, (JZ)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getError, (JI)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(bioWrite, (JJI)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(bioSetByteBuffer, (JJIZ)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(bioClearByteBuffer, (J)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(bioFlushByteBuffer, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(sslPending, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(writeToSSL, (JJI)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(readFromSSL, (JJI)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getShutdown, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setShutdown, (JI)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(freeSSL, (J)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(bioNewByteBuffer, (JI)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(bioNewByteBuffer, (JI)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(freeBIO, (J)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(shutdownSSL, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getCipherForSSL, (J)Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getVersion, (J)Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(isInInit, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(doHandshake, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getNextProtoNegotiated, (J)Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getAlpnSelected, (J)Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getPeerCertChain, (J)[[B, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getPeerCertificate, (J)[B, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getErrorString, (J)Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getTime, (J)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getTimeout, (J)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setTimeout, (JJ)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setVerify, (JII)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setOptions, (JI)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(clearOptions, (JI)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getOptions, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setMode, (JI)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getMode, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getMaxWrapOverhead, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getCiphers, (J)[Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setCipherSuites, (JLjava/lang/String;)Z, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getSessionId, (J)[B, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getHandshakeCount, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(clearError, ()V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(renegotiate, (J)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setState, (JI)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setTlsExtHostName, (JLjava/lang/String;)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setHostNameValidation, (JILjava/lang/String;)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(authenticationMethods, (J)[Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setCertificateBio, (JJJLjava/lang/String;)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setCertificateChainBio, (JJZ)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(parsePrivateKey, (JLjava/lang/String;)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(freePrivateKey, (J)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(parseX509Chain, (J)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(freeX509Chain, (J)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(enableOcsp, (J)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setOcspResponse, (J[B)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getOcspResponse, (J)[B, SSL) }
+};
+
+static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
+
+// JNI Method Registration Table End
+
+jint netty_internal_tcnative_SSL_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+    if (netty_internal_tcnative_util_register_natives(env,
+             packagePrefix,
+             "io/netty/internal/tcnative/SSL",
+             method_table, method_table_size) != 0) {
+        return JNI_ERR;
+    }
+    return JNI_VERSION_1_6;
+}
+
+void netty_internal_tcnative_SSL_JNI_OnUnLoad(JNIEnv* env) { }

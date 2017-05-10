@@ -71,8 +71,16 @@
 #define TCN_BUFFER_SZ   8192
 #define TCN_STDARGS     JNIEnv *e, jobject o
 
+#define STR(V) #V
+
+#define TCN_FUNCTION_NAME(CL, FN)  \
+    netty_internal_tcnative_##CL##_##FN
+
 #define TCN_IMPLEMENT_CALL(RT, CL, FN)  \
-    JNIEXPORT RT JNICALL Java_io_netty_internal_tcnative_##CL##_##FN
+    static RT TCN_FUNCTION_NAME(CL, FN)
+
+#define TCN_METHOD_TABLE_ENTRY(ME, SI, CL) \
+    STR(ME), STR(SI), (void *) TCN_FUNCTION_NAME(CL, ME)
 
 /* Private helper functions */
 void            tcn_Throw(JNIEnv *, const char *, ...);
@@ -154,5 +162,19 @@ jfieldID tcn_get_key_material_private_key_field();
 /* Get current thread JNIEnv
  */
 jint tcn_get_java_env(JNIEnv **);
+
+/**
+ * Return a new string (caller must free this string) which is equivalent to <pre>prefix + str</pre>.
+ *
+ * Caller must free the return value!
+ */
+char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str);
+
+char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1rend, const char* s2);
+
+/**
+ * Return type is as defined in http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/functions.html#wp5833.
+ */
+jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods);
 
 #endif /* TCN_H */

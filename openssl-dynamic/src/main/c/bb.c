@@ -30,6 +30,7 @@
  */
 
 #include "tcn.h"
+#include "bb.h"
 
 TCN_IMPLEMENT_CALL(jlong, Buffer, address)(TCN_STDARGS, jobject bb)
 {
@@ -42,3 +43,21 @@ TCN_IMPLEMENT_CALL(jlong, Buffer, size)(TCN_STDARGS, jobject bb)
     UNREFERENCED(o);
     return (*e)->GetDirectBufferCapacity(e, bb);
 }
+
+// JNI Method Registration Table Begin
+static const JNINativeMethod method_table[] = {
+  { TCN_METHOD_TABLE_ENTRY(address, (Ljava/nio/ByteBuffer;)J, Buffer) },
+  { TCN_METHOD_TABLE_ENTRY(size, (Ljava/nio/ByteBuffer;)J, Buffer) }
+};
+
+static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
+// JNI Method Registration Table End
+
+jint netty_internal_tcnative_Buffer_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+    if (netty_internal_tcnative_util_register_natives(env, packagePrefix, "io/netty/internal/tcnative/Buffer", method_table, method_table_size) != 0) {
+        return JNI_ERR;
+    }
+    return JNI_VERSION_1_6;
+}
+
+void netty_internal_tcnative_Buffer_JNI_OnUnLoad(JNIEnv* env) { }
