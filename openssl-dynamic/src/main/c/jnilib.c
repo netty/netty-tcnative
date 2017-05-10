@@ -28,14 +28,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef WIN32
+// It's important to have #define _GNU_SOURCE before any other include as otherwise it will not work.
+// See http://stackoverflow.com/questions/7296963/gnu-source-and-use-gnu
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#else
+#define MAX_DLL_PATH_LEN 2048
+#endif /* WIN32 */
 
 #include "tcn.h"
 #include "apr_version.h"
 #include "apr_atomic.h"
 #include "apr_strings.h"
+#include "bb.h"
+#include "native_constants.h"
+#include "ssl.h"
+#include "sslcontext.h"
 
 #ifndef TCN_JNI_VERSION
-#define TCN_JNI_VERSION JNI_VERSION_1_4
+#define TCN_JNI_VERSION JNI_VERSION_1_6
 #endif
 
 apr_pool_t *tcn_global_pool = NULL;
@@ -48,87 +60,6 @@ static jclass    byteArrayClass;
 static jclass    keyMaterialClass;
 static jfieldID  keyMaterialCertificateChainFieldId;
 static jfieldID  keyMaterialPrivateKeyFieldId;
-
-/* Called by the JVM when APR_JAVA is loaded */
-JNIEXPORT jint JNICALL JNI_OnLoad_netty_tcnative(JavaVM *vm, void *reserved) 
-{
-    JNIEnv *env;
-    apr_version_t apv;
-    int apvn;
-
-    UNREFERENCED(reserved);
-    if ((*vm)->GetEnv(vm, (void **)&env, TCN_JNI_VERSION)) {
-        return JNI_ERR;
-    }
-    tcn_global_vm = vm;
-
-    /* Before doing anything else check if we have a valid
-     * APR version.
-     */
-    apr_version(&apv);
-    apvn = apv.major * 1000 + apv.minor * 100 + apv.patch;
-    if (apvn < 1201) {
-        tcn_Throw(env, "Unsupported APR version (%s)",
-                  apr_version_string());
-        return JNI_ERR;
-    }
-
-
-    /* Initialize global java.lang.String class */
-    TCN_LOAD_CLASS(env, jString_class, "java/lang/String", JNI_ERR);
-
-    TCN_GET_METHOD(env, jString_class, jString_init,
-                   "<init>", "([B)V", JNI_ERR);
-    TCN_GET_METHOD(env, jString_class, jString_getBytes,
-                   "getBytes", "()[B", JNI_ERR);
-
-    // Load the class which makes JNI references available in a static scope before loading any other classes.
-    if ((*env)->FindClass(env, "io/netty/internal/tcnative/NativeStaticallyReferencedJniMethods") == NULL) {
-        return JNI_ERR;
-    }
-
-    TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
-    TCN_LOAD_CLASS(env, keyMaterialClass, "io/netty/internal/tcnative/CertificateRequestedCallback$KeyMaterial", JNI_ERR);
-
-    TCN_GET_FIELD(env, keyMaterialClass, keyMaterialCertificateChainFieldId,
-                   "certificateChain", "J", JNI_ERR);
-    TCN_GET_FIELD(env, keyMaterialClass, keyMaterialPrivateKeyFieldId,
-                   "privateKey", "J", JNI_ERR);
-
-    return TCN_JNI_VERSION;
-}
-
-/* Called by the JVM when APR_JAVA is loaded */
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
-{
-    return JNI_OnLoad_netty_tcnative(vm, reserved);
-}
-
-/* Called by the JVM before the APR_JAVA is unloaded */
-JNIEXPORT void JNICALL JNI_OnUnload_netty_tcnative(JavaVM *vm, void *reserved)
-{
-    JNIEnv *env;
-
-    UNREFERENCED(reserved);
-
-    if ((*vm)->GetEnv(vm, (void **)&env, TCN_JNI_VERSION)) {
-        return;
-    }
-
-    if (tcn_global_pool) {
-        TCN_UNLOAD_CLASS(env, jString_class);
-        apr_terminate();
-    }
-
-    TCN_UNLOAD_CLASS(env, byteArrayClass);
-    TCN_UNLOAD_CLASS(env, keyMaterialClass);
-}
-
-/* Called by the JVM before the APR_JAVA is unloaded */
-JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
-{
-    JNI_OnUnload_netty_tcnative(vm, reserved);
-}
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 {
@@ -224,4 +155,264 @@ jint tcn_get_java_env(JNIEnv **env)
         return JNI_ERR;
     }
     return JNI_OK;
+}
+
+// TODO: Share code with netty natives utilities.
+char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str) {
+    if (prefix == NULL) {
+        char* result = (char*) malloc(sizeof(char) * (strlen(str) + 1));
+        strcpy(result, str);
+        return result;
+    }
+    char* result = (char*) malloc(sizeof(char) * (strlen(prefix) + strlen(str) + 1));
+    strcpy(result, prefix);
+    strcat(result, str);
+    return result;
+}
+
+char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1rend, const char* s2) {
+    size_t s2len = strlen(s2);
+    char *s = s1rbegin - s2len;
+
+    for (; s >= s1rend; --s) {
+        if (strncmp(s, s2, s2len) == 0) {
+            return s;
+        }
+    }
+    return NULL;
+}
+
+jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods) {
+    char* nettyClassName = netty_internal_tcnative_util_prepend(packagePrefix, className);
+    jclass nativeCls = (*env)->FindClass(env, nettyClassName);
+    free(nettyClassName);
+    nettyClassName = NULL;
+    if (nativeCls == NULL) {
+        return JNI_ERR;
+    }
+
+    return (*env)->RegisterNatives(env, nativeCls, methods, numMethods);
+}
+
+static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
+// windows does not have strndup
+#ifdef WIN32
+    char* copy = _strdup(s);
+    if (copy != NULL && n < strlen(copy)) {
+        // mark the end
+        copy[n + 1] = '\0';
+    }
+    return copy;
+#else
+    return strndup(s, n);
+#endif
+}
+
+/**
+ * The expected format of the library name is "lib<>netty-tcnative" on non windows platforms and "<>netty-tcnative" on windows,
+ *  where the <> portion is what we will return.
+ */
+static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
+    char* packageNameEnd = strstr(libraryPathName, "netty-tcnative");
+    if (packageNameEnd == NULL) {
+        *status = JNI_ERR;
+        return NULL;
+    }
+#ifdef WIN32
+    // on windows we don't have a lib prefix
+    int incr = 0;
+    char* packagePrefix = packageNameEnd;
+#else
+    int incr = 3;
+    char* packagePrefix = netty_internal_tcnative_util_rstrstr(packageNameEnd, libraryPathName, "lib");
+#endif
+
+    if (packagePrefix == NULL) {
+        *status = JNI_ERR;
+        return NULL;
+    }
+    packagePrefix += incr;
+    if (packagePrefix == packageNameEnd) {
+        return NULL;
+    }
+    // packagePrefix length is > 0
+    // Make a copy so we can modify the value without impacting libraryPathName.
+    size_t packagePrefixLen = packageNameEnd - packagePrefix;
+    packagePrefix = netty_internal_tcnative_util_strndup(packagePrefix, packagePrefixLen);
+    // Make sure the packagePrefix is in the correct format for the JNI functions it will be used with.
+    char* temp = packagePrefix;
+    packageNameEnd = packagePrefix + packagePrefixLen;
+    // Package names must be sanitized, in JNI packages names are separated by '/' characters.
+    for (; temp != packageNameEnd; ++temp) {
+        if (*temp == '-') {
+            *temp = '/';
+        }
+    }
+    // Make sure packagePrefix is terminated with the '/' JNI package separator.
+    if(*(--temp) != '/') {
+        temp = packagePrefix;
+        packagePrefix = netty_internal_tcnative_util_prepend(packagePrefix, "/");
+        free(temp);
+    }
+    return packagePrefix;
+}
+
+// JNI Method Registration Table Begin
+static const JNINativeMethod method_table[] = {
+  { TCN_METHOD_TABLE_ENTRY(initialize0, ()Z, Library) },
+  { TCN_METHOD_TABLE_ENTRY(aprMajorVersion, ()I, Library) },
+  { TCN_METHOD_TABLE_ENTRY(aprVersionString, ()Ljava/lang/String;, Library) },
+  { TCN_METHOD_TABLE_ENTRY(aprHasThreads, ()Z, Library) },
+};
+
+static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
+// JNI Method Registration Table End
+
+jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+    if (netty_internal_tcnative_util_register_natives(env, packagePrefix, "io/netty/internal/tcnative/Library", method_table, method_table_size) != 0) {
+        return JNI_ERR;
+    }
+
+    // Load all c modules that we depend upon
+    if (netty_internal_tcnative_Buffer_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
+        return JNI_ERR;
+    }
+    if (netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
+        return JNI_ERR;
+    }
+
+    if (netty_internal_tcnative_SSL_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
+        return JNI_ERR;
+    }
+    if (netty_internal_tcnative_SSLContext_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
+        return JNI_ERR;
+    }
+
+    apr_version_t apv;
+    int apvn;
+
+    /* Before doing anything else check if we have a valid
+     * APR version.
+     */
+    apr_version(&apv);
+    apvn = apv.major * 1000 + apv.minor * 100 + apv.patch;
+    if (apvn < 1201) {
+        tcn_Throw(env, "Unsupported APR version (%s)",
+                  apr_version_string());
+        return JNI_ERR;
+    }
+
+
+    /* Initialize global java.lang.String class */
+    TCN_LOAD_CLASS(env, jString_class, "java/lang/String", JNI_ERR);
+
+    TCN_GET_METHOD(env, jString_class, jString_init,
+                   "<init>", "([B)V", JNI_ERR);
+    TCN_GET_METHOD(env, jString_class, jString_getBytes,
+                   "getBytes", "()[B", JNI_ERR);
+
+    TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
+
+    char* keyMaterialClassName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateRequestedCallback$KeyMaterial");
+    jclass keyMaterialClassLocal = (*env)->FindClass(env, keyMaterialClassName);
+    free(keyMaterialClassName);
+    keyMaterialClassName = NULL;
+    if (keyMaterialClassLocal == NULL) {
+        return JNI_ERR;
+    }
+    keyMaterialClass = (*env)->NewGlobalRef(env, keyMaterialClassLocal);
+
+    TCN_GET_FIELD(env, keyMaterialClass, keyMaterialCertificateChainFieldId,
+                   "certificateChain", "J", JNI_ERR);
+    TCN_GET_FIELD(env, keyMaterialClass, keyMaterialPrivateKeyFieldId,
+                   "privateKey", "J", JNI_ERR);
+
+    return TCN_JNI_VERSION;
+}
+
+void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
+    if (tcn_global_pool != NULL) {
+        TCN_UNLOAD_CLASS(env, jString_class);
+        apr_terminate();
+    }
+
+    TCN_UNLOAD_CLASS(env, byteArrayClass);
+    TCN_UNLOAD_CLASS(env, keyMaterialClass);
+
+    netty_internal_tcnative_Buffer_JNI_OnUnLoad(env);
+    netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env);
+    netty_internal_tcnative_SSL_JNI_OnUnLoad(env);
+    netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
+}
+
+jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+    JNIEnv* env;
+    if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
+        return JNI_ERR;
+    }
+
+    jint status = 0;
+    const char* name = NULL;
+#ifndef WIN32
+    Dl_info dlinfo;
+    // We need to use an address of a function that is uniquely part of this library, so choose a static
+    // function. See https://github.com/netty/netty/issues/4840.
+    if (!dladdr((void*) parsePackagePrefix, &dlinfo)) {
+        fprintf(stderr, "FATAL: netty-tcnative JNI call to dladdr failed!\n");
+        return JNI_ERR;
+    }
+    name = dlinfo.dli_fname;
+#else
+    HMODULE module = NULL;
+    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (void*) parsePackagePrefix, &module) == 0){
+        fprintf(stderr, "FATAL: netty-tcnative JNI call to GetModuleHandleExA failed!\n");
+        return JNI_ERR;
+    }
+
+    // add space for \0 termination as this is not automatically included for windows XP
+    // See https://msdn.microsoft.com/en-us/library/windows/desktop/ms683197(v=vs.85).aspx
+    char dllPath[MAX_DLL_PATH_LEN + 1];
+    int dllPathLen = GetModuleFileNameA(module, dllPath, MAX_DLL_PATH_LEN);
+    if (dllPathLen == 0) {
+        fprintf(stderr, "FATAL: netty-tcnative JNI call to GetModuleFileNameA failed!\n");
+        return JNI_ERR;
+    } else {
+        // ensure we null terminate as this is not automatically done on windows xp
+        dllPath[dllPathLen] = '\0';
+    }
+
+    char* dllTmpPath = dllPath;
+    // replace \ with /
+    for(; *dllTmpPath != '\0'; ++dllTmpPath) {
+        if (*dllTmpPath == '\\') {
+            *dllTmpPath = '/';
+        }
+    }
+    name = dllPath;
+#endif
+    char* packagePrefix = parsePackagePrefix(name, &status);
+
+    if (status == JNI_ERR) {
+        fprintf(stderr, "FATAL: netty-tcnative encountered unexpected library path: %s\n", name);
+        return JNI_ERR;
+    }
+    tcn_global_vm = vm;
+
+    jint ret = netty_internal_tcnative_Library_JNI_OnLoad(env, packagePrefix);
+
+    if (packagePrefix != NULL) {
+      free(packagePrefix);
+      packagePrefix = NULL;
+    }
+
+    return ret;
+}
+
+void JNI_OnUnload(JavaVM* vm, void* reserved) {
+    JNIEnv* env;
+    if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
+        // Something is wrong but nothing we can do about this :(
+        return;
+    }
+    netty_internal_tcnative_Library_JNI_OnUnLoad(env);
 }
