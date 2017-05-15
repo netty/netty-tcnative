@@ -208,12 +208,24 @@ static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
 #endif
 }
 
+static char* netty_internal_tcnative_util_strstr_last(const char* haystack, const char* needle) {
+    char* prevptr = NULL;
+    char* ptr = (char*) haystack;
+
+    while ((ptr = strstr(ptr, needle)) != NULL) {
+        // Just store the ptr and continue searching.
+        prevptr = ptr;
+        ++ptr;
+    }
+    return prevptr;
+}
+
 /**
  * The expected format of the library name is "lib<>netty-tcnative" on non windows platforms and "<>netty-tcnative" on windows,
  *  where the <> portion is what we will return.
  */
 static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
-    char* packageNameEnd = strstr(libraryPathName, "netty-tcnative");
+    char* packageNameEnd = netty_internal_tcnative_util_strstr_last(libraryPathName, "netty-tcnative");
     if (packageNameEnd == NULL) {
         *status = JNI_ERR;
         return NULL;
