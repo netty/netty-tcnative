@@ -16,22 +16,7 @@
 
 #include "tcn.h"
 #include "ssl_private.h"
-
-TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslVerifyNone)(TCN_STDARGS) {
-    return SSL_VERIFY_NONE;
-}
-
-TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslVerifyPeer)(TCN_STDARGS) {
-    return SSL_VERIFY_PEER;
-}
-
-TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslVerifyFailIfNoPeerCert)(TCN_STDARGS) {
-    return SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-}
-
-TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslVerifyClientOnce)(TCN_STDARGS) {
-    return SSL_VERIFY_CLIENT_ONCE;
-}
+#include "native_constants.h"
 
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpCipherServerPreference)(TCN_STDARGS) {
     return SSL_OP_CIPHER_SERVER_PREFERENCE;
@@ -484,3 +469,120 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, x509vErrDaneNoMat
     return TCN_X509_V_ERR_UNSPECIFIED;
 #endif
 }
+
+// JNI Method Registration Table Begin
+static const JNINativeMethod method_table[] = {
+  { TCN_METHOD_TABLE_ENTRY(sslOpCipherServerPreference, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpNoSSLv2, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpNoSSLv3, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv1, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv11, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv12, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpNoTicket, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpNoCompression, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSessCacheOff, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSessCacheServer, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslStConnect, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslStAccept, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslModeEnablePartialWrite, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslModeAcceptMovingWriteBuffer, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslModeReleaseBuffers, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSendShutdown, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslReceivedShutdown, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorNone, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorSSL, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorWantRead, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorWantWrite, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorWantX509Lookup, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorSyscall, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorZeroReturn, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorWantConnect, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorWantAccept, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslMaxPlaintextLength, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslMaxPlaintextLength, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509CheckFlagAlwaysCheckSubject, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509CheckFlagDisableWildCards, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509CheckFlagNoPartialWildCards, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509CheckFlagMultiLabelWildCards, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vOK, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnspecified, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnableToGetIssuerCert, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnableToGetCrl, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnableToDecryptCertSignature, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnableToDecryptCrlSignature, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnableToDecodeIssuerPublicKey, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCertSignatureFailure, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCrlSignatureFailure, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCertNotYetValid, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCertHasExpired, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCrlNotYetValid, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCrlHasExpired, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrErrorInCertNotBeforeField, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrErrorInCertNotAfterField, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrErrorInCrlLastUpdateField, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrErrorInCrlNextUpdateField, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrOutOfMem, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrDepthZeroSelfSignedCert, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSelfSignedCertInChain, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnableToGetIssuerCertLocally, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnableToVerifyLeafSignature, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCertChainTooLong, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCertRevoked, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrInvalidCa, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrPathLengthExceeded, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrInvalidPurpose, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCertUntrusted, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCertRejected, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSubjectIssuerMismatch, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrAkidSkidMismatch, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrAkidIssuerSerialMismatch, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrKeyUsageNoCertSign, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnableToGetCrlIssuer, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnhandledCriticalExtension, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrKeyUsageNoCrlSign, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnhandledCriticalCrlExtension, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrInvalidNonCa, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrProxyPathLengthExceeded, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrKeyUsageNoDigitalSignature, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrProxyCertificatesNotAllowed, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrInvalidExtension, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrInvalidPolicyExtension, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrNoExplicitPolicy, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrDifferntCrlScope, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnsupportedExtensionFeature, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnnestedResource, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrPermittedViolation, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrExcludedViolation, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSubtreeMinMax, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrApplicationVerification, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnsupportedConstraintType, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnsupportedConstraintSyntax, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrUnsupportedNameSyntax, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrCrlPathValidationError, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrPathLoop, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSuiteBInvalidVersion, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSuiteBInvalidAlgorithm, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSuiteBInvalidCurve, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSuiteBInvalidSignatureAlgorithm, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSuiteBLosNotAllowed, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrSuiteBCannotSignP384WithP256, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrHostnameMismatch, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrEmailMismatch, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrIpAddressMismatch, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(x509vErrDaneNoMatch, ()I, NativeStaticallyReferencedJniMethods) }
+};
+
+static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
+// JNI Method Registration Table End
+
+jint netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+    if (netty_internal_tcnative_util_register_natives(env,
+             packagePrefix,
+             "io/netty/internal/tcnative/NativeStaticallyReferencedJniMethods",
+             method_table, method_table_size) != 0) {
+        return JNI_ERR;
+    }
+    return JNI_VERSION_1_6;
+}
+
+void netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(JNIEnv* env) { }

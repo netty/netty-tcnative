@@ -36,6 +36,7 @@
 
 #include "ssl_private.h"
 #include <stdint.h>
+#include "sslcontext.h"
 
 extern apr_pool_t *tcn_global_pool;
 
@@ -1652,3 +1653,115 @@ TCN_IMPLEMENT_CALL(void, SSLContext, disableOcsp)(TCN_STDARGS, jlong ctx) {
     SSL_CTX_set_tlsext_status_arg(c->ctx, NULL);
 #endif
 }
+
+// JNI Method Registration Table Begin
+static const JNINativeMethod fixed_method_table[] = {
+  { TCN_METHOD_TABLE_ENTRY(make, (II)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(free, (J)I, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setContextId, (JLjava/lang/String;)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setOptions, (JI)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(getOptions, (J)I, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(clearOptions, (JI)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setCipherSuite, (JLjava/lang/String;)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setCertificateChainFile, (JLjava/lang/String;Z)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setCertificateChainBio, (JJZ)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setCACertificateBio, (JJ)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setTmpDHLength, (JI)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setVerify, (JII)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setCertificate, (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setCertificateBio, (JJJLjava/lang/String;)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setNpnProtos, (J[Ljava/lang/String;I)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setAlpnProtos, (J[Ljava/lang/String;I)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setSessionCacheMode, (JJ)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(getSessionCacheMode, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setSessionCacheTimeout, (JJ)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(getSessionCacheTimeout, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setSessionCacheSize, (JJ)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(getSessionCacheSize, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionNumber, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionConnect, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionConnectGood, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionConnectRenegotiate, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionAccept, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionAcceptGood, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionAcceptRenegotiate, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionHits, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionCbHits, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionMisses, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionTimeouts, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionCacheFull, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionTicketKeyNew, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionTicketKeyResume, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionTicketKeyRenew, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(sessionTicketKeyFail, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setSessionTicketKeys0, (J[B)V, SSLContext) },
+
+  // setCertVerifyCallback -> needs dynamic method table
+  // setCertRequestedCallback -> needs dynamic method table
+  // setSniHostnameMatcher -> needs dynamic method table
+
+  { TCN_METHOD_TABLE_ENTRY(setSessionIdContext, (J[B)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setMode, (JI)I, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(getMode, (J)I, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(enableOcsp, (JZ)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(disableOcsp, (J)V, SSLContext) }
+};
+
+static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
+
+static jint dynamicMethodsTableSize() {
+    return fixed_method_table_size + 3;
+}
+
+static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
+    JNINativeMethod* dynamicMethods = malloc(sizeof(JNINativeMethod) * dynamicMethodsTableSize());
+    memcpy(dynamicMethods, fixed_method_table, sizeof(fixed_method_table));
+    char* dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateVerifier;)V");
+    JNINativeMethod* dynamicMethod = &dynamicMethods[fixed_method_table_size];
+    dynamicMethod->name = "setCertVerifyCallback";
+    dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setCertVerifyCallback);
+    free(dynamicTypeName);
+
+    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateRequestedCallback;)V");
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 1];
+    dynamicMethod->name = "setCertRequestedCallback";
+    dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setCertRequestedCallback);
+    free(dynamicTypeName);
+
+    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SniHostNameMatcher;)V");
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 2];
+    dynamicMethod->name = "setSniHostnameMatcher";
+    dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSniHostnameMatcher);
+    free(dynamicTypeName);
+    return dynamicMethods;
+}
+
+static void freeDynamicMethodsTable(JNINativeMethod* dynamicMethods) {
+    jint fullMethodTableSize = dynamicMethodsTableSize();
+    jint i = fixed_method_table_size;
+    for (; i < fullMethodTableSize; ++i) {
+        free(dynamicMethods[i].signature);
+    }
+    free(dynamicMethods);
+}
+// JNI Method Registration Table End
+
+jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+    JNINativeMethod* dynamicMethods = createDynamicMethodsTable(packagePrefix);
+    if (netty_internal_tcnative_util_register_natives(env,
+            packagePrefix,
+            "io/netty/internal/tcnative/SSLContext",
+            dynamicMethods,
+            dynamicMethodsTableSize()) != 0) {
+        freeDynamicMethodsTable(dynamicMethods);
+        return JNI_ERR;
+    }
+    freeDynamicMethodsTable(dynamicMethods);
+
+    return JNI_VERSION_1_6;
+}
+
+void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env) { }
