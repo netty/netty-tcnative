@@ -251,24 +251,19 @@
       without a classifier).
 
       To build from the top level, run:
-      mvn clean deploy -pl boringssl-static -P uber -DstagingRepositoryId={repoId}
+      mvn clean deploy -pl boringssl-static -P uber-staging -DstagingRepositoryId={repoId}
 
       The repoId is necessary to allow the build to download the platform-specific jars from
       the nexus staging repository.
     -->
     <profile>
-      <id>uber</id>
-      <activation>
-        <property>
-          <name>moduleSelector</name>
-          <value>uber</value>
-        </property>
-      </activation>
+      <id>uber-staging</id>
 
       <properties>
         <unpackDir>${project.build.directory}/unpack</unpackDir>
         <libDir>${project.build.directory}/lib</libDir>
         <nativeDir>${project.build.outputDirectory}/META-INF/native</nativeDir>
+        <skipTests>true</skipTests>
       </properties>
 
       <repositories>
@@ -356,6 +351,118 @@
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/windows-x86_64/META-INF/native" />
                       <globmapper from="netty-tcnative.*" to="netty-tcnative-windows-x86_64.*" />
+                    </copy>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>maven-bundle-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>generate-manifest</id>
+                <phase>process-classes</phase>
+                <goals>
+                  <goal>manifest</goal>
+                </goals>
+                <configuration>
+                  <supportedProjectTypes>
+                    <supportedProjectType>jar</supportedProjectType>
+                  </supportedProjectTypes>
+                  <instructions>
+                    <Export-Package>io.netty.internal.tcnative.*</Export-Package>
+                    <Bundle-NativeCode>
+                      META-INF/native/libnetty-tcnative-osx-x86_64.jnilib;osname=macos;osname=macosx;processor=x86_64,
+                      META-INF/native/libnetty-tcnative-linux-x86_64.so;osname=linux;processor=x86_64,
+                      META-INF/native/netty-tcnative-windows-x86_64.dll;osname=win32;processor=x86_64
+                    </Bundle-NativeCode>
+                  </instructions>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>uber-snapshot</id>
+
+      <properties>
+        <unpackDir>${project.build.directory}/unpack</unpackDir>
+        <libDir>${project.build.directory}/lib</libDir>
+        <nativeDir>${project.build.outputDirectory}/META-INF/native</nativeDir>
+        <skipTests>true</skipTests>
+      </properties>
+
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>unpack</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>unpack</goal>
+                </goals>
+                <configuration>
+                  <artifactItems>
+                    <!-- Unpack just the native libraries (windows excluded as we not publish snapshots for it yet) -->
+                    <artifactItem>
+                      <groupId>io.netty</groupId>
+                      <artifactId>netty-tcnative-boringssl-static</artifactId>
+                      <version>${project.version}</version>
+                      <classifier>osx-x86_64</classifier>
+                      <type>jar</type>
+                      <outputDirectory>${unpackDir}/osx-x86_64</outputDirectory>
+                    </artifactItem>
+                    <artifactItem>
+                      <groupId>io.netty</groupId>
+                      <artifactId>netty-tcnative-boringssl-static</artifactId>
+                      <version>${project.version}</version>
+                      <classifier>linux-x86_64</classifier>
+                      <type>jar</type>
+                      <outputDirectory>${unpackDir}/linux-x86_64</outputDirectory>
+                    </artifactItem>
+
+                    <!-- Now unpack all of the Java classes and the original MANIFEST.MF -->
+                    <artifactItem>
+                      <groupId>io.netty</groupId>
+                      <artifactId>netty-tcnative-boringssl-static</artifactId>
+                      <version>${project.version}</version>
+                      <type>jar</type>
+                      <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                      <includes>**/*.class,**/MANIFEST.MF</includes>
+                    </artifactItem>
+                  </artifactItems>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-jni-libs</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <!-- Windows excluded as we not publish snapshots for it yet -->
+                  <target name="copy-jni-libs">
+                    <mkdir dir="${nativeDir}" />
+                    <copy todir="${nativeDir}" flatten="true">
+                      <fileset dir="${unpackDir}/osx-x86_64/META-INF/native" />
+                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-osx-x86_64.*" />
+                    </copy>
+                    <copy todir="${nativeDir}" flatten="true">
+                      <fileset dir="${unpackDir}/linux-x86_64/META-INF/native" />
+                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-linux-x86_64.*" />
                     </copy>
                   </target>
                 </configuration>

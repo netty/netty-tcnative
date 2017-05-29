@@ -478,21 +478,5 @@
         <module>libressl-static</module>
       </modules>
     </profile>
-
-    <!--
-      Profile for building uber jars for all platforms.
-    -->
-    <profile>
-      <id>uber</id>
-      <activation>
-        <property>
-          <name>moduleSelector</name>
-          <value>uber</value>
-        </property>
-      </activation>
-      <modules>
-        <module>boringssl-static</module>
-      </modules>
-    </profile>
   </profiles>
 </project>
