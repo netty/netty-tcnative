@@ -186,6 +186,7 @@ typedef struct {
 } tcn_ssl_verify_config_t;
 
 struct tcn_ssl_ctxt_t {
+    apr_pool_t*              pool;
     SSL_CTX*                 ctx;
 
     /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
