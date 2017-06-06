@@ -28,14 +28,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef WIN32
+#if !defined(_WIN32) && !defined (_WIN64)
 // It's important to have #define _GNU_SOURCE before any other include as otherwise it will not work.
 // See http://stackoverflow.com/questions/7296963/gnu-source-and-use-gnu
 #define _GNU_SOURCE
 #include <dlfcn.h>
 #else
 #define MAX_DLL_PATH_LEN 2048
-#endif /* WIN32 */
+#endif
 
 #include "tcn.h"
 #include "apr_version.h"
