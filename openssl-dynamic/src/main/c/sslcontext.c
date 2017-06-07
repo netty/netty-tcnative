@@ -322,6 +322,12 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *)SSL_password_callback);
     SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *) c->password);
 
+#if defined(OPENSSL_IS_BORINGSSL)
+    if (mode != SSL_MODE_SERVER) {
+        // Set this to make the behaviour consistent with openssl / libressl
+        SSL_CTX_set_allow_unknown_alpn_protos(ctx, 1);
+    }
+#endif
     apr_thread_rwlock_create(&c->mutex, p);
     /*
      * Let us cleanup the ssl context when the pool is destroyed
