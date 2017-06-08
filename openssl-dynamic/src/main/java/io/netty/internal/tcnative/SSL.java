@@ -566,7 +566,7 @@ public final class SSL {
      * This directive sets the optional all-in-one file where you can assemble the
      * certificates of Certification Authorities (CA) which form the certificate
      * chain of the server certificate. This starts with the issuing CA certificate
-     * of of the server certificate and can range up to the root CA certificate.
+     * of the server certificate and can range up to the root CA certificate.
      * Such a file is simply the concatenation of the various PEM-encoded CA
      * Certificate files, usually in certificate chain order.
      * <p>
@@ -637,7 +637,7 @@ public final class SSL {
      * <p>Be sure you understand how OpenSsl will behave with respect to reference counting!
      *
      * If the {@code STACK_OF(X509)} pointer is used with the client certificate callback
-     * {@link CertificateRequestedCallback} the ownership goes over to OpenSsl / Tcnative and and so calling
+     * {@link CertificateRequestedCallback} the ownership goes over to OpenSsl / Tcnative and so calling
      * {@link #freeX509Chain(long)} should <strong>NOT</strong> be done in this case. Otherwise you may
      * need to call {@link #freeX509Chain(long)} to decrement the reference count and free memory.
      *
