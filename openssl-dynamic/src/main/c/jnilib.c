@@ -357,12 +357,14 @@ void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
     netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
 }
 
-jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+// JNI Wrapper for statically built Java 8 deps
+jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
     JNIEnv* env;
     if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
         return JNI_ERR;
     }
 
+#ifndef TCN_NOT_DYNAMIC
     jint status = 0;
     const char* name = NULL;
 #ifndef WIN32
@@ -408,8 +410,12 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
         fprintf(stderr, "FATAL: netty-tcnative encountered unexpected library path: %s\n", name);
         return JNI_ERR;
     }
-    tcn_global_vm = vm;
+#else
+    (void)parsePackagePrefix;
+    char* packagePrefix = NULL;
+#endif
 
+    tcn_global_vm = vm;
     jint ret = netty_internal_tcnative_Library_JNI_OnLoad(env, packagePrefix);
 
     if (packagePrefix != NULL) {
@@ -420,11 +426,19 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     return ret;
 }
 
-void JNI_OnUnload(JavaVM* vm, void* reserved) {
+jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+    return JNI_OnLoad_netty_tcnative(vm, reserved);
+}
+
+void JNI_OnUnload_netty_tcnative(JavaVM* vm, void* reserved) {
     JNIEnv* env;
     if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
         // Something is wrong but nothing we can do about this :(
         return;
     }
     netty_internal_tcnative_Library_JNI_OnUnLoad(env);
+}
+
+void JNI_OnUnload(JavaVM* vm, void* reserved) {
+  JNI_OnUnload_netty_tcnative(vm, reserved);
 }
