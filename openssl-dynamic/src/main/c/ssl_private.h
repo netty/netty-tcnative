@@ -58,7 +58,7 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
-#include <openssl/pkcs12.h> 
+#include <openssl/pkcs12.h>
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
@@ -140,10 +140,10 @@ extern const char* TCN_UNKNOWN_AUTH_METHOD;
 #define X509_REVOKED_get0_serialNumber(x) x->serialNumber
 #define OpenSSL_version_num SSLeay
 #define BIO_get_init(x)       ((x)->init)
-#define BIO_set_init(x,v)     ((x)->init=(v))
+#define BIO_set_init(x, v)     ((x)->init = (v))
 #define BIO_get_data(x)       ((x)->ptr)
-#define BIO_set_data(x,v)     ((x)->ptr=(v))
-#define BIO_set_shutdown(x,v) ((x)->shutdown=(v))
+#define BIO_set_data(x, v)     ((x)->ptr = (v))
+#define BIO_set_shutdown(x, v) ((x)->shutdown = (v))
 #define BIO_get_shutdown(x)   ((x)->shutdown)
 #endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
 
@@ -272,7 +272,7 @@ int         tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jin
 int         tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey);
 int         tcn_X509_up_ref(X509* cert);
 int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);
-int         SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int,void *);
+int         SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 int         SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 const char *SSL_cipher_authentication_method(const SSL_CIPHER *);
 
