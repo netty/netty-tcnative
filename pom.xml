@@ -41,8 +41,8 @@
   <properties>
     <checkstyle.skip>true</checkstyle.skip>
     <animal.sniffer.skip>true</animal.sniffer.skip>
-    <forceAutogen>true</forceAutogen>
-    <forceConfigure>true</forceConfigure>
+    <forceAutogen>false</forceAutogen>
+    <forceConfigure>false</forceConfigure>
     <opensslDynamicDir>../openssl-dynamic</opensslDynamicDir>
     <vsStaticTemplateFile>../vs2010.vcxproj.static.template</vsStaticTemplateFile>
     <defaultJarFile>${project.build.directory}/${project.build.finalName}.jar</defaultJarFile>
@@ -295,11 +295,6 @@
           <family>windows</family>
         </os>
       </activation>
-      <properties>
-        <!-- On Windows, we do not use autotools -->
-        <forceAutogen>false</forceAutogen>
-        <forceConfigure>false</forceConfigure>
-      </properties>
     </profile>
 
     <!-- Build the static APR library -->
