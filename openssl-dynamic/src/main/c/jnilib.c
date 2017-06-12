@@ -170,18 +170,6 @@ char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str) 
     return result;
 }
 
-char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1rend, const char* s2) {
-    size_t s2len = strlen(s2);
-    char *s = s1rbegin - s2len;
-
-    for (; s >= s1rend; --s) {
-        if (strncmp(s, s2, s2len) == 0) {
-            return s;
-        }
-    }
-    return NULL;
-}
-
 jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods) {
     char* nettyClassName = netty_internal_tcnative_util_prepend(packagePrefix, className);
     jclass nativeCls = (*env)->FindClass(env, nettyClassName);
@@ -193,6 +181,8 @@ jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* pack
 
     return (*env)->RegisterNatives(env, nativeCls, methods, numMethods);
 }
+
+#ifndef TCN_NOT_DYNAMIC
 
 static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
 // windows does not have strndup
@@ -206,6 +196,18 @@ static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
 #else
     return strndup(s, n);
 #endif
+}
+
+static char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1rend, const char* s2) {
+    size_t s2len = strlen(s2);
+    char *s = s1rbegin - s2len;
+
+    for (; s >= s1rend; --s) {
+        if (strncmp(s, s2, s2len) == 0) {
+            return s;
+        }
+    }
+    return NULL;
 }
 
 static char* netty_internal_tcnative_util_strstr_last(const char* haystack, const char* needle) {
@@ -268,6 +270,8 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
     }
     return packagePrefix;
 }
+
+#endif /* TCN_NOT_DYNAMIC */
 
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
@@ -411,9 +415,8 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
         return JNI_ERR;
     }
 #else
-    (void)parsePackagePrefix;
     char* packagePrefix = NULL;
-#endif
+#endif /* TCN_NOT_DYNAMIC */
 
     tcn_global_vm = vm;
     jint ret = netty_internal_tcnative_Library_JNI_OnLoad(env, packagePrefix);

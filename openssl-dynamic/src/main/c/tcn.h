@@ -174,8 +174,6 @@ jint tcn_get_java_env(JNIEnv **);
  */
 char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str);
 
-char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1rend, const char* s2);
-
 /**
  * Return type is as defined in http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/functions.html#wp5833.
  */
