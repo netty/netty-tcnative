@@ -28,7 +28,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#if !defined(_WIN32) && !defined (_WIN64)
+#ifndef _WIN32
 // It's important to have #define _GNU_SOURCE before any other include as otherwise it will not work.
 // See http://stackoverflow.com/questions/7296963/gnu-source-and-use-gnu
 #define _GNU_SOURCE
@@ -186,7 +186,7 @@ jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* pack
 
 static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
 // windows does not have strndup
-#ifdef WIN32
+#ifdef _WIN32
     char* copy = _strdup(s);
     if (copy != NULL && n < strlen(copy)) {
         // mark the end
@@ -241,7 +241,7 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
         *status = JNI_ERR;
         return NULL;
     }
-#ifdef WIN32
+#ifdef _WIN32
     // on windows there is no lib prefix so we instead look for the previous path separator or the beginning of the string.
     char* packagePrefix = netty_internal_tcnative_util_rstrchar(packageNameEnd, libraryPathName, '\\');
     if (packagePrefix == NULL) {
@@ -385,7 +385,7 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
 #ifndef TCN_NOT_DYNAMIC
     jint status = 0;
     const char* name = NULL;
-#ifndef WIN32
+#ifndef _WIN32
     Dl_info dlinfo;
     // We need to use an address of a function that is uniquely part of this library, so choose a static
     // function. See https://github.com/netty/netty/issues/4840.
