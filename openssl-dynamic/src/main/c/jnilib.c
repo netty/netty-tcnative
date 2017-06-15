@@ -45,6 +45,7 @@
 #include "native_constants.h"
 #include "ssl.h"
 #include "sslcontext.h"
+#include "error.h"
 
 #ifndef TCN_JNI_VERSION
 #define TCN_JNI_VERSION JNI_VERSION_1_6
@@ -304,6 +305,9 @@ jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* package
     }
 
     // Load all c modules that we depend upon
+    if (netty_internal_tcnative_Error_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
+        return JNI_ERR;
+    }
     if (netty_internal_tcnative_Buffer_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
         return JNI_ERR;
     }
@@ -369,6 +373,7 @@ void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
     TCN_UNLOAD_CLASS(env, byteArrayClass);
     TCN_UNLOAD_CLASS(env, keyMaterialClass);
 
+    netty_internal_tcnative_Error_JNI_OnUnLoad(env);
     netty_internal_tcnative_Buffer_JNI_OnUnLoad(env);
     netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env);
     netty_internal_tcnative_SSL_JNI_OnUnLoad(env);

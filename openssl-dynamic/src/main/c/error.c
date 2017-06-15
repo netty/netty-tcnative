@@ -32,23 +32,21 @@
 #include "tcn.h"
 #include "apr_strings.h"
 
+static jclass exceptionClass;
+static jclass nullPointerExceptionClass;
+
 /*
  * Convenience function to help throw an java.lang.Exception.
  */
 void tcn_ThrowException(JNIEnv *env, const char *msg)
 {
-    jclass javaExceptionClass;
-
-    javaExceptionClass = (*env)->FindClass(env, "java/lang/Exception");
-    if (javaExceptionClass == NULL) {
-        fprintf(stderr, "Cannot find java/lang/Exception class\n");
-        return;
-    }
-    (*env)->ThrowNew(env, javaExceptionClass, msg);
-    (*env)->DeleteLocalRef(env, javaExceptionClass);
-
+    (*env)->ThrowNew(env, exceptionClass, msg);
 }
 
+void tcn_ThrowNullPointerException(JNIEnv *env, const char *msg)
+{
+    (*env)->ThrowNew(env, nullPointerExceptionClass, msg);
+}
 void tcn_Throw(JNIEnv *env, const char *fmt, ...)
 {
     char msg[TCN_BUFFER_SZ] = {'\0'};
@@ -67,3 +65,16 @@ void tcn_ThrowAPRException(JNIEnv *e, apr_status_t err)
     apr_strerror(err, serr, 512);
     tcn_ThrowException(e, serr);
 }
+
+jint netty_internal_tcnative_Error_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+
+    TCN_LOAD_CLASS(env, exceptionClass, "java/lang/Exception", JNI_ERR);
+    TCN_LOAD_CLASS(env, nullPointerExceptionClass, "java/lang/NullPointerException", JNI_ERR);
+
+    return TCN_JNI_VERSION;
+}
+
+void netty_internal_tcnative_Error_JNI_OnUnLoad(JNIEnv* env) {
+     TCN_UNLOAD_CLASS(env, exceptionClass);
+     TCN_UNLOAD_CLASS(env, nullPointerExceptionClass);
+ }

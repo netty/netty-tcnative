@@ -47,7 +47,7 @@ static apr_status_t ssl_context_cleanup(void *data)
     tcn_ssl_ctxt_t *c = (tcn_ssl_ctxt_t *)data;
     JNIEnv *e;
 
-    if (c) {
+    if (c != NULL) {
         SSL_CTX_free(c->ctx); // this function is safe to call with NULL
         c->ctx = NULL;
 
@@ -348,8 +348,10 @@ cleanup:
 TCN_IMPLEMENT_CALL(jint, SSLContext, free)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
     /* Run and destroy the cleanup callback */
     int result = apr_pool_cleanup_run(c->pool, c, ssl_context_cleanup);
     apr_pool_destroy(c->pool);
@@ -360,9 +362,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setContextId)(TCN_STDARGS, jlong ctx,
                                                    jstring id)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     TCN_ALLOC_CSTRING(id);
 
-    TCN_ASSERT(ctx != 0);
     UNREFERENCED(o);
     if (J2S(id)) {
         EVP_Digest((const unsigned char *)J2S(id),
@@ -377,8 +381,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setOptions)(TCN_STDARGS, jlong ctx,
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
 
     SSL_CTX_set_options(c->ctx, opt);
 }
@@ -387,8 +392,9 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, getOptions)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, 0);
+
     UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
 
     return SSL_CTX_get_options(c->ctx);
 }
@@ -398,8 +404,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, clearOptions)(TCN_STDARGS, jlong ctx,
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
     SSL_CTX_clear_options(c->ctx, opt);
 }
 
@@ -407,11 +414,13 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
                                                          jstring ciphers)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    TCN_ALLOC_CSTRING(ciphers);
     jboolean rv = JNI_TRUE;
 
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
+    TCN_ALLOC_CSTRING(ciphers);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
     if (!J2S(ciphers))
         return JNI_FALSE;
 
@@ -431,10 +440,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jboolean rv = JNI_FALSE;
+
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
     TCN_ALLOC_CSTRING(file);
 
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
     if (!J2S(file))
         return JNI_FALSE;
     if (SSL_CTX_use_certificate_chain(c->ctx, J2S(file), skipfirst) > 0)
@@ -450,8 +461,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jl
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     BIO *b = J2P(chain, BIO *);
 
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
     if (b == NULL)
         return JNI_FALSE;
     if (SSL_CTX_use_certificate_chain_bio(c->ctx, b, skipfirst) > 0)  {
@@ -463,10 +475,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jl
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS, jlong ctx, jlong certs)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
     BIO *b = J2P(certs, BIO *);
 
     UNREFERENCED(o);
-    TCN_ASSERT(c != NULL);
 
     return b != NULL && c->mode != SSL_MODE_CLIENT && SSL_CTX_use_client_CA_bio(c->ctx, b) > 0 ? JNI_TRUE : JNI_FALSE;
 }
@@ -474,8 +488,10 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS, jlong
 TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jint length)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
     switch (length) {
         case 512:
             SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_512);
@@ -499,8 +515,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint lev
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     UNREFERENCED(o);
-    TCN_ASSERT(c != NULL);
 
     // No need to set the callback for SSL_CTX_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
     SSL_CTX_set_verify(c->ctx, tcn_set_verify_config(&c->verify_config, level, depth), NULL);
@@ -614,6 +631,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
                                                          jstring password)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(cert);
     TCN_ALLOC_CSTRING(key);
@@ -626,7 +646,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     char err[256];
 
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
 
     if (J2S(password)) {
         old_password = c->password;
@@ -705,6 +724,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
                                                          jstring password)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
     BIO *cert_bio = J2P(cert, BIO *);
     BIO *key_bio = J2P(key, BIO *);
     EVP_PKEY *pkey = NULL;
@@ -716,7 +738,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     char err[256];
 
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
 
     if (J2S(password)) {
         old_password = c->password;
@@ -867,7 +888,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobje
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
-    TCN_ASSERT(ctx != 0);
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     UNREFERENCED(o);
 
     if (initProtocols(e, &c->next_proto_data, &c->next_proto_len, next_protos) == 0) {
@@ -899,7 +921,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobj
     #if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
         tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
-        TCN_ASSERT(ctx != 0);
+        TCN_CHECK_NULL(c, ctx, /* void */);
+
         UNREFERENCED(o);
 
         if (initProtocols(e, &c->alpn_proto_data, &c->alpn_proto_len, alpn_protos) == 0) {
@@ -923,18 +946,27 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobj
 TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheMode)(TCN_STDARGS, jlong ctx, jlong mode)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     return SSL_CTX_set_session_cache_mode(c->ctx, mode);
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, getSessionCacheMode)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     return SSL_CTX_get_session_cache_mode(c->ctx);
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheTimeout)(TCN_STDARGS, jlong ctx, jlong timeout)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_set_timeout(c->ctx, timeout);
     return rv;
 }
@@ -942,12 +974,18 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheTimeout)(TCN_STDARGS, jlong
 TCN_IMPLEMENT_CALL(jlong, SSLContext, getSessionCacheTimeout)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     return SSL_CTX_get_timeout(c->ctx);
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheSize)(TCN_STDARGS, jlong ctx, jlong size)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = 0;
 
     // Also allow size of 0 which is unlimited
@@ -962,12 +1000,18 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheSize)(TCN_STDARGS, jlong ct
 TCN_IMPLEMENT_CALL(jlong, SSLContext, getSessionCacheSize)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     return SSL_CTX_sess_get_cache_size(c->ctx);
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionNumber)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_number(c->ctx);
     return rv;
 }
@@ -975,6 +1019,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionNumber)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnect)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_connect(c->ctx);
     return rv;
 }
@@ -982,6 +1029,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnect)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnectGood)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_connect_good(c->ctx);
     return rv;
 }
@@ -989,6 +1039,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnectGood)(TCN_STDARGS, jlong ctx
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnectRenegotiate)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_connect_renegotiate(c->ctx);
     return rv;
 }
@@ -996,6 +1049,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionConnectRenegotiate)(TCN_STDARGS, jl
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAccept)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_accept(c->ctx);
     return rv;
 }
@@ -1003,6 +1059,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAccept)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAcceptGood)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_accept_good(c->ctx);
     return rv;
 }
@@ -1010,6 +1069,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAcceptGood)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAcceptRenegotiate)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_accept_renegotiate(c->ctx);
     return rv;
 }
@@ -1017,6 +1079,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionAcceptRenegotiate)(TCN_STDARGS, jlo
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionHits)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_hits(c->ctx);
     return rv;
 }
@@ -1024,6 +1089,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionHits)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCbHits)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_cb_hits(c->ctx);
     return rv;
 }
@@ -1031,6 +1099,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCbHits)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionMisses)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_misses(c->ctx);
     return rv;
 }
@@ -1038,6 +1109,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionMisses)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTimeouts)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_timeouts(c->ctx);
     return rv;
 }
@@ -1045,6 +1119,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTimeouts)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCacheFull)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = SSL_CTX_sess_cache_full(c->ctx);
     return rv;
 }
@@ -1052,6 +1129,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionCacheFull)(TCN_STDARGS, jlong ctx)
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyNew)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = apr_atomic_read32(&c->ticket_keys_new);
     return rv;
 }
@@ -1059,6 +1139,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyNew)(TCN_STDARGS, jlong ct
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyResume)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = apr_atomic_read32(&c->ticket_keys_resume);
     return rv;
 }
@@ -1066,6 +1149,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyResume)(TCN_STDARGS, jlong
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyRenew)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = apr_atomic_read32(&c->ticket_keys_renew);
     return rv;
 }
@@ -1073,6 +1159,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyRenew)(TCN_STDARGS, jlong 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyFail)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
     jlong rv = apr_atomic_read32(&c->ticket_keys_fail);
     return rv;
 }
@@ -1149,6 +1238,9 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
 TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong ctx, jbyteArray keys)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     jbyte* b;
     jbyte* key;
     tcn_ssl_ticket_key_t* ticket_keys;
@@ -1299,8 +1391,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
 
     if (verifier == NULL) {
         SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
@@ -1472,8 +1565,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
 
     if (callback == NULL) {
         SSL_CTX_set_client_cert_cb(c->ctx, NULL);
@@ -1519,8 +1613,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
 
     // Delete the reference to the previous specified matcher if needed.
     if (c->sni_hostname_matcher != NULL) {
@@ -1552,12 +1647,14 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong ctx, jbyteArray sidCtx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
     int len = (*e)->GetArrayLength(e, sidCtx);
     unsigned char *buf;
     int res;
 
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
 
     buf = OPENSSL_malloc(len);
 
@@ -1576,8 +1673,9 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, setMode)(TCN_STDARGS, jlong ctx, jint mode)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, 0);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
 
     return (jint) SSL_CTX_set_mode(c->ctx, mode);
 }
@@ -1587,8 +1685,9 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, getMode)(TCN_STDARGS, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
+    TCN_CHECK_NULL(c, ctx, 0);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
 
     return (jint) SSL_CTX_get_mode(c->ctx);
 }
@@ -1620,10 +1719,8 @@ static int openssl_ocsp_callback(SSL *ssl, void *arg) {
 TCN_IMPLEMENT_CALL(void, SSLContext, enableOcsp)(TCN_STDARGS, jlong ctx, jboolean client) {
 
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    if (c == NULL) {
-        tcn_ThrowException(e, "ctx is null");
-        return;
-    }
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
 
 #if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
     tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
@@ -1658,10 +1755,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, enableOcsp)(TCN_STDARGS, jlong ctx, jboolea
  */
 TCN_IMPLEMENT_CALL(void, SSLContext, disableOcsp)(TCN_STDARGS, jlong ctx) {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    if (c == NULL) {
-        tcn_ThrowException(e, "ctx is null");
-        return;
-    }
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
 
 // This does nothing in BoringSSL
 #if !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL)
