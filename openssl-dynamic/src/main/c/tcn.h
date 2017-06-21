@@ -85,6 +85,7 @@
 /* Private helper functions */
 void            tcn_Throw(JNIEnv *, const char *, ...);
 void            tcn_ThrowException(JNIEnv *, const char *);
+void            tcn_ThrowNullPointerException(JNIEnv *, const char *);
 void            tcn_ThrowAPRException(JNIEnv *, apr_status_t);
 jstring         tcn_new_string(JNIEnv *, const char *);
 jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
@@ -102,6 +103,14 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
     if (c##V) (*e)->ReleaseStringUTFChars(e, V, c##V)
 
 #define AJP_TO_JSTRING(V)   (*e)->NewStringUTF((e), (V))
+
+#define TCN_CHECK_NULL(V, M, R)                      \
+    TCN_BEGIN_MACRO                                  \
+        if (V == NULL) {                             \
+            tcn_ThrowNullPointerException(e, #M);    \
+            return R;                                \
+        }                                            \
+    TCN_END_MACRO
 
 #define TCN_FREE_JSTRING(V)      \
     TCN_BEGIN_MACRO              \

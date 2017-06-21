@@ -338,10 +338,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, bioLengthByteBuffer)(TCN_STDARGS, jlong bioAddress
     BIO* bio = J2P(bioAddress, BIO*);
     struct TCN_bio_bytebuffer* bioUserData;
 
-    if (bio == NULL) {
-        tcn_ThrowException(e, "bio is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(bio, bioAddress, 0);
 
     bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
     return bioUserData == NULL ? 0 : bioUserData->bufferLength;
@@ -351,10 +348,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, bioLengthNonApplication)(TCN_STDARGS, jlong bioAdd
     BIO* bio = J2P(bioAddress, BIO*);
     struct TCN_bio_bytebuffer* bioUserData;
 
-    if (bio == NULL) {
-        tcn_ThrowException(e, "bio is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(bio, bioAddress, 0);
 
     bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
     return bioUserData == NULL ? 0 : bioUserData->nonApplicationBufferLength;
@@ -803,14 +797,7 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
     int *handshakeCount = NULL;
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
-    if (c == NULL) {
-        tcn_ThrowException(e, "ssl ctx is null");
-        return 0;
-    }
-    if (c->ctx == NULL) {
-        tcn_ThrowException(e, "ctx is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(c, ctx, 0);
 
     UNREFERENCED_STDARGS;
 
@@ -856,10 +843,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, getError)(TCN_STDARGS,
                                        jint ret) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED_STDARGS;
 
@@ -874,14 +858,8 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, bioWrite)(TCN_STDARGS,
     BIO* bio = J2P(bioAddress, BIO*);
     void* wbuf = J2P(wbufAddress, void*);
 
-    if (bio == NULL) {
-        tcn_ThrowException(e, "bio is null");
-        return 0;
-    }
-    if (wbuf == NULL) {
-        tcn_ThrowException(e, "wbuf is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(bio, bioAddress, 0);
+    TCN_CHECK_NULL(wbuf, wbufAddress, 0);
 
     UNREFERENCED_STDARGS;
 
@@ -896,8 +874,8 @@ TCN_IMPLEMENT_CALL(void, SSL, bioSetByteBuffer)(TCN_STDARGS,
     BIO* bio = J2P(bioAddress, BIO*);
     char* buffer = J2P(bufferAddress, char*);
     struct TCN_bio_bytebuffer* bioUserData = NULL;
-    TCN_ASSERT(bio != NULL);
-    TCN_ASSERT(buffer != NULL);
+    TCN_CHECK_NULL(bio, bioAddress, /* void */);
+    TCN_CHECK_NULL(buffer, bufferAddress, /* void */);
 
     bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
     TCN_ASSERT(bioUserData != NULL);
@@ -944,14 +922,8 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToSSL)(TCN_STDARGS,
     SSL *ssl_ = J2P(ssl, SSL *);
     void *w = J2P(wbuf, void *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
-    if (w == NULL) {
-        tcn_ThrowException(e, "wbuf is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+    TCN_CHECK_NULL(w, wbuf, 0);
 
     UNREFERENCED_STDARGS;
 
@@ -966,14 +938,8 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, readFromSSL)(TCN_STDARGS,
     SSL *ssl_ = J2P(ssl, SSL *);
     void *r = J2P(rbuf, void *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
-    if (r == NULL) {
-        tcn_ThrowException(e, "rbuf is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+    TCN_CHECK_NULL(r, rbuf, 0);
 
     UNREFERENCED_STDARGS;
 
@@ -985,10 +951,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, getShutdown)(TCN_STDARGS,
                                                         jlong ssl /* SSL * */) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED_STDARGS;
 
@@ -1001,10 +964,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setShutdown)(TCN_STDARGS,
                                            jint mode) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
     UNREFERENCED_STDARGS;
 
@@ -1018,10 +978,9 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
     tcn_ssl_ctxt_t* c = NULL;
     tcn_ssl_verify_config_t* verify_config = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
+
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
+
     c = SSL_get_app_data2(ssl_);
     handshakeCount = SSL_get_app_data3(ssl_);
     verify_config = SSL_get_app_data4(ssl_);
@@ -1049,10 +1008,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, bioNewByteBuffer)(TCN_STDARGS,
     BIO* bio;
     struct TCN_bio_bytebuffer* bioUserData;
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     if (nonApplicationBufferSize <= 0) {
         tcn_ThrowException(e, "nonApplicationBufferSize <= 0");
@@ -1102,10 +1058,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, shutdownSSL)(TCN_STDARGS,
                                                         jlong ssl /* SSL * */) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED_STDARGS;
 
@@ -1118,10 +1071,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getCipherForSSL)(TCN_STDARGS,
 {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return NULL;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     UNREFERENCED_STDARGS;
 
@@ -1134,10 +1084,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getVersion)(TCN_STDARGS,
 {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return NULL;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     UNREFERENCED_STDARGS;
 
@@ -1149,10 +1096,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, isInInit)(TCN_STDARGS,
                                         jlong ssl /* SSL * */) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED(o);
 
@@ -1163,10 +1107,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, doHandshake)(TCN_STDARGS,
                                            jlong ssl /* SSL * */) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED(o);
 
@@ -1180,10 +1121,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getNextProtoNegotiated)(TCN_STDARGS,
     const unsigned char *proto;
     unsigned int proto_len;
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return NULL;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     UNREFERENCED(o);
 
@@ -1213,10 +1151,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS,
         const unsigned char *proto;
         unsigned int proto_len;
 
-        if (ssl_ == NULL) {
-            tcn_ThrowException(e, "ssl is null");
-            return NULL;
-        }
+        TCN_CHECK_NULL(ssl_, ssl, NULL);
 
         UNREFERENCED(o);
 
@@ -1244,10 +1179,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
 
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return NULL;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     UNREFERENCED(o);
 
@@ -1297,10 +1229,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
 
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return NULL;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     UNREFERENCED(o);
 
@@ -1338,10 +1267,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
     SSL *ssl_ = J2P(ssl, SSL *);
     SSL_SESSION *session = NULL;
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     session = SSL_get_session(ssl_);
     if (session == NULL) {
@@ -1361,10 +1287,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getTimeout)(TCN_STDARGS, jlong ssl)
     SSL *ssl_ = J2P(ssl, SSL *);
     SSL_SESSION *session = NULL;
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     session = SSL_get_session(ssl_);
     if (session == NULL) {
@@ -1384,10 +1307,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds
     SSL *ssl_ = J2P(ssl, SSL *);
     SSL_SESSION *session = NULL;
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     session = SSL_get_session(ssl_);
     if (session == NULL) {
@@ -1408,10 +1328,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jin
     tcn_ssl_ctxt_t* c;
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
     c = SSL_get_app_data2(ssl_);
     verify_config = SSL_get_app_data4(ssl_);
@@ -1442,10 +1359,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
 {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
     UNREFERENCED_STDARGS;
 
@@ -1457,10 +1371,7 @@ TCN_IMPLEMENT_CALL(void, SSL, clearOptions)(TCN_STDARGS, jlong ssl,
 {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
     UNREFERENCED_STDARGS;
 
@@ -1471,56 +1382,45 @@ TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
 {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED_STDARGS;
 
     return SSL_get_options(ssl_);
 }
 
-TCN_IMPLEMENT_CALL(jint, SSL, setMode)(TCN_STDARGS, jlong sslAddress, jint mode)
+TCN_IMPLEMENT_CALL(jint, SSL, setMode)(TCN_STDARGS, jlong ssl, jint mode)
 {
-    SSL* ssl = J2P(sslAddress, SSL*);
+    SSL* ssl_ = J2P(ssl, SSL*);
 
-    if (ssl == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
-    return (jint) SSL_set_mode(ssl, mode);
+    return (jint) SSL_set_mode(ssl_, mode);
 }
 
-TCN_IMPLEMENT_CALL(jint, SSL, getMode)(TCN_STDARGS, jlong sslAddress)
+TCN_IMPLEMENT_CALL(jint, SSL, getMode)(TCN_STDARGS, jlong ssl)
 {
-    SSL* ssl = J2P(sslAddress, SSL*);
+    SSL* ssl_ = J2P(ssl, SSL*);
 
-    if (ssl == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
-    return (jint) SSL_get_mode(ssl);
+    return (jint) SSL_get_mode(ssl_);
 }
 
-TCN_IMPLEMENT_CALL(jint, SSL, getMaxWrapOverhead)(TCN_STDARGS, jlong sslAddress)
+TCN_IMPLEMENT_CALL(jint, SSL, getMaxWrapOverhead)(TCN_STDARGS, jlong ssl)
 {
-    SSL* ssl = J2P(sslAddress, SSL*);
+    SSL* ssl_ = J2P(ssl, SSL*);
 
-    if (ssl == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+
 
 #ifdef OPENSSL_IS_BORINGSSL
-    return (jint) SSL_max_seal_overhead(ssl);
+    return (jint) SSL_max_seal_overhead(ssl_);
 #else
     // TODO(scott): When OpenSSL supports something like SSL_max_seal_overhead ... use it!
     // TODO(scott): If we support SSL_MODE_CBC_RECORD_SPLITTING this must be calculated dynamically!
     // TLS 1.3 requires an extra bit for the header.
-    return (jint) (SSL_version(ssl) >= TLS1_3_VERSION ? TCN_MAX_SEAL_OVERHEAD_LENGTH + 1
+    return (jint) (SSL_version(ssl_) >= TLS1_3_VERSION ? TCN_MAX_SEAL_OVERHEAD_LENGTH + 1
                                                       : TCN_MAX_SEAL_OVERHEAD_LENGTH);
 #endif
 }
@@ -1536,10 +1436,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     jstring c_name;
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return NULL;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     UNREFERENCED_STDARGS;
 
@@ -1571,10 +1468,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
     TCN_ALLOC_CSTRING(ciphers);
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, JNI_FALSE);
 
     UNREFERENCED(o);
 
@@ -1602,10 +1496,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
     jbyteArray bArray;
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return NULL;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     UNREFERENCED(o);
 
@@ -1629,10 +1520,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
     int *handshakeCount = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return -1;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED(o);
 
@@ -1651,10 +1539,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, renegotiate)(TCN_STDARGS,
                                            jlong ssl /* SSL * */) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED(o);
 
@@ -1666,10 +1551,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS,
                                            jint state) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
     UNREFERENCED(o);
 
@@ -1677,46 +1559,43 @@ TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS,
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName)(TCN_STDARGS, jlong ssl, jstring hostname) {
-    TCN_ALLOC_CSTRING(hostname);
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-    } else {
-        UNREFERENCED(o);
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-        if (SSL_set_tlsext_host_name(ssl_, J2S(hostname)) != 1) {
-            char err[ERR_LEN];
-            ERR_error_string(ERR_get_error(), err);
-            tcn_Throw(e, "Unable to set TLS servername extension (%s)", err);
-        }
+    TCN_ALLOC_CSTRING(hostname);
+
+    UNREFERENCED(o);
+
+    if (SSL_set_tlsext_host_name(ssl_, J2S(hostname)) != 1) {
+        char err[ERR_LEN];
+        ERR_error_string(ERR_get_error(), err);
+        tcn_Throw(e, "Unable to set TLS servername extension (%s)", err);
     }
 
     TCN_FREE_CSTRING(hostname);
 }
 
-TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong sslAddress, jint flags, jstring hostnameString) {
-    SSL* ssl = J2P(sslAddress, SSL*);
+TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jint flags, jstring hostnameString) {
+    SSL* ssl_ = J2P(ssl, SSL*);
 
-    if (ssl == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-    } else {
-        const char* hostname = hostnameString == NULL ? NULL : (*e)->GetStringUTFChars(e, hostnameString, 0);
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
+
+    const char* hostname = hostnameString == NULL ? NULL : (*e)->GetStringUTFChars(e, hostnameString, 0);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
-        X509_VERIFY_PARAM* param = SSL_get0_param(ssl);
-        X509_VERIFY_PARAM_set_hostflags(param, flags);
-        if (X509_VERIFY_PARAM_set1_host(param, hostname, 0) != 1) {
-            char err[ERR_LEN];
-            ERR_error_string(ERR_get_error(), err);
-            tcn_Throw(e, "X509_VERIFY_PARAM_set1_host error (%s)", err);
-        }
-#else
-        if (hostname != NULL && hostname[0] != '\0') {
-            tcn_ThrowException(e, "hostname verification requires OpenSSL 1.0.2+");
-        }
-#endif
-        (*e)->ReleaseStringUTFChars(e, hostnameString, hostname);
+    X509_VERIFY_PARAM* param = SSL_get0_param(ssl_);
+    X509_VERIFY_PARAM_set_hostflags(param, flags);
+    if (X509_VERIFY_PARAM_set1_host(param, hostname, 0) != 1) {
+        char err[ERR_LEN];
+        ERR_error_string(ERR_get_error(), err);
+        tcn_Throw(e, "X509_VERIFY_PARAM_set1_host error (%s)", err);
     }
+#else
+    if (hostname != NULL && hostname[0] != '\0') {
+        tcn_ThrowException(e, "hostname verification requires OpenSSL 1.0.2+");
+    }
+#endif
+    (*e)->ReleaseStringUTFChars(e, hostnameString, hostname);
 }
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong ssl) {
@@ -1726,7 +1605,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
     int i;
     jobjectArray array;
 
-    TCN_ASSERT(ssl_ != NULL);
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     UNREFERENCED(o);
 
@@ -1747,6 +1626,9 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
                                                          jstring password)
 {
     SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
+
     BIO *cert_bio = J2P(cert, BIO *);
     BIO *key_bio = J2P(key, BIO *);
     EVP_PKEY* pkey = NULL;
@@ -1813,9 +1695,10 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
     BIO *b = J2P(chain, BIO *);
     char err[ERR_LEN];
 
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
+    TCN_CHECK_NULL(b, chain, /* void */);
+
     UNREFERENCED(o);
-    TCN_ASSERT(ssl_ != NULL);
-    TCN_ASSERT(b != NULL);
 
     if (SSL_use_certificate_chain_bio(ssl_, b, skipfirst) < 0)  {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
@@ -1828,15 +1711,11 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parsePrivateKey)(TCN_STDARGS, jlong privateKeyBio
 {
     EVP_PKEY* pkey = NULL;
     BIO *bio = J2P(privateKeyBio, BIO *);
+
+    TCN_CHECK_NULL(bio, privateKeyBio, 0);
+
     TCN_ALLOC_CSTRING(password);
     char err[ERR_LEN];
-
-    UNREFERENCED(o);
-
-    if (bio == NULL) {
-        tcn_Throw(e, "Unable to load certificate key");
-        goto cleanup;
-    }
 
     if ((pkey = load_pem_key_bio(cpassword, bio)) == NULL) {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
@@ -1866,12 +1745,9 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
     unsigned long error;
     int n = 0;
 
-    UNREFERENCED(o);
+    TCN_CHECK_NULL(cert_bio, x509ChainBio, 0);
 
-    if (cert_bio == NULL) {
-        tcn_Throw(e, "No Certificate specified or invalid format");
-        goto cleanup;
-    }
+    UNREFERENCED(o);
 
     chain = sk_X509_new_null();
     while ((cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL)) != NULL) {
@@ -1916,10 +1792,8 @@ TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
  */
 TCN_IMPLEMENT_CALL(void, SSL, enableOcsp)(TCN_STDARGS, jlong ssl) {
     SSL *ssl_ = J2P(ssl, SSL *);
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
+
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
 #if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
     tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
@@ -1943,10 +1817,8 @@ TCN_IMPLEMENT_CALL(void, SSL, enableOcsp)(TCN_STDARGS, jlong ssl) {
  */
 TCN_IMPLEMENT_CALL(void, SSL, setOcspResponse)(TCN_STDARGS, jlong ssl, jbyteArray response) {
     SSL *ssl_ = J2P(ssl, SSL *);
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return;
-    }
+
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
     jsize length = (*e)->GetArrayLength(e, response);
     if (length <= 0) {
@@ -2001,10 +1873,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setOcspResponse)(TCN_STDARGS, jlong ssl, jbyteArra
  */
 TCN_IMPLEMENT_CALL(jbyteArray, SSL, getOcspResponse)(TCN_STDARGS, jlong ssl) {
     SSL *ssl_ = J2P(ssl, SSL *);
-    if (ssl_ == NULL) {
-        tcn_ThrowException(e, "ssl is null");
-        return NULL;
-    }
+
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
 
 #if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
     tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
