@@ -243,8 +243,16 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
         return NULL;
     }
 #ifdef _WIN32
+    char* tmpLibraryPathName = libraryPathName;
+
+    // replace \ with /
+    for(; *tmpLibraryPathName != '\0'; ++tmpLibraryPathName) {
+        if (*tmpLibraryPathName == '\\') {
+            *tmpLibraryPathName = '/';
+        }
+    }
     // on windows there is no lib prefix so we instead look for the previous path separator or the beginning of the string.
-    char* packagePrefix = netty_internal_tcnative_util_rstrchar(packageNameEnd, libraryPathName, '\\');
+    char* packagePrefix = netty_internal_tcnative_util_rstrchar(packageNameEnd, libraryPathName, '/');
     if (packagePrefix == NULL) {
         // The string does not have to specify a path [1].
         // [1] https://msdn.microsoft.com/en-us/library/windows/desktop/ms683200(v=vs.85).aspx
@@ -418,13 +426,6 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
         dllPath[dllPathLen] = '\0';
     }
 
-    char* dllTmpPath = dllPath;
-    // replace \ with /
-    for(; *dllTmpPath != '\0'; ++dllTmpPath) {
-        if (*dllTmpPath == '\\') {
-            *dllTmpPath = '/';
-        }
-    }
     name = dllPath;
 #endif
     char* packagePrefix = parsePackagePrefix(name, &status);
