@@ -418,13 +418,6 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
         dllPath[dllPathLen] = '\0';
     }
 
-    char* dllTmpPath = dllPath;
-    // replace \ with /
-    for(; *dllTmpPath != '\0'; ++dllTmpPath) {
-        if (*dllTmpPath == '\\') {
-            *dllTmpPath = '/';
-        }
-    }
     name = dllPath;
 #endif
     char* packagePrefix = parsePackagePrefix(name, &status);
