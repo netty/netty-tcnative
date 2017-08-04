@@ -1,0 +1,72 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.apache.maven:maven-embedder:3.3.9'
+    runtime 'org.apache.maven.resolver:maven-resolver-connector-basic:1.0.3'
+    runtime 'org.apache.maven.resolver:maven-resolver-transport-wagon:1.0.3'
+    runtime 'org.apache.maven.wagon:wagon-file:2.12'
+    runtime 'org.apache.maven.wagon:wagon-http:2.12'
+    runtime 'org.slf4j:slf4j-simple:1.7.25'
+}
+
+task run(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'org.apache.maven.cli.MavenCli'
+    args 'clean', 'install'
+    systemProperties['maven.multiModuleProjectDirectory'] = "$buildDir/tmp"
+    systemProperties['org.slf4j.simpleLogger.showLogName'] = false
+    if (!findProperty('logBuildToConsole')) {
+        doFirst {
+            project.mkdir "$buildDir/logs"
+            def logStream = new FileOutputStream(project.file("$buildDir/logs/host-build.log"))
+            errorOutput = logStream
+            standardOutput = logStream
+        }
+    }
+}
+
+def mavenProjects = ['boringssl-static', 'libressl-static', 'openssl-dynamic', 'openssl-static']
+
+ext.defaultDockerBuildScript = '''\
+JAVA_HOME=\\"$(dirname \\"$(dirname \\"$(readlink -f \\"$(which javac || which java)\\")\\")\\")\\" \
+./gradlew run --stacktrace -PlogBuildToConsole=true ; \
+cp openssl-dynamic/target/*.jar /output/openssl-dynamic ; \
+cp openssl-static/target/*.jar /output/openssl-static ; \
+cp boringssl-static/target/*.jar /output/boringssl-static ; \
+cp libressl-static/target/*.jar /output/libressl-static ; \
+'''
+
+task buildAll(type: Copy, dependsOn: run) {
+    into "$projectDir"
+    subprojects {
+        project.plugins.withType(io.netty.gradle.plugins.dockerbuild.DockerBuildPlugin) {
+            dependsOn project.tasks.build
+            mavenProjects.each { libType ->
+                from "${project.buildDir}/libs/${libType}", {
+                    include '*.jar'
+                    into "${libType}/target"
+                }
+            }
+        }
+    }
+}
+
+task cleanMavenProjects(type: Delete) {
+    delete 'target'
+    ['boringssl-static', 'libressl-static', 'openssl-dynamic', 'openssl-static'].each {
+        delete "$it/target"
+    }
+}
+
+clean.dependsOn cleanMavenProjects

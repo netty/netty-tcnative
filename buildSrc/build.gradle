@@ -1,0 +1,20 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'com.bmuschko:gradle-docker-plugin:3.0.6'
+}
+
+gradlePlugin {
+    plugins {
+        simplePlugin {
+            id = 'io.netty.gradle.plugins.docker-build-plugin'
+            implementationClass = 'io.netty.gradle.plugins.dockerbuild.DockerBuildPlugin'
+        }
+    }
+}

@@ -1,0 +1,18 @@
+apply plugin: 'io.netty.gradle.plugins.docker-build-plugin'
+
+dockerBuild {
+    baseImage = 'centos:6.8'
+    runCommands = [
+            'yum -y install epel-release centos-release-scl ; ' +
+                    'yum -y groupinstall "Development Tools" ; ' +
+                    'yum -y install wget scl-utils devtoolset-3-gcc scl-utils devtoolset-3-gcc-c++ java-1.8.0-openjdk-devel ' +
+                            'apr-devel openssl-devel cmake3 golang ; ' +
+                    'ln -s /usr/bin/cmake3 /usr/bin/cmake',
+            'cd /tmp ; ' +
+                    'wget https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-linux.zip ; ' +
+                    'unzip ninja-linux.zip ; ' +
+                    'chmod o+rx ./ninja ; ' +
+                    'mv ./ninja /usr/local/bin',
+    ]
+    script = 'source scl_source enable devtoolset-3 ; ' + defaultDockerBuildScript
+}
