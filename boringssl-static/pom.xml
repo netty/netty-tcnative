@@ -188,7 +188,7 @@
                       </and>
                       <then>
                         <exec executable="strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
-                          <arg value="libnetty-tcnative.so" />
+                          <arg value="libnetty_tcnative.so" />
                         </exec>
                       </then>
                     </if>
@@ -221,7 +221,7 @@
                 </goals>
                 <phase>compile</phase>
                 <configuration>
-                  <name>netty-tcnative</name>
+                  <name>netty_tcnative</name>
                   <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
                   <libDirectory>${nativeLibOnlyDir}</libDirectory>
                   <forceAutogen>${forceAutogen}</forceAutogen>
@@ -342,15 +342,15 @@
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/osx-x86_64/META-INF/native" />
-                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-osx-x86_64.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_x86_64.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-x86_64/META-INF/native" />
-                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-linux-x86_64.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_x86_64.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/windows-x86_64/META-INF/native" />
-                      <globmapper from="netty-tcnative.*" to="netty-tcnative-windows-x86_64.*" />
+                      <globmapper from="netty_tcnative.*" to="netty_tcnative_windows_x86_64.*" />
                     </copy>
                   </target>
                 </configuration>
@@ -375,9 +375,9 @@
                   <instructions>
                     <Export-Package>io.netty.internal.tcnative.*</Export-Package>
                     <Bundle-NativeCode>
-                      META-INF/native/libnetty-tcnative-osx-x86_64.jnilib;osname=macos;osname=macosx;processor=x86_64,
-                      META-INF/native/libnetty-tcnative-linux-x86_64.so;osname=linux;processor=x86_64,
-                      META-INF/native/netty-tcnative-windows-x86_64.dll;osname=win32;processor=x86_64
+                      META-INF/native/libnetty_tcnative_osx_x86_64.jnilib;osname=macos;osname=macosx;processor=x86_64,
+                      META-INF/native/libnetty_tcnative_linux_x86_64.so;osname=linux;processor=x86_64,
+                      META-INF/native/netty_tcnative_windows_x86_64.dll;osname=win32;processor=x86_64
                     </Bundle-NativeCode>
                   </instructions>
                 </configuration>
@@ -458,11 +458,11 @@
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/osx-x86_64/META-INF/native" />
-                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-osx-x86_64.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_x86_64.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-x86_64/META-INF/native" />
-                      <globmapper from="libnetty-tcnative.*" to="libnetty-tcnative-linux-x86_64.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_x86_64.*" />
                     </copy>
                   </target>
                 </configuration>
@@ -487,9 +487,9 @@
                   <instructions>
                     <Export-Package>io.netty.internal.tcnative.*</Export-Package>
                     <Bundle-NativeCode>
-                      META-INF/native/libnetty-tcnative-osx-x86_64.jnilib;osname=macos;osname=macosx;processor=x86_64,
-                      META-INF/native/libnetty-tcnative-linux-x86_64.so;osname=linux;processor=x86_64,
-                      META-INF/native/netty-tcnative-windows-x86_64.dll;osname=win32;processor=x86_64
+                      META-INF/native/libnetty_tcnative_osx_x86_64.jnilib;osname=macos;osname=macosx;processor=x86_64,
+                      META-INF/native/libnetty_tcnative_linux_x86_64.so;osname=linux;processor=x86_64,
+                      META-INF/native/netty_tcnative_windows_x86_64.dll;osname=win32;processor=x86_64
                     </Bundle-NativeCode>
                   </instructions>
                 </configuration>

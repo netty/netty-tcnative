@@ -38,11 +38,12 @@ public final class Library {
 
     /* Default library names */
     private static final String [] NAMES = {
-        "netty-tcnative",
         "netty_tcnative",
-        "libnetty-tcnative",
-        "netty-tcnative-1",
-        "libnetty-tcnative-1"};
+        "libnetty_tcnative"
+    };
+
+    private static final String PROVIDED = "provided";
+
     /*
      * A handle to the unique Library singleton instance.
      */
@@ -84,9 +85,8 @@ public final class Library {
         }
     }
 
-    private Library(String libraryName)
-    {
-        if (!"provided".equals(libraryName)) {
+    private Library(String libraryName) {
+        if (!PROVIDED.equals(libraryName)) {
             System.loadLibrary(libraryName);
         }
     }
@@ -110,7 +110,7 @@ public final class Library {
      * @throws Exception if an error happens during initialization
      */
     public static boolean initialize() throws Exception {
-        return initialize("provided", null);
+        return initialize(PROVIDED, null);
     }
 
     /**

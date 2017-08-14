@@ -233,11 +233,11 @@ static char* netty_internal_tcnative_util_strstr_last(const char* haystack, cons
 }
 
 /**
- * The expected format of the library name is "lib<>netty-tcnative" on non windows platforms and "<>netty-tcnative" on windows,
+ * The expected format of the library name is "lib<>netty_tcnative" on non windows platforms and "<>netty_tcnative" on windows,
  *  where the <> portion is what we will return.
  */
 static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
-    char* packageNameEnd = netty_internal_tcnative_util_strstr_last(libraryPathName, "netty-tcnative");
+    char* packageNameEnd = netty_internal_tcnative_util_strstr_last(libraryPathName, "netty_tcnative");
     if (packageNameEnd == NULL) {
         *status = JNI_ERR;
         return NULL;
@@ -273,7 +273,7 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
     packageNameEnd = packagePrefix + packagePrefixLen;
     // Package names must be sanitized, in JNI packages names are separated by '/' characters.
     for (; temp != packageNameEnd; ++temp) {
-        if (*temp == '-') {
+        if (*temp == '_') {
             *temp = '/';
         }
     }
