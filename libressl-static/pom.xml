@@ -54,7 +54,7 @@
             </goals>
             <phase>compile</phase>
             <configuration>
-              <name>netty-tcnative</name>
+              <name>netty_tcnative</name>
               <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
               <libDirectory>${nativeLibOnlyDir}</libDirectory>
               <forceAutogen>${forceAutogen}</forceAutogen>
