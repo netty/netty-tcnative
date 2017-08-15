@@ -56,7 +56,7 @@ public final class Library {
         StringBuilder err = new StringBuilder();
         for (int i = 0; i < NAMES.length; i++) {
             try {
-                System.loadLibrary(NAMES[i]);
+                loadLibrary(NAMES[i]);
                 loaded = true;
             } catch (ThreadDeath t) {
                 throw t;
@@ -87,8 +87,29 @@ public final class Library {
 
     private Library(String libraryName) {
         if (!PROVIDED.equals(libraryName)) {
-            System.loadLibrary(libraryName);
+            loadLibrary(libraryName);
         }
+    }
+
+    private static void loadLibrary(String libraryName) {
+        System.loadLibrary(calculatePackagePrefix().replace('.', '_') + libraryName);
+    }
+
+    /**
+     * The shading prefix added to this class's full name.
+     *
+     * @throws UnsatisfiedLinkError if the shader used something other than a prefix
+     */
+    private static String calculatePackagePrefix() {
+        String maybeShaded = Library.class.getName();
+        // Use ! instead of . to avoid shading utilities from modifying the string
+        String expected = "io!netty!internal!tcnative!Library".replace('!', '.');
+        if (!maybeShaded.endsWith(expected)) {
+            throw new UnsatisfiedLinkError(String.format(
+                    "Could not find prefix added to %s to get %s. When shading, only adding a "
+                            + "package prefix is supported", expected, maybeShaded));
+        }
+        return maybeShaded.substring(0, maybeShaded.length() - expected.length());
     }
 
     /* create global TCN's APR pool
