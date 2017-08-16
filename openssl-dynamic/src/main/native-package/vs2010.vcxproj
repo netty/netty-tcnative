@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>netty-tcnative</ProjectName>
-    <RootNamespace>netty-tcnative</RootNamespace>
+    <ProjectName>netty_tcnative</ProjectName>
+    <RootNamespace>netty_tcnative</RootNamespace>
     <ProjectGuid>{42EB387C-0D16-471E-8859-C2CF31F8094D}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
