@@ -183,7 +183,7 @@ jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* pack
     return (*env)->RegisterNatives(env, nativeCls, methods, numMethods);
 }
 
-#ifndef TCN_NOT_DYNAMIC
+#ifndef TCN_BUILD_STATIC
 
 static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
 // windows does not have strndup
@@ -286,7 +286,7 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
     return packagePrefix;
 }
 
-#endif /* TCN_NOT_DYNAMIC */
+#endif /* TCN_BUILD_STATIC */
 
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
@@ -387,7 +387,7 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
         return JNI_ERR;
     }
 
-#ifndef TCN_NOT_DYNAMIC
+#ifndef TCN_BUILD_STATIC
     jint status = 0;
     const char* name = NULL;
 #ifndef _WIN32
@@ -428,7 +428,7 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
     }
 #else
     char* packagePrefix = NULL;
-#endif /* TCN_NOT_DYNAMIC */
+#endif /* TCN_BUILD_STATIC */
 
     tcn_global_vm = vm;
     jint ret = netty_internal_tcnative_Library_JNI_OnLoad(env, packagePrefix);
@@ -441,9 +441,11 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
     return ret;
 }
 
+#ifndef TCN_BUILD_STATIC
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     return JNI_OnLoad_netty_tcnative(vm, reserved);
 }
+#endif /* TCN_BUILD_STATIC */
 
 void JNI_OnUnload_netty_tcnative(JavaVM* vm, void* reserved) {
     JNIEnv* env;
@@ -454,6 +456,8 @@ void JNI_OnUnload_netty_tcnative(JavaVM* vm, void* reserved) {
     netty_internal_tcnative_Library_JNI_OnUnLoad(env);
 }
 
+#ifndef TCN_BUILD_STATIC
 void JNI_OnUnload(JavaVM* vm, void* reserved) {
   JNI_OnUnload_netty_tcnative(vm, reserved);
 }
+#endif /* TCN_BUILD_STATIC */
