@@ -442,7 +442,7 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
 }
 
 #ifndef TCN_BUILD_STATIC
-jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     return JNI_OnLoad_netty_tcnative(vm, reserved);
 }
 #endif /* TCN_BUILD_STATIC */
@@ -457,7 +457,7 @@ void JNI_OnUnload_netty_tcnative(JavaVM* vm, void* reserved) {
 }
 
 #ifndef TCN_BUILD_STATIC
-void JNI_OnUnload(JavaVM* vm, void* reserved) {
+JNIEXPORT void JNI_OnUnload(JavaVM* vm, void* reserved) {
   JNI_OnUnload_netty_tcnative(vm, reserved);
 }
 #endif /* TCN_BUILD_STATIC */
