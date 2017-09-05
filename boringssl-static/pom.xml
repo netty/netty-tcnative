@@ -264,6 +264,7 @@
         <libDir>${project.build.directory}/lib</libDir>
         <nativeDir>${project.build.outputDirectory}/META-INF/native</nativeDir>
         <skipTests>true</skipTests>
+        <uberArch>${os.detected.arch}</uberArch>
       </properties>
 
       <repositories>
@@ -292,25 +293,25 @@
                       <groupId>io.netty</groupId>
                       <artifactId>netty-tcnative-boringssl-static</artifactId>
                       <version>${project.version}</version>
-                      <classifier>osx-x86_64</classifier>
+                      <classifier>osx-${uberArch}</classifier>
                       <type>jar</type>
-                      <outputDirectory>${unpackDir}/osx-x86_64</outputDirectory>
+                      <outputDirectory>${unpackDir}/osx-${uberArch}</outputDirectory>
                     </artifactItem>
                     <artifactItem>
                       <groupId>io.netty</groupId>
                       <artifactId>netty-tcnative-boringssl-static</artifactId>
                       <version>${project.version}</version>
-                      <classifier>linux-x86_64</classifier>
+                      <classifier>linux-${uberArch}</classifier>
                       <type>jar</type>
-                      <outputDirectory>${unpackDir}/linux-x86_64</outputDirectory>
+                      <outputDirectory>${unpackDir}/linux-${uberArch}</outputDirectory>
                     </artifactItem>
                     <artifactItem>
                       <groupId>io.netty</groupId>
                       <artifactId>netty-tcnative-boringssl-static</artifactId>
                       <version>${project.version}</version>
-                      <classifier>windows-x86_64</classifier>
+                      <classifier>windows-${uberArch}</classifier>
                       <type>jar</type>
-                      <outputDirectory>${unpackDir}/windows-x86_64</outputDirectory>
+                      <outputDirectory>${unpackDir}/windows-${uberArch}</outputDirectory>
                     </artifactItem>
 
                     <!-- Now unpack all of the Java classes and the original MANIFEST.MF -->
@@ -341,16 +342,16 @@
                   <target name="copy-jni-libs">
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
-                      <fileset dir="${unpackDir}/osx-x86_64/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_x86_64.*" />
+                      <fileset dir="${unpackDir}/osx-${uberArch}/META-INF/native" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
-                      <fileset dir="${unpackDir}/linux-x86_64/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_x86_64.*" />
+                      <fileset dir="${unpackDir}/linux-${uberArch}/META-INF/native" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
-                      <fileset dir="${unpackDir}/windows-x86_64/META-INF/native" />
-                      <globmapper from="netty_tcnative.*" to="netty_tcnative_windows_x86_64.*" />
+                      <fileset dir="${unpackDir}/windows-${uberArch}/META-INF/native" />
+                      <globmapper from="netty_tcnative.*" to="netty_tcnative_windows_${uberArch}.*" />
                     </copy>
                   </target>
                 </configuration>
@@ -375,9 +376,9 @@
                   <instructions>
                     <Export-Package>io.netty.internal.tcnative.*</Export-Package>
                     <Bundle-NativeCode>
-                      META-INF/native/libnetty_tcnative_osx_x86_64.jnilib;osname=macos;osname=macosx;processor=x86_64,
-                      META-INF/native/libnetty_tcnative_linux_x86_64.so;osname=linux;processor=x86_64,
-                      META-INF/native/netty_tcnative_windows_x86_64.dll;osname=win32;processor=x86_64
+                      META-INF/native/libnetty_tcnative_osx_${uberArch}.jnilib;osname=macos;osname=macosx;processor=${uberArch},
+                      META-INF/native/libnetty_tcnative_linux_${uberArch}.so;osname=linux;processor=${uberArch},
+                      META-INF/native/netty_tcnative_windows_${uberArch}.dll;osname=win32;processor=${uberArch}
                     </Bundle-NativeCode>
                   </instructions>
                 </configuration>
@@ -395,6 +396,7 @@
         <libDir>${project.build.directory}/lib</libDir>
         <nativeDir>${project.build.outputDirectory}/META-INF/native</nativeDir>
         <skipTests>true</skipTests>
+        <uberArch>${os.detected.arch}</uberArch>
       </properties>
 
       <build>
@@ -415,17 +417,17 @@
                       <groupId>io.netty</groupId>
                       <artifactId>netty-tcnative-boringssl-static</artifactId>
                       <version>${project.version}</version>
-                      <classifier>osx-x86_64</classifier>
+                      <classifier>osx-${uberArch}</classifier>
                       <type>jar</type>
-                      <outputDirectory>${unpackDir}/osx-x86_64</outputDirectory>
+                      <outputDirectory>${unpackDir}/osx-${uberArch}</outputDirectory>
                     </artifactItem>
                     <artifactItem>
                       <groupId>io.netty</groupId>
                       <artifactId>netty-tcnative-boringssl-static</artifactId>
                       <version>${project.version}</version>
-                      <classifier>linux-x86_64</classifier>
+                      <classifier>linux-${uberArch}</classifier>
                       <type>jar</type>
-                      <outputDirectory>${unpackDir}/linux-x86_64</outputDirectory>
+                      <outputDirectory>${unpackDir}/linux-${uberArch}</outputDirectory>
                     </artifactItem>
 
                     <!-- Now unpack all of the Java classes and the original MANIFEST.MF -->
@@ -457,12 +459,12 @@
                   <target name="copy-jni-libs">
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
-                      <fileset dir="${unpackDir}/osx-x86_64/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_x86_64.*" />
+                      <fileset dir="${unpackDir}/osx-${uberArch}/META-INF/native" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
-                      <fileset dir="${unpackDir}/linux-x86_64/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_x86_64.*" />
+                      <fileset dir="${unpackDir}/linux-${uberArch}/META-INF/native" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_${uberArch}.*" />
                     </copy>
                   </target>
                 </configuration>
@@ -487,9 +489,9 @@
                   <instructions>
                     <Export-Package>io.netty.internal.tcnative.*</Export-Package>
                     <Bundle-NativeCode>
-                      META-INF/native/libnetty_tcnative_osx_x86_64.jnilib;osname=macos;osname=macosx;processor=x86_64,
-                      META-INF/native/libnetty_tcnative_linux_x86_64.so;osname=linux;processor=x86_64,
-                      META-INF/native/netty_tcnative_windows_x86_64.dll;osname=win32;processor=x86_64
+                      META-INF/native/libnetty_tcnative_osx_${uberArch}.jnilib;osname=macos;osname=macosx;processor=${uberArch},
+                      META-INF/native/libnetty_tcnative_linux_${uberArch}.so;osname=linux;processor=${uberArch},
+                      META-INF/native/netty_tcnative_windows_${uberArch}.dll;osname=win32;processor=${uberArch}
                     </Bundle-NativeCode>
                   </instructions>
                 </configuration>
