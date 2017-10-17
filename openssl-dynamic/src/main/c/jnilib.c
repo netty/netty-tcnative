@@ -191,7 +191,7 @@ static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
     char* copy = _strdup(s);
     if (copy != NULL && n < strlen(copy)) {
         // mark the end
-        copy[n + 1] = '\0';
+        copy[n] = '\0';
     }
     return copy;
 #else
