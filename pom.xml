@@ -319,7 +319,7 @@
                 <configuration>
                   <target name="build-apr" if="${linkStatic}">
                     <property name="aprArchiveFile" value="apr-${aprVersion}-win32-src.zip" />
-                    <get src="http://www.us.apache.org/dist/apr/${aprArchiveFile}" dest="${project.build.directory}/${aprArchiveFile}" verbose="on" />
+                    <get src="http://archive.apache.org/dist/apr/${aprArchiveFile}" dest="${project.build.directory}/${aprArchiveFile}" verbose="on" />
                     <unzip src="${project.build.directory}/${aprArchiveFile}" dest="${project.build.directory}" />
                     <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
                       <equals arg1="${archBits}" arg2="32" />
