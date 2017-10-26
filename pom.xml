@@ -370,7 +370,7 @@
                   <target if="${linkStatic}">
                     <property name="aprTarGzFile" value="apr-${aprVersion}.tar.gz" />
                     <property name="aprTarFile" value="apr-${aprVersion}.tar" />
-                    <get src="http://www.us.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
+                    <get src="http://archive.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
                     <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="MD5" property="${aprMd5}" verifyProperty="isEqual" />
                     <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
                     <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
