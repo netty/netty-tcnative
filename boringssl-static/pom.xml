@@ -157,7 +157,7 @@
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=-std=c99 -O3 -fno-omit-frame-pointer" />
-                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized" />
                           <arg value="-GNinja" />
                           <arg value=".." />
                         </exec>
