@@ -71,6 +71,7 @@ final class NativeStaticallyReferencedJniMethods {
     static native int sslErrorWantAccept();
 
     static native int sslMaxPlaintextLength();
+    static native int sslMaxRecordLength();
 
     static native int x509CheckFlagAlwaysCheckSubject();
     static native int x509CheckFlagDisableWildCards();
