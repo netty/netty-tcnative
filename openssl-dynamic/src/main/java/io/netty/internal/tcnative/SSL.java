@@ -91,6 +91,13 @@ public final class SSL {
     public static final int SSL_MODE_RELEASE_BUFFERS                = sslModeReleaseBuffers();
 
     public static final int SSL_MAX_PLAINTEXT_LENGTH = sslMaxPlaintextLength();
+    /**
+     * The <a href="https://tools.ietf.org/html/rfc5246#section-6.2.1">TLS 1.2 RFC</a> defines the maximum length to be
+     * {@link #SSL_MAX_PLAINTEXT_LENGTH}, but there are some implementations such as
+     * <a href="http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/d5a00b1e8f78/src/share/classes/sun/security/ssl/SSLSessionImpl.java#l793">OpenJDK's SSLEngineImpl</a>
+     * that also allow sending larger packets. This can be used as a upper bound for data to support legacy systems.
+     */
+    public static final int SSL_MAX_RECORD_LENGTH = sslMaxRecordLength();
 
     // https://www.openssl.org/docs/man1.0.2/crypto/X509_check_host.html
     public static final int X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT = x509CheckFlagAlwaysCheckSubject();

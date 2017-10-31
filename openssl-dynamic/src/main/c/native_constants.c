@@ -126,6 +126,12 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslMaxPlaintextLe
     return SSL3_RT_MAX_PLAIN_LENGTH;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslMaxRecordLength)(TCN_STDARGS) {
+    // SSL3_RT_MAX_ENCRYPTED_OVERHEAD = Padding + Message Digest Hash
+    // IV + Padding + Message Digest + Length allowed by RFC + Extra data amount
+    return 256 + SSL3_RT_MAX_ENCRYPTED_OVERHEAD + SSL3_RT_MAX_PLAIN_LENGTH + SSL3_RT_MAX_PLAIN_LENGTH;
+}
+
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, x509CheckFlagAlwaysCheckSubject)(TCN_STDARGS) {
 #ifdef X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT
     return X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT;
@@ -499,7 +505,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslErrorWantConnect, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslErrorWantAccept, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslMaxPlaintextLength, ()I, NativeStaticallyReferencedJniMethods) },
-  { TCN_METHOD_TABLE_ENTRY(sslMaxPlaintextLength, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslMaxRecordLength, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(x509CheckFlagAlwaysCheckSubject, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(x509CheckFlagDisableWildCards, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(x509CheckFlagNoPartialWildCards, ()I, NativeStaticallyReferencedJniMethods) },
