@@ -65,7 +65,9 @@
         - Record the sha256: sha1sum -a 256 libressl-{libresslVersion}.tar.gz (shasum on osx)
     -->
     <libresslSha256>e57f5e3d5842a81fe9351b6e817fcaf0a749ca4ef35a91465edba9e071dce7c4</libresslSha256>
-    <opensslVersion>1.0.2m</opensslVersion>
+    <opensslMinorVersion>1.0.2</opensslMinorVersion>
+    <opensslPatchVersion>m</opensslPatchVersion>
+    <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
     <opensslSha256>8c6ff15ec6b319b50788f42c7abc2890c08ba5a1cdcd3810eb9092deada37b0f</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprBuildDir>${project.build.directory}/apr-${aprVersion}</aprBuildDir>
