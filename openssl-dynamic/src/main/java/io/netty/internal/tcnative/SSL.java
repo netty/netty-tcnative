@@ -534,14 +534,6 @@ public final class SSL {
     public static native int renegotiate(long ssl);
 
     /**
-     * Call SSL_set_state.
-     *
-     * @param ssl the SSL instance (SSL *)
-     * @param state the state to set
-     */
-    public static native void setState(long ssl, int state);
-
-    /**
      * Call SSL_set_tlsext_host_name
      *
      * @param ssl the SSL instance (SSL *)

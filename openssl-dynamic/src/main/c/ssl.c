@@ -1546,18 +1546,6 @@ TCN_IMPLEMENT_CALL(jint, SSL, renegotiate)(TCN_STDARGS,
     return SSL_renegotiate(ssl_);
 }
 
-TCN_IMPLEMENT_CALL(void, SSL, setState)(TCN_STDARGS,
-                                           jlong ssl, /* SSL * */
-                                           jint state) {
-    SSL *ssl_ = J2P(ssl, SSL *);
-
-    TCN_CHECK_NULL(ssl_, ssl, /* void */);
-
-    UNREFERENCED(o);
-
-    SSL_set_state(ssl_, state);
-}
-
 TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName)(TCN_STDARGS, jlong ssl, jstring hostname) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
@@ -1959,7 +1947,6 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getHandshakeCount, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(clearError, ()V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(renegotiate, (J)I, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(setState, (JI)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setTlsExtHostName, (JLjava/lang/String;)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setHostNameValidation, (JILjava/lang/String;)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(authenticationMethods, (J)[Ljava/lang/String;, SSL) },
