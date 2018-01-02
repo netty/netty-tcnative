@@ -526,14 +526,6 @@ public final class SSL {
     public static native void clearError();
 
     /**
-     * Call SSL_renegotiate.
-     *
-     * @param ssl the SSL instance (SSL *)
-     * @return the result of the operation
-     */
-    public static native int renegotiate(long ssl);
-
-    /**
      * Call SSL_set_tlsext_host_name
      *
      * @param ssl the SSL instance (SSL *)
