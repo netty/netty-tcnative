@@ -1558,20 +1558,33 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    const char* hostname = hostnameString == NULL ? NULL : (*e)->GetStringUTFChars(e, hostnameString, 0);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
     X509_VERIFY_PARAM* param = SSL_get0_param(ssl_);
     X509_VERIFY_PARAM_set_hostflags(param, flags);
-    if (X509_VERIFY_PARAM_set1_host(param, hostname, 0) != 1) {
+#endif
+
+    if (hostnameString == NULL) {
+        return;
+    }
+
+    jsize hostnameLen = (*e)->GetStringUTFLength(e, hostnameString);
+    if (hostnameLen == 0) {
+        tcn_Throw(e, "hostname verification needs non-empty string");
+        return;
+    }
+
+    const char *hostname = (*e)->GetStringUTFChars(e, hostnameString, 0);
+
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
+    if (X509_VERIFY_PARAM_set1_host(param, hostname, hostnameLen) != 1) {
         char err[ERR_LEN];
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "X509_VERIFY_PARAM_set1_host error (%s)", err);
     }
 #else
-    if (hostname != NULL && hostname[0] != '\0') {
-        tcn_ThrowException(e, "hostname verification requires OpenSSL 1.0.2+");
-    }
+    tcn_ThrowException(e, "hostname verification requires OpenSSL 1.0.2+");
 #endif
+
     (*e)->ReleaseStringUTFChars(e, hostnameString, hostname);
 }
 
