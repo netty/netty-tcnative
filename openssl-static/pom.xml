@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.8.Final-SNAPSHOT</version>
+    <version>2.0.8.Final</version>
   </parent>
   <artifactId>netty-tcnative-openssl-static</artifactId>
   <packaging>jar</packaging>
@@ -139,10 +139,10 @@
                       </fileset>
                     </ftp>
                     <if>
-                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz"/>
+                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
                       <then>
                         <echo>Move old version of openssl to correct directory</echo>
-                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz"/>
+                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
                       </then>
                     </if>
                     <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
@@ -215,10 +215,10 @@
                       </fileset>
                     </ftp>
                     <if>
-                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz"/>
+                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
                       <then>
                         <echo>Move old version of openssl to correct directory</echo>
-                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz"/>
+                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
                       </then>
                     </if>
                     <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
@@ -275,10 +275,10 @@
                       </fileset>
                     </ftp>
                     <if>
-                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz"/>
+                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
                       <then>
                         <echo>Move old version of openssl to correct directory</echo>
-                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz"/>
+                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
                       </then>
                     </if>
                     <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
