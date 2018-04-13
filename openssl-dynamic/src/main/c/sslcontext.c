@@ -1359,6 +1359,14 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 
     result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
 
+    if ((*e)->ExceptionCheck(e)) {
+        /// The java method threw an exception, we can not depend on the return value.
+        /// We need to delete the local references so we not leak memory as this method is called via callback.
+        (*e)->DeleteLocalRef(e, authMethodString);
+        (*e)->DeleteLocalRef(e, array);
+        return -1;
+    }
+
 #ifdef X509_V_ERR_UNSPECIFIED
     // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
     // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
@@ -1507,6 +1515,12 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 
     // Execute the java callback
     keyMaterial = (*e)->CallObjectMethod(e, c->cert_requested_callback, c->cert_requested_callback_method, P2J(ssl), keyTypes, issuers);
+
+    // Check if java threw an exception.
+    if ((*e)->ExceptionCheck(e)) {
+        return -1;
+    }
+
     if (keyMaterial == NULL) {
         return 0;
     }
@@ -1601,6 +1615,12 @@ static int ssl_servername_cb(SSL *ssl, int *ad, void *arg)
         servername_str = (*e)->NewStringUTF(e, servername);
         result = (*e)->CallBooleanMethod(e, c->sni_hostname_matcher, c->sni_hostname_matcher_method, P2J(ssl), servername_str);
 
+        // Check if java threw an exception.
+        if ((*e)->ExceptionCheck(e)) {
+            // We need to delete the local references so we not leak memory as this method is called via callback.
+            (*e)->DeleteLocalRef(e, servername_str);
+            return SSL_TLSEXT_ERR_ALERT_FATAL;
+        }
         // We need to delete the local references so we not leak memory as this method is called via callback.
         (*e)->DeleteLocalRef(e, servername_str);
 
