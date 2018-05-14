@@ -290,8 +290,14 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
      */
     SSL_CTX_clear_options(c->ctx, SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION | SSL_OP_LEGACY_SERVER_CONNECT);
 
-    /* Release idle buffers to the SSL_CTX free list */
-    SSL_CTX_set_mode(c->ctx, SSL_MODE_RELEASE_BUFFERS);
+    /*
+     * - Release idle buffers to the SSL_CTX free list
+     * - Always do retries (which is also the default in BoringSSL) to fix various possible bugs.
+     *   See:
+     *     - https://github.com/openssl/openssl/issues/6234
+     *     - https://github.com/apple/swift-nio-ssl/pull/14
+     */
+    SSL_CTX_set_mode(c->ctx, SSL_MODE_RELEASE_BUFFERS | SSL_MODE_AUTO_RETRY);
 
     /* Default session context id and cache size */
     SSL_CTX_sess_set_cache_size(c->ctx, SSL_DEFAULT_CACHE_SIZE);
