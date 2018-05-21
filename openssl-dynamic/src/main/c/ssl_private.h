@@ -135,7 +135,13 @@ extern const char* TCN_UNKNOWN_AUTH_METHOD;
 #define TLS_method SSLv23_method
 #define TLS_client_method SSLv23_client_method
 #define TLS_server_method SSLv23_server_method
+
+// This is only needed if we are not using LibreSSL 2.7.x or higher as otherwise it
+// is defined already.
+#if !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER < 0x20700000L
 #define OPENSSL_VERSION SSLEAY_VERSION
+#endif
+
 #define OpenSSL_version SSLeay_version
 #define OPENSSL_malloc_init CRYPTO_malloc_init
 #define X509_REVOKED_get0_serialNumber(x) x->serialNumber
