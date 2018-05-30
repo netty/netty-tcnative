@@ -1,11 +1,9 @@
-FROM centos:6
-MAINTAINER netty@googlegroups.com
-
-ENTRYPOINT /bin/bash
+ARG centos_version=6
+FROM centos:$centos_version
+# needed to do again after FROM due to docker limitation
+ARG centos_version
 
 ENV SOURCE_DIR /root/source
-ENV MAVEN_VERSION 3.5.0
-ENV JAVA_VERSION 1.8.0
 ENV CMAKE_VERSION_BASE 3.8
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
 ENV NINJA_VERSION 1.7.2
@@ -20,7 +18,6 @@ RUN yum install -y \
  git \
  glibc-devel \
  gnupg \
- java-$JAVA_VERSION-openjdk-devel \
  libapr1-dev \
  libtool \
  lsb-core \
@@ -40,15 +37,18 @@ RUN wget -q https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSI
 
 RUN wget -q http://storage.googleapis.com/golang/go$GO_VERSION.linux-amd64.tar.gz && tar zxf go$GO_VERSION.linux-amd64.tar.gz && mv go /opt/ && echo 'PATH=/opt/go/bin:$PATH' >> ~/.bashrc && echo 'export GOROOT=/opt/go/' >> ~/.bashrc
 
-RUN wget -q http://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz && tar xfz apache-maven-$MAVEN_VERSION-bin.tar.gz && mv apache-maven-$MAVEN_VERSION /opt/ && echo 'PATH=/opt/apache-maven-$MAVEN_VERSION/bin:$PATH' >> ~/.bashrc
-
-RUN echo 'export JAVA_HOME="/usr/lib/jvm/java-$JAVA_VERSION/"' >> ~/.bashrc
-
 RUN wget -q http://linuxsoft.cern.ch/cern/scl/RPM-GPG-KEY-cern && mv RPM-GPG-KEY-cern /etc/pki/rpm-gpg/
-
 RUN wget -q http://linuxsoft.cern.ch/cern/scl/slc6-scl.repo && mv slc6-scl.repo /etc/yum.repos.d
-
 RUN yum install -y devtoolset-3-gcc-c++
 RUN echo 'source /opt/rh/devtoolset-3/enable' >> ~/.bashrc
 
 RUN rm -rf $SOURCE_DIR
+
+ARG java_version=1.8
+ENV JAVA_VERSION $java_version
+# installing java with jabba
+RUN curl -sL https://github.com/shyiko/jabba/raw/master/install.sh | JABBA_COMMAND="install $JAVA_VERSION -o /jdk" bash
+
+
+RUN echo 'export JAVA_HOME="/jdk"' >> ~/.bashrc
+RUN echo 'PATH=/jdk/bin:$PATH' >> ~/.bashrc

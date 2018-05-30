@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-debian:default
+    build:
+      context: .
+      dockerfile: Dockerfile.debian
+
+  common: &common
+    image: netty-tcnative-debian:default
+    depends_on: [runtime-setup]
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ..:/code
+    working_dir: /code
+
+  build:
+    <<: *common
+    command: /bin/bash -cl "./mvnw clean package"
+
+  shell:
+    <<: *common
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ~/.m2:/root/.m2
+      - ~/.gitconfig:/root/.gitconfig
+      - ~/.gitignore:/root/.gitignore
+      - ..:/code
+    entrypoint: /bin/bash

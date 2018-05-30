@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-debian:debian-7-1.8
+    build:
+      args:
+        debian_version : "7"
+        java_version : "1.8"
+
+  build:
+    image: netty-tcnative-debian:debian-7-1.8
+
+  shell:
+    image: netty-tcnative-debian:debian-7-1.8
