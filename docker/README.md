@@ -1,15 +1,25 @@
+# Using the docker images
 
-** Create a docker image **
 ```
-docker build -f Dockerfile-netty-tcnative-centos6 . -t netty-tcnative-centos6
+cd /path/to/netty-tcnative/
 ```
-
-** Using the image **
+# Using the docker images
 
 ```
 cd /path/to/netty-tcnative/
 ```
 
+## centos 6 with java 8
+
 ```
-docker run -it -v ~/.m2:/root/.m2 -v ~/.ssh:/root/.ssh -v ~/.gnupg:/root/.gnupg -v `pwd`:/code -w /code netty-tcnative-centos6 bash
+docker-compose -f docker/docker-compose.centos.yaml -f docker/docker-compose.centos-6.18.yaml run build
 ```
+
+## debian 7 with java 8
+
+```
+docker-compose -f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml run build
+```
+
+etc, etc
+
