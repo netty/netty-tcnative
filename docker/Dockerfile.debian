@@ -16,6 +16,7 @@ RUN apt-get -y update && apt-get -y install \
  automake \
  bzip2 \
  cmake \
+ curl \
  gcc \
  gcc-multilib \
  git \
