@@ -186,9 +186,13 @@ jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* pack
 #ifndef TCN_BUILD_STATIC
 
 static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
-// windows does not have strndup
+// windows / solaris does not have strndup
+#if defined(_WIN32) || defined(__sun)
 #ifdef _WIN32
     char* copy = _strdup(s);
+#else
+    char* copy = strdup(s);
+#endif
     if (copy != NULL && n < strlen(copy)) {
         // mark the end
         copy[n] = '\0';
