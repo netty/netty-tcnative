@@ -1496,7 +1496,6 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     jbyteArray keyTypes;
     jobject keyMaterial;
     STACK_OF(X509) *chain = NULL;
-    X509 *cert = NULL;
     EVP_PKEY* pkey = NULL;
     jlong certChain;
     jlong privateKey;
@@ -1560,12 +1559,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
         }
     }
 
-    cert = sk_X509_value(chain, 0);
-    // Increment the reference count as we already set the chain via SSL_set0_chain(...) and using a cert out of it.
-    if (tcn_X509_up_ref(cert) <= 0) {
-        goto fail;
-    }
-    *x509Out = cert;
+    *x509Out = sk_X509_value(chain, 0);
     *pkeyOut = pkey;
 
     // Free the stack it self but not the certs.
