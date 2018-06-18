@@ -1758,7 +1758,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, enableOcsp)(TCN_STDARGS, jlong ctx, jboolea
     // return value.
     //
     const int *arg = (client ? &OCSP_CLIENT_ACK : &OCSP_SERVER_ACK);
-    if (SSL_CTX_set_tlsext_status_arg(c->ctx, arg) <= 0L) {
+    if (SSL_CTX_set_tlsext_status_arg(c->ctx, (void*) arg) <= 0L) {
         tcn_ThrowException(e, "SSL_CTX_set_tlsext_status_arg() failed");
         return;
     }
