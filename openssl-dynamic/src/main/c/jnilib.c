@@ -58,9 +58,6 @@ static jclass    jString_class;
 static jmethodID jString_init;
 static jmethodID jString_getBytes;
 static jclass    byteArrayClass;
-static jclass    keyMaterialClass;
-static jfieldID  keyMaterialCertificateChainFieldId;
-static jfieldID  keyMaterialPrivateKeyFieldId;
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 {
@@ -137,16 +134,6 @@ jclass tcn_get_string_class()
 jclass tcn_get_byte_array_class()
 {
     return byteArrayClass;
-}
-
-jfieldID tcn_get_key_material_certificate_chain_field()
-{
-    return keyMaterialCertificateChainFieldId;
-}
-
-jfieldID tcn_get_key_material_private_key_field()
-{
-    return keyMaterialPrivateKeyFieldId;
 }
 
 jint tcn_get_java_env(JNIEnv **env)
@@ -351,20 +338,6 @@ jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* package
 
     TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
 
-    char* keyMaterialClassName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateRequestedCallback$KeyMaterial");
-    jclass keyMaterialClassLocal = (*env)->FindClass(env, keyMaterialClassName);
-    free(keyMaterialClassName);
-    keyMaterialClassName = NULL;
-    if (keyMaterialClassLocal == NULL) {
-        return JNI_ERR;
-    }
-    keyMaterialClass = (*env)->NewGlobalRef(env, keyMaterialClassLocal);
-
-    TCN_GET_FIELD(env, keyMaterialClass, keyMaterialCertificateChainFieldId,
-                   "certificateChain", "J", JNI_ERR);
-    TCN_GET_FIELD(env, keyMaterialClass, keyMaterialPrivateKeyFieldId,
-                   "privateKey", "J", JNI_ERR);
-
     return TCN_JNI_VERSION;
 }
 
@@ -375,7 +348,6 @@ void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
     }
 
     TCN_UNLOAD_CLASS(env, byteArrayClass);
-    TCN_UNLOAD_CLASS(env, keyMaterialClass);
 
     netty_internal_tcnative_Error_JNI_OnUnLoad(env);
     netty_internal_tcnative_Buffer_JNI_OnUnLoad(env);

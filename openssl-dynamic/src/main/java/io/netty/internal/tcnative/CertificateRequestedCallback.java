@@ -38,47 +38,17 @@ public interface CertificateRequestedCallback {
     byte TLS_CT_ECDSA_FIXED_ECDH = 66;
 
     /**
-     * Called during cert selection.
+     * Called during cert selection. If a certificate chain / key should be used
+     * {@link SSL#setKeyMaterialClientSide(long, long, long, long, long)} must be called from this callback after
+     * all preparations / validations were completed.
      *
      * @param ssl                       the SSL instance
+     * @param certOut                   the pointer to the pointer of the certificate to use.
+     * @param keyOut                    the pointer to the pointer of the private key to use.
      * @param keyTypeBytes              an array of the key types.
      * @param asn1DerEncodedPrincipals  the principals
-     * @return material to use or {@code null} if non should be used. The ownership of all native memory goes over to
-     *                  tcnative at this point.
      *
      */
-    KeyMaterial requested(long ssl, byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals);
-
-    /**
-     * Holds the material to use. Tcnative is responsible releasing native memory used by the wrapped native objects.
-     */
-    // Non-final so we can extend from this later ond cache these easily in Netty.
-    class KeyMaterial {
-
-        private final long certificateChain;
-        private final long privateKey;
-
-        public KeyMaterial(long certificateChain, long privateKey) {
-            this.certificateChain = certificateChain;
-            this.privateKey = privateKey;
-        }
-
-        /**
-         * Returns a {@code EVP_PKEY} pointer
-         *
-         * @return the {@code EVP_PKEY} pointer
-         */
-        public final long privateKey() {
-            return privateKey;
-        }
-
-        /**
-         * Returns a x509 chain ({@code STACK_OF(X509)} pointer)
-         *
-         * @return thex509 chain ({@code STACK_OF(X509)} pointer)
-         */
-        public final long certificateChain() {
-            return certificateChain;
-        }
-    }
+    void requested(long ssl, long certOut, long keyOut, byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
+            throws Exception;
 }

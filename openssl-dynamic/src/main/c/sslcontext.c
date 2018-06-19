@@ -40,8 +40,6 @@
 
 extern apr_pool_t *tcn_global_pool;
 
-static char *keyMaterialRequestedMethodSignature;
-
 static apr_status_t ssl_context_cleanup(void *data)
 {
     tcn_ssl_ctxt_t *c = (tcn_ssl_ctxt_t *)data;
@@ -1494,13 +1492,6 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     jobjectArray issuers;
     JNIEnv *e;
     jbyteArray keyTypes;
-    jobject keyMaterial;
-    STACK_OF(X509) *chain = NULL;
-    EVP_PKEY* pkey = NULL;
-    jlong certChain;
-    jlong privateKey;
-    int certChainLen;
-    int i;
 
     tcn_get_java_env(&e);
 
@@ -1519,59 +1510,21 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     issuers = principalBytes(e,  SSL_get_client_CA_list(ssl));
 
     // Execute the java callback
-    keyMaterial = (*e)->CallObjectMethod(e, c->cert_requested_callback, c->cert_requested_callback_method, P2J(ssl), keyTypes, issuers);
+    (*e)->CallVoidMethod(e, c->cert_requested_callback, c->cert_requested_callback_method,
+             P2J(ssl), P2J(x509Out), P2J(pkeyOut), keyTypes, issuers);
 
-    // Check if java threw an exception.
+    // Check if java threw an exception and if so signal back that we should not continue with the handshake.
     if ((*e)->ExceptionCheck(e)) {
         return -1;
     }
 
-    if (keyMaterial == NULL) {
+    if ((*x509Out) == NULL) {
+        // No certificate provided.
         return 0;
     }
 
-    // Any failure after this line must cause a goto fail to cleanup things.
-    certChain = (*e)->GetLongField(e, keyMaterial, tcn_get_key_material_certificate_chain_field());
-    privateKey = (*e)->GetLongField(e, keyMaterial, tcn_get_key_material_private_key_field());
-
-    chain = J2P(certChain, STACK_OF(X509) *);
-    pkey = J2P(privateKey, EVP_PKEY *);
-
-    if (chain == NULL || pkey == NULL) {
-        goto fail;
-    }
-
-    certChainLen = sk_X509_num(chain);
-
-    if (certChainLen <= 0) {
-       goto fail;
-    }
-
-    // Skip the first cert in the chain as we will write this to x509Out.
-    // See https://github.com/netty/netty-tcnative/issues/184
-    for (i = 1; i < certChainLen; ++i) {
-        // We need to explicit add extra certs to the chain as stated in:
-        // https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_client_cert_cb.html
-        //
-        // Using SSL_add0_chain_cert(...) here as we not want to increment the reference count.
-        if (SSL_add0_chain_cert(ssl, sk_X509_value(chain, i)) <= 0) {
-            goto fail;
-        }
-    }
-
-    *x509Out = sk_X509_value(chain, 0);
-    *pkeyOut = pkey;
-
-    // Free the stack it self but not the certs.
-    sk_X509_free(chain);
+    // Everything good...
     return 1;
-fail:
-    ERR_clear_error();
-    sk_X509_pop_free(chain, X509_free);
-    EVP_PKEY_free(pkey);
-
-    // TODO: Would it be more correct to return 0 in this case we may not want to use any cert / private key ?
-    return -1;
 #endif /* defined(LIBRESSL_VERSION_NUMBER) */
 }
 
@@ -1587,7 +1540,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
         SSL_CTX_set_client_cert_cb(c->ctx, NULL);
     } else {
         jclass callback_class = (*e)->GetObjectClass(e, callback);
-        jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", keyMaterialRequestedMethodSignature);
+        jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(JJJ[B[[B)V");
+
         if (method == NULL) {
             return;
         }
@@ -1892,14 +1846,8 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     }
     freeDynamicMethodsTable(dynamicMethods);
 
-    char* tmpSignature = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateRequestedCallback$KeyMaterial;");
-    keyMaterialRequestedMethodSignature = netty_internal_tcnative_util_prepend("(J[B[[B)L", tmpSignature);
-    free(tmpSignature);
-
     return TCN_JNI_VERSION;
 }
 
 void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env) {
-    free(keyMaterialRequestedMethodSignature);
-    keyMaterialRequestedMethodSignature = NULL;
 }
