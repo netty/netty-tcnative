@@ -169,8 +169,6 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
 jclass tcn_get_string_class(void);
 
 jclass tcn_get_byte_array_class();
-jfieldID tcn_get_key_material_certificate_chain_field();
-jfieldID tcn_get_key_material_private_key_field();
 
 /* Get current thread JNIEnv
  */

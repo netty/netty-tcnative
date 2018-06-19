@@ -657,6 +657,22 @@ public final class SSL {
     public static native void enableOcsp(long ssl);
 
     /**
+     * Sets the keymaterial to be used for the server side. The passed in chain and key needs to be generated via
+     * {@link #parseX509Chain(long)} and {@link #parsePrivateKey(long, String)}. It's important to note that the caller
+     * of the method is responsible to free the passed in chain and key in any case as this method will increment the
+     * reference count of the chain and key.
+     */
+    public static native void setKeyMaterialServerSide(long ssl, long chain, long key) throws Exception;
+
+    /**
+     * Sets the keymaterial to be used for the client side. The passed in chain and key needs to be generated via
+     * {@link #parseX509Chain(long)} and {@link #parsePrivateKey(long, String)}. It's important to note that the caller
+     * of the method is responsible to free the passed in chain and key in any case as this method will increment the
+     * reference count of the chain and key.
+     */
+    public static native void setKeyMaterialClientSide(long ssl, long x509Out, long pkeyOut, long chain, long key) throws Exception;
+
+    /**
      * Sets the OCSP response for the given {@link SSLEngine} or throws an
      * exception in case of an error.
      *

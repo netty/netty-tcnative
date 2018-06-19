@@ -1777,6 +1777,141 @@ TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
     sk_X509_pop_free(chain, X509_free);
 }
 
+TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialServerSide)(TCN_STDARGS, jlong ssl, jlong chain, jlong key)
+{
+#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
+    // Only supported on openssl 1.0.2+
+    tcn_Throw(e, "Not supported");
+#else
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
+
+    EVP_PKEY* pkey = J2P(key, EVP_PKEY *);
+    STACK_OF(X509) *cchain = J2P(chain, STACK_OF(X509) *);
+    int numCerts;
+    char err[ERR_LEN];
+    int i;
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ssl != NULL);
+
+    TCN_CHECK_NULL(cchain, chain, /* void */);
+
+    numCerts = sk_X509_num(cchain);
+
+    // SSL_use_certificate will increment the reference count of the cert.
+    if (numCerts <= 0 || SSL_use_certificate(ssl_, sk_X509_value(cchain, 0)) <= 0) {
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Error setting certificate (%s)", err);
+        return;
+    }
+
+    if (pkey != NULL) {
+        // SSL_use_PrivateKey will increment the reference count of the key.
+        if (SSL_use_PrivateKey(ssl_, pkey) <= 0) {
+            ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+            ERR_clear_error();
+            tcn_Throw(e, "Error setting private key (%s)", err);
+            return;
+        }
+        if (SSL_check_private_key(ssl_) <= 0) {
+            ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+            ERR_clear_error();
+
+            tcn_Throw(e, "Private key does not match the certificate public key (%s)", err);
+            return;
+        }
+    }
+
+    // The first cert was loaded via SSL_use_certificate so skip it.
+    for (i = 1; i < numCerts; ++i) {
+
+        // SSL_add1_chain_cert will increment the reference count of the cert.
+        if (SSL_add1_chain_cert(ssl_, sk_X509_value(cchain, i)) != 1) {
+            ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+            ERR_clear_error();
+
+            tcn_Throw(e, "Could not add certificate to chain (%s)", err);
+            return;
+        }
+    }
+#endif
+}
+
+TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialClientSide)(TCN_STDARGS, jlong ssl, jlong certOut, jlong keyOut, jlong chain, jlong key)
+{
+#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
+    // Only supported on openssl 1.0.2+
+    tcn_Throw(e, "Not supported");
+#else
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
+
+    EVP_PKEY* pkey = J2P(key, EVP_PKEY *);
+    STACK_OF(X509) *cchain = J2P(chain, STACK_OF(X509) *);
+    X509** x509Out = J2P(certOut, X509 **);
+    EVP_PKEY** pkeyOut = J2P(keyOut, EVP_PKEY **);
+
+    int numCerts;
+    X509* x509 = NULL;
+    char err[ERR_LEN];
+    int i;
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ssl != NULL);
+
+    if (cchain == NULL || pkey == NULL) {
+       return;
+    }
+
+    numCerts = sk_X509_num(cchain);
+
+    if (numCerts <= 0) {
+       return;
+    }
+
+    // Skip the first cert in the chain as we will write this to x509Out.
+    // See https://github.com/netty/netty-tcnative/issues/184
+    for (i = 1; i < numCerts; ++i) {
+        // We need to explicit add extra certs to the chain as stated in:
+        // https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_client_cert_cb.html
+        //
+        // Using SSL_add1_chain_cert(...) here as we want to increment the reference count.
+        if (SSL_add1_chain_cert(ssl_, sk_X509_value(cchain, i)) <= 0) {
+            ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+            ERR_clear_error();
+            tcn_Throw(e, "Could not add certificate to chain (%s)", err);
+            return;
+        }
+    }
+
+    x509 = sk_X509_value(cchain, 0);
+    if (tcn_X509_up_ref(x509) < 1) {
+        // We could not increment the reference count
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Could not add certificate (%s)", err);
+        return;
+    }
+
+    if (tcn_EVP_PKEY_up_ref(pkey) < 1) {
+        // We could not increment the reference count,  we need to explicit call X509_free here as we
+        // incremented the reference count of the certificate before.
+        X509_free(x509);
+
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Could not add private key (%s)", err);
+        return;
+    }
+    *x509Out = x509;
+    *pkeyOut = pkey;
+#endif
+}
+
 /**
  * Enables OCSP stapling on the SSLEngine.
  */
@@ -1957,6 +2092,8 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(freePrivateKey, (J)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(parseX509Chain, (J)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(freeX509Chain, (J)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setKeyMaterialServerSide, (JJJ)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setKeyMaterialClientSide, (JJJJJ)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(enableOcsp, (J)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setOcspResponse, (J[B)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getOcspResponse, (J)[B, SSL) }

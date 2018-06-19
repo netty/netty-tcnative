@@ -583,6 +583,18 @@ int tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey) {
 #endif
 }
 
+int tcn_X509_up_ref(X509* cert) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    // Workaround for https://bugs.chromium.org/p/boringssl/issues/detail?id=89#
+    X509_up_ref(cert);
+    return 1;
+#elif OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+    return CRYPTO_add(&cert->references, 1, CRYPTO_LOCK_X509);
+#else
+    return X509_up_ref(cert);
+#endif
+}
+
 int tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth) {
     if (depth >= 0) {
         c->verify_depth = depth;

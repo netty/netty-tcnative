@@ -277,6 +277,7 @@ X509        *load_pem_cert_bio(const char *, const BIO *);
 EVP_PKEY    *load_pem_key_bio(const char *, const BIO *);
 int         tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth);
 int         tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey);
+int         tcn_X509_up_ref(X509* cert);
 int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);
 int         SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 int         SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
