@@ -249,39 +249,39 @@ struct tcn_ssl_ctxt_t {
 /*
  *  Additional Functions
  */
-void        SSL_init_app_data_idx(void);
+void        tcn_SSL_init_app_data_idx(void);
 // The app_data2 is used to store the tcn_ssl_ctxt_t pointer for the SSL instance.
-void       *SSL_get_app_data2(SSL *);
-void        SSL_set_app_data2(SSL *, void *);
+void       *tcn_SSL_get_app_data2(SSL *);
+void        tcn_SSL_set_app_data2(SSL *, void *);
 // The app_data3 is used to store the handshakeCount pointer for the SSL instance.
-void       *SSL_get_app_data3(SSL *);
-void        SSL_set_app_data3(SSL *, void *);
+void       *tcn_SSL_get_app_data3(SSL *);
+void        tcn_SSL_set_app_data3(SSL *, void *);
 // The app_data4 is used to store the tcn_ssl_verify_config_t pointer for the SSL instance.
 // This will initially point back to the tcn_ssl_ctxt_t in tcn_ssl_ctxt_t.
-void       *SSL_get_app_data4(SSL *);
-void        SSL_set_app_data4(SSL *, void *);
-int         SSL_password_callback(char *, int, int, void *);
-DH         *SSL_dh_get_tmp_param(int);
-DH         *SSL_callback_tmp_DH(SSL *, int, int);
+void       *tcn_SSL_get_app_data4(SSL *);
+void        tcn_SSL_set_app_data4(SSL *, void *);
+int         tcn_SSL_password_callback(char *, int, int, void *);
+DH         *tcn_SSL_dh_get_tmp_param(int);
+DH         *tcn_SSL_callback_tmp_DH(SSL *, int, int);
 // The following provided callbacks will always return DH of a given length.
 // See https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_tmp_dh_callback.html
-DH         *SSL_callback_tmp_DH_512(SSL *, int, int);
-DH         *SSL_callback_tmp_DH_1024(SSL *, int, int);
-DH         *SSL_callback_tmp_DH_2048(SSL *, int, int);
-DH         *SSL_callback_tmp_DH_4096(SSL *, int, int);
-int         SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, bool);
-int         SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, bool);
-int         SSL_CTX_use_client_CA_bio(SSL_CTX *, BIO *);
-int         SSL_use_certificate_chain_bio(SSL *, BIO *, bool);
-X509        *load_pem_cert_bio(const char *, const BIO *);
-EVP_PKEY    *load_pem_key_bio(const char *, const BIO *);
+DH         *tcn_SSL_callback_tmp_DH_512(SSL *, int, int);
+DH         *tcn_SSL_callback_tmp_DH_1024(SSL *, int, int);
+DH         *tcn_SSL_callback_tmp_DH_2048(SSL *, int, int);
+DH         *tcn_SSL_callback_tmp_DH_4096(SSL *, int, int);
+int         tcn_SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, bool);
+int         tcn_SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, bool);
+int         tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *, BIO *);
+int         tcn_SSL_use_certificate_chain_bio(SSL *, BIO *, bool);
+X509        *tcn_load_pem_cert_bio(const char *, const BIO *);
+EVP_PKEY    *tcn_load_pem_key_bio(const char *, const BIO *);
 int         tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth);
 int         tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey);
 int         tcn_X509_up_ref(X509* cert);
-int         SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);
-int         SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
-int         SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
-const char *SSL_cipher_authentication_method(const SSL_CIPHER *);
+int         tcn_SSL_callback_next_protos(SSL *, const unsigned char **, unsigned int *, void *);
+int         tcn_SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
+int         tcn_SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
+const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
 
 #if defined(__GNUC__) || defined(__GNUG__)
     // only supported with GCC, this will be used to support different openssl versions at the same time.
