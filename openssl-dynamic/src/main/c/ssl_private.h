@@ -292,6 +292,10 @@ const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
            void *arg), void *arg) __attribute__((weak));
     extern void SSL_get0_alpn_selected(const SSL *ssl, const unsigned char **data,
            unsigned *len) __attribute__((weak));
+
+    extern X509_VERIFY_PARAM *SSL_get0_param(SSL *ssl) __attribute__((weak));
+    extern void X509_VERIFY_PARAM_set_hostflags(X509_VERIFY_PARAM *param, unsigned int flags) __attribute__((weak));
+    extern int X509_VERIFY_PARAM_set1_host(X509_VERIFY_PARAM *param, const char *name, size_t namelen) __attribute__((weak));
 #endif
 
 #endif /* SSL_PRIVATE_H */
