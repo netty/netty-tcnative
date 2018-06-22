@@ -77,7 +77,7 @@ const char* TCN_UNKNOWN_AUTH_METHOD = "UNKNOWN";
  * Adapted from Android:
  * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
  */
-const char* SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
+const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
 #ifdef OPENSSL_IS_BORINGSSL
 	return SSL_CIPHER_get_kx_name(cipher);
 #elif OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
@@ -158,61 +158,61 @@ const char* SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
  * also note that OpenSSL increments at static variable when
  * SSL_get_ex_new_index() is called, so we _must_ do this at startup.
  */
-static int SSL_app_data2_idx = -1;
-static int SSL_app_data3_idx = -1;
-static int SSL_app_data4_idx = -1;
-void SSL_init_app_data_idx()
+static int tcn_SSL_app_data2_idx = -1;
+static int tcn_SSL_app_data3_idx = -1;
+static int tcn_SSL_app_data4_idx = -1;
+void tcn_SSL_init_app_data_idx()
 {
     int i;
 
-    if (SSL_app_data2_idx == -1) {
+    if (tcn_SSL_app_data2_idx == -1) {
         /* we _do_ need to call this two times */
         for (i = 0; i <= 1; i++) {
-            SSL_app_data2_idx = SSL_get_ex_new_index(0, "tcn_ssl_ctxt_t*", NULL, NULL, NULL);
+            tcn_SSL_app_data2_idx = SSL_get_ex_new_index(0, "tcn_ssl_ctxt_t*", NULL, NULL, NULL);
         }
     }
 
-    if (SSL_app_data3_idx == -1) {
-        SSL_app_data3_idx = SSL_get_ex_new_index(0, "int* handshakeCount", NULL, NULL, NULL);
+    if (tcn_SSL_app_data3_idx == -1) {
+        tcn_SSL_app_data3_idx = SSL_get_ex_new_index(0, "int* handshakeCount", NULL, NULL, NULL);
     }
 
-    if (SSL_app_data4_idx == -1) {
-        SSL_app_data4_idx = SSL_get_ex_new_index(0, "tcn_ssl_verify_config_t*", NULL, NULL, NULL);
+    if (tcn_SSL_app_data4_idx == -1) {
+        tcn_SSL_app_data4_idx = SSL_get_ex_new_index(0, "tcn_ssl_verify_config_t*", NULL, NULL, NULL);
     }
 }
 
-void *SSL_get_app_data2(SSL *ssl)
+void *tcn_SSL_get_app_data2(SSL *ssl)
 {
-    return (void *)SSL_get_ex_data(ssl, SSL_app_data2_idx);
+    return (void *)SSL_get_ex_data(ssl, tcn_SSL_app_data2_idx);
 }
 
-void SSL_set_app_data2(SSL *ssl, void *arg)
+void tcn_SSL_set_app_data2(SSL *ssl, void *arg)
 {
-    SSL_set_ex_data(ssl, SSL_app_data2_idx, (char *)arg);
+    SSL_set_ex_data(ssl, tcn_SSL_app_data2_idx, (char *)arg);
     return;
 }
 
-void *SSL_get_app_data3(SSL *ssl)
+void *tcn_SSL_get_app_data3(SSL *ssl)
 {
-    return SSL_get_ex_data(ssl, SSL_app_data3_idx);
+    return SSL_get_ex_data(ssl, tcn_SSL_app_data3_idx);
 }
 
-void SSL_set_app_data3(SSL *ssl, void *arg)
+void tcn_SSL_set_app_data3(SSL *ssl, void *arg)
 {
-    SSL_set_ex_data(ssl, SSL_app_data3_idx, arg);
+    SSL_set_ex_data(ssl, tcn_SSL_app_data3_idx, arg);
 }
 
-void *SSL_get_app_data4(SSL *ssl)
+void *tcn_SSL_get_app_data4(SSL *ssl)
 {
-    return SSL_get_ex_data(ssl, SSL_app_data4_idx);
+    return SSL_get_ex_data(ssl, tcn_SSL_app_data4_idx);
 }
 
-void SSL_set_app_data4(SSL *ssl, void *arg)
+void tcn_SSL_set_app_data4(SSL *ssl, void *arg)
 {
-    SSL_set_ex_data(ssl, SSL_app_data4_idx, arg);
+    SSL_set_ex_data(ssl, tcn_SSL_app_data4_idx, arg);
 }
 
-int SSL_password_callback(char *buf, int bufsiz, int verify,
+int tcn_SSL_password_callback(char *buf, int bufsiz, int verify,
                           void *cb)
 {
     char *password = (char *) cb;
@@ -361,7 +361,7 @@ static DH *get_dh(int idx)
 }
 #endif
 
-DH *SSL_dh_get_tmp_param(int key_len)
+DH *tcn_SSL_dh_get_tmp_param(int key_len)
 {
     DH *dh;
 
@@ -381,7 +381,7 @@ DH *SSL_dh_get_tmp_param(int key_len)
 /*
  * Hand out the already generated DH parameters...
  */
-DH *SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
+DH *tcn_SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
 {
     int idx;
     switch (keylen) {
@@ -402,22 +402,22 @@ DH *SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
     return (DH *)SSL_temp_keys[idx];
 }
 
-DH *SSL_callback_tmp_DH_512(SSL *ssl, int export, int keylen)
+DH *tcn_SSL_callback_tmp_DH_512(SSL *ssl, int export, int keylen)
 {
     return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_512];
 }
 
-DH *SSL_callback_tmp_DH_1024(SSL *ssl, int export, int keylen)
+DH *tcn_SSL_callback_tmp_DH_1024(SSL *ssl, int export, int keylen)
 {
     return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_1024];
 }
 
-DH *SSL_callback_tmp_DH_2048(SSL *ssl, int export, int keylen)
+DH *tcn_SSL_callback_tmp_DH_2048(SSL *ssl, int export, int keylen)
 {
     return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_2048];
 }
 
-DH *SSL_callback_tmp_DH_4096(SSL *ssl, int export, int keylen)
+DH *tcn_SSL_callback_tmp_DH_4096(SSL *ssl, int export, int keylen)
 {
     return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_4096];
 }
@@ -427,7 +427,7 @@ DH *SSL_callback_tmp_DH_4096(SSL *ssl, int export, int keylen)
  * format, possibly followed by a sequence of CA certificates that
  * should be sent to the peer in the SSL Certificate message.
  */
-int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipfirst)
+int tcn_SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipfirst)
 {
     BIO *bio;
     int n;
@@ -438,7 +438,7 @@ int SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipfirst
         BIO_free(bio);
         return -1;
     }
-    n = SSL_CTX_use_certificate_chain_bio(ctx, bio, skipfirst);
+    n = tcn_SSL_CTX_use_certificate_chain_bio(ctx, bio, skipfirst);
     BIO_free(bio);
     return n;
 }
@@ -496,18 +496,18 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
     return n;
 }
 
-int SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio, bool skipfirst)
+int tcn_SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio, bool skipfirst)
 {
     return SSL_CTX_setup_certs(ctx, bio, skipfirst, false);
 }
 
 
-int SSL_CTX_use_client_CA_bio(SSL_CTX *ctx, BIO *bio)
+int tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *ctx, BIO *bio)
 {
     return SSL_CTX_setup_certs(ctx, bio, false, true);
 }
 
-int SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
+int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
 {
 #if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
     // Only supported on openssl 1.0.2+
@@ -547,10 +547,10 @@ int SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
 #endif
 }
 
-X509 *load_pem_cert_bio(const char *password, const BIO *bio)
+X509 *tcn_load_pem_cert_bio(const char *password, const BIO *bio)
 {
     X509 *cert = PEM_read_bio_X509_AUX((BIO*) bio, NULL,
-                (pem_password_cb *)SSL_password_callback,
+                (pem_password_cb *) tcn_SSL_password_callback,
                 (void *)password);
     if (cert == NULL &&
        (ERR_GET_REASON(ERR_peek_last_error()) == PEM_R_NO_START_LINE)) {
@@ -561,10 +561,10 @@ X509 *load_pem_cert_bio(const char *password, const BIO *bio)
     return cert;
 }
 
-EVP_PKEY *load_pem_key_bio(const char *password, const BIO *bio)
+EVP_PKEY *tcn_load_pem_key_bio(const char *password, const BIO *bio)
 {
     EVP_PKEY *key = PEM_read_bio_PrivateKey((BIO*) bio, NULL,
-                    (pem_password_cb *)SSL_password_callback,
+                    (pem_password_cb *)tcn_SSL_password_callback,
                     (void *)password);
 
     BIO_ctrl((BIO*) bio, BIO_CTRL_RESET, 0, NULL);
@@ -622,7 +622,7 @@ int tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth)
     }
 }
 
-int SSL_callback_next_protos(SSL *ssl, const unsigned char **data,
+int tcn_SSL_callback_next_protos(SSL *ssl, const unsigned char **data,
                              unsigned int *len, void *arg)
 {
     tcn_ssl_ctxt_t *ssl_ctxt = arg;
@@ -691,14 +691,14 @@ int select_next_proto(SSL *ssl, const unsigned char **out, unsigned char *outlen
     return SSL_TLSEXT_ERR_NOACK;
 }
 
-int SSL_callback_select_next_proto(SSL *ssl, unsigned char **out, unsigned char *outlen,
+int tcn_SSL_callback_select_next_proto(SSL *ssl, unsigned char **out, unsigned char *outlen,
                          const unsigned char *in, unsigned int inlen,
                          void *arg) {
     tcn_ssl_ctxt_t *ssl_ctxt = arg;
     return select_next_proto(ssl, (const unsigned char**) out, outlen, in, inlen, ssl_ctxt->next_proto_data, ssl_ctxt->next_proto_len, ssl_ctxt->next_selector_failure_behavior);
 }
 
-int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
+int tcn_SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
         const unsigned char *in, unsigned int inlen, void *arg) {
     tcn_ssl_ctxt_t *ssl_ctxt = arg;
     return select_next_proto(ssl, out, outlen, in, inlen, ssl_ctxt->alpn_proto_data, ssl_ctxt->alpn_proto_len, ssl_ctxt->alpn_selector_failure_behavior);

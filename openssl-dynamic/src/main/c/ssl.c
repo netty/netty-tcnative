@@ -397,7 +397,7 @@ static BIO_METHOD* BIO_java_bytebuffer() {
 static int ssl_tmp_key_init_dh(int bits, int idx)
 {
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED) || defined(LIBRESSL_VERSION_NUMBER)
-    return (SSL_temp_keys[idx] = SSL_dh_get_tmp_param(bits)) ? 0 : 1;
+    return (SSL_temp_keys[idx] = tcn_SSL_dh_get_tmp_param(bits)) ? 0 : 1;
 #else
     return 0;
 #endif
@@ -726,8 +726,8 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     }
 #endif
 
-    // For SSL_get_app_data*() at request time
-    SSL_init_app_data_idx();
+    // For tcn_SSL_get_app_data*() at request time
+    tcn_SSL_init_app_data_idx();
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
     init_bio_methods();
@@ -783,7 +783,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, getLastErrorNumber)(TCN_STDARGS) {
 static void ssl_info_callback(const SSL *ssl, int where, int ret) {
     int *handshakeCount = NULL;
     if (0 != (where & SSL_CB_HANDSHAKE_START)) {
-        handshakeCount = (int*) SSL_get_app_data3((SSL*) ssl);
+        handshakeCount = (int*) tcn_SSL_get_app_data3((SSL*) ssl);
         if (handshakeCount != NULL) {
             ++(*handshakeCount);
         }
@@ -808,12 +808,12 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
     }
 
     // Set the app_data2 before all the others because it may be used in SSL_free.
-    SSL_set_app_data2(ssl, c);
+    tcn_SSL_set_app_data2(ssl, c);
 
     // Initially we will share the configuration from the SSLContext.
     // Set this before other app_data because there is no chance of failure, and if other app_data initialization fails
     // SSL_free maybe called and the state of this variable is assumed to be initalized.
-    SSL_set_app_data4(ssl, &c->verify_config);
+    tcn_SSL_set_app_data4(ssl, &c->verify_config);
 
     // Store the handshakeCount in the SSL instance.
     handshakeCount = (int*) OPENSSL_malloc(sizeof(int));
@@ -824,7 +824,7 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
     }
 
     *handshakeCount = 0;
-    SSL_set_app_data3(ssl, handshakeCount);
+    tcn_SSL_set_app_data3(ssl, handshakeCount);
 
     // Add callback to keep track of handshakes.
     SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
@@ -981,22 +981,22 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    c = SSL_get_app_data2(ssl_);
-    handshakeCount = SSL_get_app_data3(ssl_);
-    verify_config = SSL_get_app_data4(ssl_);
+    c = tcn_SSL_get_app_data2(ssl_);
+    handshakeCount = tcn_SSL_get_app_data3(ssl_);
+    verify_config = tcn_SSL_get_app_data4(ssl_);
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(c != NULL);
 
     if (handshakeCount != NULL) {
         OPENSSL_free(handshakeCount);
-        SSL_set_app_data3(ssl_, NULL);
+        tcn_SSL_set_app_data3(ssl_, NULL);
     }
 
     // Only free the verify_config if it is not shared with the SSLContext.
     if (verify_config != NULL && verify_config != &c->verify_config) {
         OPENSSL_free(verify_config);
-        SSL_set_app_data4(ssl_, &c->verify_config);
+        tcn_SSL_set_app_data4(ssl_, &c->verify_config);
     }
     SSL_free(ssl_);
 }
@@ -1330,8 +1330,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jin
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    c = SSL_get_app_data2(ssl_);
-    verify_config = SSL_get_app_data4(ssl_);
+    c = tcn_SSL_get_app_data2(ssl_);
+    verify_config = tcn_SSL_get_app_data4(ssl_);
 
     UNREFERENCED(o);
     TCN_ASSERT(c != NULL);
@@ -1346,7 +1346,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jin
        }
        // Copy the verify depth form the context in case depth is <0.
        verify_config->verify_depth = c->verify_config.verify_depth;
-       SSL_set_app_data4(ssl_, verify_config);
+       tcn_SSL_set_app_data4(ssl_, verify_config);
     }
 
     // No need to specify a callback for SSL_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
@@ -1524,7 +1524,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
 
     UNREFERENCED(o);
 
-    handshakeCount = SSL_get_app_data3(ssl_);
+    handshakeCount = tcn_SSL_get_app_data3(ssl_);
     return handshakeCount != NULL ? *handshakeCount : 0;
 }
 
@@ -1606,7 +1606,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
 
     for (i = 0; i < len; i++) {
         (*e)->SetObjectArrayElement(e, array, i,
-        (*e)->NewStringUTF(e, SSL_cipher_authentication_method((SSL_CIPHER*) sk_value((_STACK*) ciphers, i))));
+        (*e)->NewStringUTF(e, tcn_SSL_cipher_authentication_method((SSL_CIPHER*) sk_value((_STACK*) ciphers, i))));
     }
     return array;
 }
@@ -1638,13 +1638,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
         goto cleanup;
     }
 
-    if ((pkey = load_pem_key_bio(cpassword, key_bio)) == NULL) {
+    if ((pkey = tcn_load_pem_key_bio(cpassword, key_bio)) == NULL) {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate key (%s)",err);
         goto cleanup;
     }
-    if ((xcert = load_pem_cert_bio(cpassword, cert_bio)) == NULL) {
+    if ((xcert = tcn_load_pem_cert_bio(cpassword, cert_bio)) == NULL) {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate (%s) ", err);
@@ -1690,7 +1690,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
 
     UNREFERENCED(o);
 
-    if (SSL_use_certificate_chain_bio(ssl_, b, skipfirst) < 0)  {
+    if (tcn_SSL_use_certificate_chain_bio(ssl_, b, skipfirst) < 0)  {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate chain (%s)", err);
@@ -1707,7 +1707,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parsePrivateKey)(TCN_STDARGS, jlong privateKeyBio
     TCN_ALLOC_CSTRING(password);
     char err[ERR_LEN];
 
-    if ((pkey = load_pem_key_bio(cpassword, bio)) == NULL) {
+    if ((pkey = tcn_load_pem_key_bio(cpassword, bio)) == NULL) {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate key (%s)",err);

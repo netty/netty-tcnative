@@ -315,7 +315,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         EC_KEY_free(ecdh);
 #endif
 
-        SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH);
+        SSL_CTX_set_tmp_dh_callback(c->ctx,  tcn_SSL_callback_tmp_DH);
     }
 
     // Default depth is 100 and disabled according to https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html.
@@ -323,7 +323,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     c->verify_config.verify_mode   = SSL_CVERIFY_NONE;
 
     /* Set default password callback */
-    SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *)SSL_password_callback);
+    SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *) tcn_SSL_password_callback);
     SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *) c->password);
 
 #if defined(OPENSSL_IS_BORINGSSL)
@@ -452,7 +452,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
     UNREFERENCED(o);
     if (!J2S(file))
         return JNI_FALSE;
-    if (SSL_CTX_use_certificate_chain(c->ctx, J2S(file), skipfirst) > 0)
+    if (tcn_SSL_CTX_use_certificate_chain(c->ctx, J2S(file), skipfirst) > 0)
         rv = JNI_TRUE;
     TCN_FREE_CSTRING(file);
     return rv;
@@ -470,7 +470,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jl
     UNREFERENCED(o);
     if (b == NULL)
         return JNI_FALSE;
-    if (SSL_CTX_use_certificate_chain_bio(c->ctx, b, skipfirst) > 0)  {
+    if (tcn_SSL_CTX_use_certificate_chain_bio(c->ctx, b, skipfirst) > 0)  {
         return JNI_TRUE;
     }
     return JNI_FALSE;
@@ -486,7 +486,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS, jlong
 
     UNREFERENCED(o);
 
-    return b != NULL && c->mode != SSL_MODE_CLIENT && SSL_CTX_use_client_CA_bio(c->ctx, b) > 0 ? JNI_TRUE : JNI_FALSE;
+    return b != NULL && c->mode != SSL_MODE_CLIENT && tcn_SSL_CTX_use_client_CA_bio(c->ctx, b) > 0 ? JNI_TRUE : JNI_FALSE;
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jint length)
@@ -498,16 +498,16 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
     UNREFERENCED(o);
     switch (length) {
         case 512:
-            SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_512);
+            SSL_CTX_set_tmp_dh_callback(c->ctx, tcn_SSL_callback_tmp_DH_512);
             return;
         case 1024:
-            SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_1024);
+            SSL_CTX_set_tmp_dh_callback(c->ctx, tcn_SSL_callback_tmp_DH_1024);
             return;
         case 2048:
-            SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_2048);
+            SSL_CTX_set_tmp_dh_callback(c->ctx, tcn_SSL_callback_tmp_DH_2048);
             return;
         case 4096:
-            SSL_CTX_set_tmp_dh_callback(c->ctx,  SSL_callback_tmp_DH_4096);
+            SSL_CTX_set_tmp_dh_callback(c->ctx, tcn_SSL_callback_tmp_DH_4096);
             return;
         default:
             tcn_Throw(e, "Unsupported length %s", length);
@@ -541,7 +541,7 @@ static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
         return NULL;
     }
 
-    key = PEM_read_bio_PrivateKey(bio, NULL, (pem_password_cb *)SSL_password_callback, (void *)c->password);
+    key = PEM_read_bio_PrivateKey(bio, NULL, (pem_password_cb *) tcn_SSL_password_callback, (void *)c->password);
 
     BIO_free(bio);
     return key;
@@ -560,7 +560,7 @@ static X509 *load_pem_cert(tcn_ssl_ctxt_t *c, const char *file)
         return NULL;
     }
     cert = PEM_read_bio_X509_AUX(bio, NULL,
-                (pem_password_cb *)SSL_password_callback,
+                (pem_password_cb *) tcn_SSL_password_callback,
                 (void *)c->password);
     if (cert == NULL &&
        (ERR_GET_REASON(ERR_peek_last_error()) == PEM_R_NO_START_LINE)) {
@@ -597,7 +597,7 @@ static int ssl_load_pkcs12(tcn_ssl_ctxt_t *c, const char *file,
         pass = "";
     }
     else {
-        len = SSL_password_callback(buff, PEM_BUFSIZE, 0, (void *) c->password);
+        len = tcn_SSL_password_callback(buff, PEM_BUFSIZE, 0, (void *) c->password);
         if (len < 0) {
             /* Passpharse callback error */
             goto cleanup;
@@ -761,14 +761,14 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
         goto cleanup;
     }
 
-    if ((pkey = load_pem_key_bio(c->password, key_bio)) == NULL) {
+    if ((pkey = tcn_load_pem_key_bio(c->password, key_bio)) == NULL) {
         ERR_error_string(ERR_get_error(), err);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate key (%s)",err);
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if ((xcert = load_pem_cert_bio(c->password, cert_bio)) == NULL) {
+    if ((xcert = tcn_load_pem_cert_bio(c->password, cert_bio)) == NULL) {
         ERR_error_string(ERR_get_error(), err);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate (%s) ", err);
@@ -901,9 +901,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobje
 
         // depending on if it's client mode or not we need to call different functions.
         if (c->mode == SSL_MODE_CLIENT)  {
-            SSL_CTX_set_next_proto_select_cb(c->ctx, SSL_callback_select_next_proto, (void *)c);
+            SSL_CTX_set_next_proto_select_cb(c->ctx, tcn_SSL_callback_select_next_proto, (void *)c);
         } else {
-            SSL_CTX_set_next_protos_advertised_cb(c->ctx, SSL_callback_next_protos, (void *)c);
+            SSL_CTX_set_next_protos_advertised_cb(c->ctx, tcn_SSL_callback_next_protos, (void *)c);
         }
     }
 }
@@ -936,7 +936,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobj
             if (c->mode == SSL_MODE_CLIENT)  {
                 SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
             } else {
-                SSL_CTX_set_alpn_select_cb(c->ctx, SSL_callback_alpn_select_proto, (void *) c);
+                SSL_CTX_set_alpn_select_cb(c->ctx, tcn_SSL_callback_alpn_select_proto, (void *) c);
 
             }
         }
@@ -1200,7 +1200,7 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
 }
 
 static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned char *iv, EVP_CIPHER_CTX *ctx, HMAC_CTX *hctx, int enc) {
-     tcn_ssl_ctxt_t *c = SSL_get_app_data2(s);
+     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(s);
      tcn_ssl_ticket_key_t key;
      int is_current_key;
 
@@ -1290,7 +1290,7 @@ static const char* authentication_method(const SSL* ssl) {
                 // No cipher available so return UNKNOWN.
                 return TCN_UNKNOWN_AUTH_METHOD;
             }
-            return SSL_cipher_authentication_method(sk_SSL_CIPHER_value(ciphers, 0));
+            return tcn_SSL_cipher_authentication_method(sk_SSL_CIPHER_value(ciphers, 0));
         }
     }
 }
@@ -1300,9 +1300,9 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     TCN_ASSERT(ssl != NULL);
-    tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
+    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
     TCN_ASSERT(c != NULL);
-    tcn_ssl_verify_config_t* verify_config = SSL_get_app_data4(ssl);
+    tcn_ssl_verify_config_t* verify_config = tcn_SSL_get_app_data4(ssl);
     TCN_ASSERT(verify_config != NULL);
 
     // Get a stack of all certs in the chain
@@ -1486,7 +1486,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 #if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
     return -1;
 #else
-    tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
+    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
     int ctype_num;
     jbyte* ctype_bytes;
     jobjectArray issuers;
