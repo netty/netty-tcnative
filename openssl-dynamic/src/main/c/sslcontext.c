@@ -1483,9 +1483,17 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
 }
 
 static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
-#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
+#if defined(LIBRESSL_VERSION_NUMBER)
+    // Not supported with LibreSSL
     return -1;
 #else
+#ifndef OPENSSL_IS_BORINGSSL
+    if (OpenSSL_version_num() < 0x10002000L) {
+        // Only supported on openssl 1.0.2+
+        return -1;
+    }
+#endif // OPENSSL_IS_BORINGSSL
+
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
     int ctype_num;
     jbyte* ctype_bytes;
@@ -1495,7 +1503,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 
     tcn_get_java_env(&e);
 
-    ctype_num = SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
+    ctype_num = tcn_SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
     if (ctype_num <= 0) {
         // Use no certificate
         return 0;

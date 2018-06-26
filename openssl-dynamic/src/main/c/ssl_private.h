@@ -180,6 +180,15 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define TCN_OCSP_NOT_SUPPORTED
 #endif
 
+/* Define if not already exists as this will be used to be able to compile against older versions of openssl
+   while use newer when running the app */
+#ifndef SSL_CTRL_CHAIN_CERT
+#define SSL_CTRL_CHAIN_CERT                     89
+#endif
+#ifndef SSL_CTRL_GET_CLIENT_CERT_TYPES
+#define SSL_CTRL_GET_CLIENT_CERT_TYPES          103
+#endif
+
 typedef struct tcn_ssl_ctxt_t tcn_ssl_ctxt_t;
 
 typedef struct {
@@ -282,6 +291,17 @@ int         tcn_SSL_callback_next_protos(SSL *, const unsigned char **, unsigned
 int         tcn_SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 int         tcn_SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
+
+#if defined(OPENSSL_IS_BORINGSSL) || (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER))
+#define tcn_SSL_add1_chain_cert(ssl, x509) SSL_add1_chain_cert(ssl, x509)
+#define tcn_SSL_add0_chain_cert(ssl, x509) SSL_add0_chain_cert(ssl, x509)
+#define tcn_SSL_get0_certificate_types(ssl, clist) SSL_get0_certificate_types(ssl, clist)
+#else
+// This is what is defined in the SSL_add1_chain_cert / SSL_add0_chain_cert / SSL_get0_certificate_types macros.
+#define tcn_SSL_add1_chain_cert(ssl, x509) SSL_ctrl(ssl, SSL_CTRL_CHAIN_CERT, 1, (char *) x509)
+#define tcn_SSL_add0_chain_cert(ssl, x509) SSL_ctrl(ssl, SSL_CTRL_CHAIN_CERT, 0, (char *) x509)
+#define tcn_SSL_get0_certificate_types(ssl, clist) SSL_ctrl(ssl, SSL_CTRL_GET_CLIENT_CERT_TYPES, 0, (char *)(clist))
+#endif
 
 #if defined(__GNUC__) || defined(__GNUG__)
     // only supported with GCC, this will be used to support different openssl versions at the same time.
