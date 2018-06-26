@@ -452,6 +452,11 @@ static apr_status_t ssl_init_cleanup(void *data)
     free_bio_methods();
 #endif
 
+// Reset fips mode to the default.
+#ifdef OPENSSL_FIPS
+     FIPS_mode_set(0);
+#endif
+
     /* Don't call ERR_free_strings here; ERR_load_*_strings only
      * actually load the error strings once per process due to static
      * variable abuse in OpenSSL. */
@@ -2052,6 +2057,23 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getOcspResponse)(TCN_STDARGS, jlong ssl) {
 #endif
 }
 
+TCN_IMPLEMENT_CALL(void, SSL, fipsModeSet)(TCN_STDARGS, jint mode)
+{
+    UNREFERENCED(o);
+#ifdef OPENSSL_FIPS
+    if (FIPS_mode_set((int) mode) == 0) {
+        char err[ERR_LEN];
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+        ERR_clear_error();
+        tcn_Throw(e, "Unable set fips mode (%s)", err);
+    }
+#else
+    /* FIPS is unavailable */
+    tcn_ThrowException(e, "netty-tcnative was built without FIPS support");
+#endif
+}
+
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(bioLengthByteBuffer, (J)I, SSL) },
@@ -2115,7 +2137,8 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setKeyMaterialClientSide, (JJJJJ)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(enableOcsp, (J)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setOcspResponse, (J[B)V, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(getOcspResponse, (J)[B, SSL) }
+  { TCN_METHOD_TABLE_ENTRY(getOcspResponse, (J)[B, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(fipsModeSet, (I)V, SSL) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);

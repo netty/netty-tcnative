@@ -697,4 +697,12 @@ public final class SSL {
      * @param ssl the SSL instance (SSL *)
      */
     public static native byte[] getOcspResponse(long ssl);
+
+    /**
+     * Set the FIPS mode to use. See <a href="https://wiki.openssl.org/index.php/FIPS_mode_set()"> man FIPS_mode_set</a>.
+     *
+     * @param mode the mode to use.
+     * @throws Exception throws if setting the fips mode failed.
+     */
+    public static native void fipsModeSet(int mode) throws Exception;
 }
