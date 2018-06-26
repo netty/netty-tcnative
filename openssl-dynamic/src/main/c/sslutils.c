@@ -509,13 +509,20 @@ int tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *ctx, BIO *bio)
 
 int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
 {
-#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
+#if defined(LIBRESSL_VERSION_NUMBER)
     // Only supported on openssl 1.0.2+
     return -1;
 #else
     X509 *x509;
     unsigned long err;
     int n;
+
+#ifndef OPENSSL_IS_BORINGSSL
+    if (OpenSSL_version_num() < 0x10002000L) {
+        // Only supported on openssl 1.0.2+
+       return -1;
+    }
+#endif
 
     /* optionally skip a leading server certificate */
     if (skipfirst) {
@@ -529,7 +536,7 @@ int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
     n = 0;
 
     while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
-        if (SSL_add0_chain_cert(ssl, x509) != 1) {
+        if (tcn_SSL_add0_chain_cert(ssl, x509) != 1) {
             X509_free(x509);
             return -1;
         }

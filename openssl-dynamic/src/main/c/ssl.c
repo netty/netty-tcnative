@@ -664,7 +664,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     }
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-    if (SSLeay() < 0x0090700L) {
+    if (OpenSSL_version_num() < 0x0090700L) {
         TCN_FREE_CSTRING(engine);
         tcn_ThrowAPRException(e, APR_EINVAL);
         ssl_initialized = 0;
@@ -1784,10 +1784,17 @@ TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
 
 TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialServerSide)(TCN_STDARGS, jlong ssl, jlong chain, jlong key)
 {
-#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
-    // Only supported on openssl 1.0.2+
-    tcn_Throw(e, "Not supported");
+#if defined(LIBRESSL_VERSION_NUMBER)
+    tcn_Throw(e, "Not supported with LibreSSL");
 #else
+#ifndef OPENSSL_IS_BORINGSSL
+    if (OpenSSL_version_num() < 0x10002000L) {
+        // Only supported on openssl 1.0.2+
+        tcn_Throw(e, "Only supported with OpenSSL >= 1.0.2");
+        return;
+    }
+#endif // OPENSSL_IS_BORINGSSL
+
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
@@ -1833,8 +1840,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialServerSide)(TCN_STDARGS, jlong ssl, 
     // The first cert was loaded via SSL_use_certificate so skip it.
     for (i = 1; i < numCerts; ++i) {
 
-        // SSL_add1_chain_cert will increment the reference count of the cert.
-        if (SSL_add1_chain_cert(ssl_, sk_X509_value(cchain, i)) != 1) {
+        // tcn_SSL_add1_chain_cert will increment the reference count of the cert.
+        if (tcn_SSL_add1_chain_cert(ssl_, sk_X509_value(cchain, i)) != 1) {
             ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
             ERR_clear_error();
 
@@ -1847,10 +1854,17 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialServerSide)(TCN_STDARGS, jlong ssl, 
 
 TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialClientSide)(TCN_STDARGS, jlong ssl, jlong certOut, jlong keyOut, jlong chain, jlong key)
 {
-#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
-    // Only supported on openssl 1.0.2+
-    tcn_Throw(e, "Not supported");
+#if defined(LIBRESSL_VERSION_NUMBER)
+    tcn_Throw(e, "Not supported with LibreSSL");
 #else
+#ifndef OPENSSL_IS_BORINGSSL
+    if (OpenSSL_version_num() < 0x10002000L) {
+        // Only supported on openssl 1.0.2+
+        tcn_Throw(e, "Only supported with OpenSSL >= 1.0.2");
+        return;
+    }
+#endif // OPENSSL_IS_BORINGSSL
+
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
@@ -1885,7 +1899,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialClientSide)(TCN_STDARGS, jlong ssl, 
         // https://www.openssl.org/docs/manmaster/ssl/SSL_CTX_set_client_cert_cb.html
         //
         // Using SSL_add1_chain_cert(...) here as we want to increment the reference count.
-        if (SSL_add1_chain_cert(ssl_, sk_X509_value(cchain, i)) <= 0) {
+        if (tcn_SSL_add1_chain_cert(ssl_, sk_X509_value(cchain, i)) <= 0) {
             ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
             ERR_clear_error();
             tcn_Throw(e, "Could not add certificate to chain (%s)", err);
