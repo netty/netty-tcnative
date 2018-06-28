@@ -1306,7 +1306,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     TCN_ASSERT(verify_config != NULL);
 
     // Get a stack of all certs in the chain
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL)
     STACK_OF(X509) *sk = ctx->untrusted;
 #else
     STACK_OF(X509) *sk = X509_STORE_CTX_get0_untrusted(ctx);

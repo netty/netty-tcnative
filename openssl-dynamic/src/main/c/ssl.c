@@ -1568,7 +1568,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
 #endif
 
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) || defined(OPENSSL_IS_BORINGSSL) || defined(__GNUC__) || defined(__GNUG__)
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) || LIBRESSL_VERSION_NUMBER >= 0x2060000fL || defined(OPENSSL_IS_BORINGSSL) || defined(__GNUC__) || defined(__GNUG__)
     if (hostnameString == NULL) {
         return;
     }
