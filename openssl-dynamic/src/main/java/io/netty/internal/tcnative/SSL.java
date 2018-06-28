@@ -539,7 +539,7 @@ public final class SSL {
      * Values are defined as a bitmask of {@code X509_CHECK_FLAG*} values.
      * @param ssl the SSL instance (SSL*).
      * @param flags a bitmask of {@code X509_CHECK_FLAG*} values.
-     * @param hostname the hostname which is expected for validation.
+     * @param hostname the hostname which is expected for validation or {@code null} if validation should be disabled.
      */
     public static native void setHostNameValidation(long ssl, int flags, String hostname);
 
