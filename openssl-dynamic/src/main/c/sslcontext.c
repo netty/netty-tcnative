@@ -841,7 +841,7 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
 
     for (i = 0; i < cnt; ++i) {
          proto_string = (jstring) (*e)->GetObjectArrayElement(e, protos, i);
-         proto_chars = (*e)->GetStringUTFChars(e, proto_string, 0);
+         proto_chars = (*e)->GetStringUTFChars(e, proto_string, JNI_FALSE);
 
          proto_chars_len = strlen(proto_chars);
          if (proto_chars_len > 0 && proto_chars_len <= MAX_ALPN_NPN_PROTO_SIZE) {

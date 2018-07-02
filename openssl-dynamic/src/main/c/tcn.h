@@ -97,7 +97,7 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
 #define TCN_END_MACRO       } else (void)(0)
 
 #define TCN_ALLOC_CSTRING(V)     \
-    const char *c##V = V ? (const char *)((*e)->GetStringUTFChars(e, V, 0)) : NULL
+    const char *c##V = V ? (const char *)((*e)->GetStringUTFChars(e, V, JNI_FALSE)) : NULL
 
 #define TCN_FREE_CSTRING(V)      \
     if (c##V) (*e)->ReleaseStringUTFChars(e, V, c##V)
