@@ -1580,7 +1580,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
         return;
     }
 
-    const char *hostname = (*e)->GetStringUTFChars(e, hostnameString, 0);
+    const char *hostname = (*e)->GetStringUTFChars(e, hostnameString, JNI_FALSE);
 
     if (X509_VERIFY_PARAM_set1_host(param, hostname, hostnameLen) != 1) {
         char err[ERR_LEN];
