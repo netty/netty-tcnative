@@ -421,10 +421,10 @@
                   <rules>
                     <requireProperty>
                       <regexMessage>
-                        Release process must be performed on linux-x86_64.
+                        Release process must be performed on linux-X86_64 or linux-aarch_64.
                       </regexMessage>
                       <property>os.detected.classifier</property>
-                      <regex>^linux-x86_64$</regex>
+                      <regex>^(linux-x86_64|linux-aarch_64)$</regex>
                     </requireProperty>
                     <requireFilesContent>
                       <message>
