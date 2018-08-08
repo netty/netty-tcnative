@@ -171,9 +171,8 @@
                         <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                           <arg line="Configure VC-WIN64A --prefix=${sslHome}" />
                         </exec>
-                        <exec executable="${opensslBuildDir}/ms/do_win64a.bat" failonerror="true" dir="${opensslBuildDir}" />
                         <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg line="-f ms\nt.mak all install" />
+                          <arg line="install" />
                         </exec>
                       </else>
                     </if>
