@@ -439,9 +439,13 @@ static apr_status_t ssl_init_cleanup(void *data)
 #endif
     /* Corresponds to SSL_library_init: */
     EVP_cleanup();
-#if HAVE_ENGINE_LOAD_BUILTIN_ENGINES
+
+    // In case we loaded any engine we should also call cleanup. This is especialy important in openssl < 1.1.
+#ifndef OPENSSL_IS_BORINGSSL
+    // This is deprecated since openssl 1.1 but does not exist at all in BoringSSL.
     ENGINE_cleanup();
 #endif
+
 #if OPENSSL_VERSION_NUMBER >= 0x00907001
     CRYPTO_cleanup_all_ex_data();
 #endif
@@ -683,9 +687,6 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     SSL_load_error_strings();
     SSL_library_init();
     OpenSSL_add_all_algorithms();
-#if HAVE_ENGINE_LOAD_BUILTIN_ENGINES
-    ENGINE_load_builtin_engines();
-#endif
 #if OPENSSL_VERSION_NUMBER >= 0x00907001
     OPENSSL_load_builtin_modules();
 #endif
@@ -695,6 +696,9 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 
 #ifndef OPENSSL_NO_ENGINE
     if (J2S(engine)) {
+        // Let us load the builtin engines as we want to use a specific one. This will also allow us
+        // to use OPENSSL_ENGINES to define where a custom engine is located.
+        ENGINE_load_builtin_engines();
         ENGINE *ee = NULL;
         apr_status_t err = APR_SUCCESS;
         if(strcmp(J2S(engine), "auto") == 0) {
