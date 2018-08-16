@@ -31,6 +31,11 @@
 
 #include <stdbool.h>
 #include <openssl/bio.h>
+
+#ifndef OPENSSL_NO_ENGINE
+#include <openssl/ui.h>
+#endif // OPENSSL_NO_ENGINE
+
 #include "tcn.h"
 #include "apr_file_io.h"
 #include "apr_thread_mutex.h"
@@ -43,8 +48,12 @@
 static int ssl_initialized = 0;
 extern apr_pool_t *tcn_global_pool;
 
-ENGINE *tcn_ssl_engine = NULL;
 void *SSL_temp_keys[SSL_TMP_KEY_MAX];
+
+#ifndef OPENSSL_NO_ENGINE
+static ENGINE *tcn_ssl_engine = NULL;
+static UI_METHOD *ui_method = NULL;
+#endif // OPENSSL_NO_ENGINE
 
 /* Global reference to the pool used by the dynamic mutexes */
 static apr_pool_t *dynlockpool = NULL;
@@ -334,6 +343,49 @@ static long bio_java_bytebuffer_ctrl(BIO* bio, int cmd, long num, void* ptr) {
     }
 }
 
+// This code is based on libcurl:
+// https://github.com/curl/curl/blob/curl-7_61_0/lib/vtls/openssl.c#L521
+#ifndef OPENSSL_NO_ENGINE
+/*
+ * Supply default password to the engine user interface conversation.
+ * The password is passed by OpenSSL engine from ENGINE_load_private_key()
+ * last argument to the ui and can be obtained by UI_get0_user_data(ui) here.
+ */
+static int ssl_ui_reader(UI *ui, UI_STRING *uis)
+{
+    const char *password;
+    switch (UI_get_string_type(uis)) {
+    case UIT_PROMPT:
+    case UIT_VERIFY:
+        password = (const char *) UI_get0_user_data(ui);
+        if (password != NULL && (UI_get_input_flags(uis) & UI_INPUT_FLAG_DEFAULT_PWD) != 0) {
+            UI_set_result(ui, uis, password);
+            return 1;
+        }
+        // fall-through
+    default:
+        return (UI_method_get_reader(UI_OpenSSL()))(ui, uis);
+  }
+}
+
+/*
+ * Suppress interactive request for a default password if available.
+ */
+static int ssl_ui_writer(UI *ui, UI_STRING *uis)
+{
+    switch(UI_get_string_type(uis)) {
+    case UIT_PROMPT:
+    case UIT_VERIFY:
+        if (UI_get0_user_data(ui) != NULL && (UI_get_input_flags(uis) & UI_INPUT_FLAG_DEFAULT_PWD) != 0) {
+            return 1;
+        }
+        // fall-through
+    default:
+        return (UI_method_get_writer(UI_OpenSSL()))(ui, uis);
+  }
+}
+#endif // OPENSSL_NO_ENGINE
+
 TCN_IMPLEMENT_CALL(jint, SSL, bioLengthByteBuffer)(TCN_STDARGS, jlong bioAddress) {
     BIO* bio = J2P(bioAddress, BIO*);
     struct TCN_bio_bytebuffer* bioUserData;
@@ -440,12 +492,6 @@ static apr_status_t ssl_init_cleanup(void *data)
     /* Corresponds to SSL_library_init: */
     EVP_cleanup();
 
-    // In case we loaded any engine we should also call cleanup. This is especialy important in openssl < 1.1.
-#ifndef OPENSSL_IS_BORINGSSL
-    // This is deprecated since openssl 1.1 but does not exist at all in BoringSSL.
-    ENGINE_cleanup();
-#endif
-
 #if OPENSSL_VERSION_NUMBER >= 0x00907001
     CRYPTO_cleanup_all_ex_data();
 #endif
@@ -460,6 +506,25 @@ static apr_status_t ssl_init_cleanup(void *data)
 #ifdef OPENSSL_FIPS
      FIPS_mode_set(0);
 #endif
+
+#ifndef OPENSSL_NO_ENGINE
+     /* Free our "structural" reference. */
+     if (tcn_ssl_engine != NULL) {
+         ENGINE_free(tcn_ssl_engine);
+         tcn_ssl_engine = NULL;
+     }
+
+     if (ui_method != NULL) {
+         UI_destroy_method(ui_method);
+         ui_method = NULL;
+     }
+
+// In case we loaded any engine we should also call cleanup. This is especialy important in openssl < 1.1.
+#ifndef OPENSSL_IS_BORINGSSL
+    // This is deprecated since openssl 1.1 but does not exist at all in BoringSSL.
+    ENGINE_cleanup();
+#endif // OPENSSL_IS_BORINGSSL
+#endif // OPENSSL_NO_ENGINE
 
     /* Don't call ERR_free_strings here; ERR_load_*_strings only
      * actually load the error strings once per process due to static
@@ -699,39 +764,61 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     /* Initialize thread support */
     ssl_thread_setup(tcn_global_pool);
 
+    apr_status_t err = APR_SUCCESS;
+
 #ifndef OPENSSL_NO_ENGINE
     if (J2S(engine)) {
         // Let us load the builtin engines as we want to use a specific one. This will also allow us
         // to use OPENSSL_ENGINES to define where a custom engine is located.
         ENGINE_load_builtin_engines();
-        ENGINE *ee = NULL;
-        apr_status_t err = APR_SUCCESS;
         if(strcmp(J2S(engine), "auto") == 0) {
             ENGINE_register_all_complete();
         }
         else {
-            if ((ee = ENGINE_by_id(J2S(engine))) == NULL
-                && (ee = ssl_try_load_engine(J2S(engine))) == NULL)
+
+            // ssl_init_cleanup will take care of free the engine (tcn_ssl_engine) if needed.
+
+            if ((tcn_ssl_engine = ENGINE_by_id(J2S(engine))) == NULL
+                && (tcn_ssl_engine = ssl_try_load_engine(J2S(engine))) == NULL)
                 err = APR_ENOTIMPL;
             else {
 #ifdef ENGINE_CTRL_CHIL_SET_FORKCHECK
                 if (strcmp(J2S(engine), "chil") == 0)
-                    ENGINE_ctrl(ee, ENGINE_CTRL_CHIL_SET_FORKCHECK, 1, 0, 0);
+                    ENGINE_ctrl(tcn_ssl_engine, ENGINE_CTRL_CHIL_SET_FORKCHECK, 1, 0, 0);
 #endif
-                if (!ENGINE_set_default(ee, ENGINE_METHOD_ALL))
+                if (!ENGINE_set_default(tcn_ssl_engine, ENGINE_METHOD_ALL))
                     err = APR_ENOTIMPL;
             }
-            /* Free our "structural" reference. */
-            if (ee)
-                ENGINE_free(ee);
+
+            if (err == APR_SUCCESS) {
+                // This code is based on libcurl:
+                // https://github.com/curl/curl/blob/curl-7_61_0/lib/vtls/openssl.c#L521
+                ui_method = UI_create_method((char *)"netty-tcnative user interface");
+                if (ui_method != NULL) {
+                    if (UI_method_set_opener(ui_method, UI_method_get_opener(UI_OpenSSL())) != 0) {
+                        err = APR_EINVAL;
+                        goto error;
+                    }
+                    if (UI_method_set_closer(ui_method, UI_method_get_closer(UI_OpenSSL())) != 0) {
+                        err = APR_EINVAL;
+                        goto error;
+                    }
+                    if (UI_method_set_reader(ui_method, ssl_ui_reader) != 0) {
+                        err = APR_EINVAL;
+                        goto error;
+                    }
+                    if (UI_method_set_writer(ui_method, ssl_ui_writer) != 0) {
+                        err = APR_EINVAL;
+                        goto error;
+                    }
+                } else {
+                    err = APR_EINVAL;
+                    goto error;
+                }
+            } else {
+                goto error;
+            }
         }
-        if (err != APR_SUCCESS) {
-            TCN_FREE_CSTRING(engine);
-            ssl_init_cleanup(NULL);
-            tcn_ThrowAPRException(e, err);
-            return (jint)err;
-        }
-        tcn_ssl_engine = ee;
     }
 #endif
 
@@ -744,11 +831,10 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 
     SSL_TMP_KEYS_INIT(r);
     if (r) {
+        // TODO: Should we really do this as the user may want to inspect the error stack ?
         ERR_clear_error();
-        TCN_FREE_CSTRING(engine);
-        ssl_init_cleanup(NULL);
-        tcn_ThrowAPRException(e, APR_ENOTIMPL);
-        return APR_ENOTIMPL;
+        err = APR_ENOTIMPL;
+        goto error;
     }
     /*
      * Let us cleanup the ssl library when the library is unloaded
@@ -759,6 +845,12 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     TCN_FREE_CSTRING(engine);
 
     return (jint)APR_SUCCESS;
+
+error:
+    TCN_FREE_CSTRING(engine);
+    ssl_init_cleanup(NULL);
+    tcn_ThrowAPRException(e, err);
+    return (jint)err;
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSL, newMemBIO)(TCN_STDARGS)
@@ -1711,6 +1803,37 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
     }
 }
 
+TCN_IMPLEMENT_CALL(jlong, SSL, loadPrivateKeyFromEngine)(TCN_STDARGS, jstring keyId, jstring password)
+{
+#ifndef OPENSSL_NO_ENGINE
+    char err[ERR_LEN];
+    EVP_PKEY* pkey = NULL;
+
+    TCN_ALLOC_CSTRING(keyId);
+    TCN_ALLOC_CSTRING(password);
+
+    pkey = ENGINE_load_private_key(tcn_ssl_engine, ckeyId, ui_method, (void*) cpassword);
+
+    TCN_FREE_CSTRING(password);
+    TCN_FREE_CSTRING(keyId);
+
+    UNREFERENCED(o);
+
+    if (pkey == NULL) {
+         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
+         ERR_clear_error();
+         tcn_Throw(e, "Unable to load private key (%s)", err);
+         return -1;
+    } else {
+        return P2J(pkey);
+    }
+#else
+    // Not supported
+    tcn_Throw(e, "Not supported");
+    return -1;
+#endif
+}
+
 TCN_IMPLEMENT_CALL(jlong, SSL, parsePrivateKey)(TCN_STDARGS, jlong privateKeyBio, jstring password)
 {
     EVP_PKEY* pkey = NULL;
@@ -2133,6 +2256,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(authenticationMethods, (J)[Ljava/lang/String;, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setCertificateBio, (JJJLjava/lang/String;)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setCertificateChainBio, (JJZ)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(loadPrivateKeyFromEngine, (Ljava/lang/String;Ljava/lang/String;)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(parsePrivateKey, (JLjava/lang/String;)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(freePrivateKey, (J)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(parseX509Chain, (J)J, SSL) },
