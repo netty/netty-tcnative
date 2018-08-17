@@ -599,6 +599,23 @@ public final class SSL {
             long ssl, long certBio, long keyBio, String password) throws Exception;
 
     /**
+     * Load a private key from the used OpenSSL ENGINE via the
+     * <a href="https://www.openssl.org/docs/man1.1.0/crypto/ENGINE_load_private_key.html">ENGINE_load_private_key</a>
+     * function.
+     *
+     * <p>Be sure you understand how OpenSsl will behave with respect to reference counting!
+     *
+     * If the ownership is not transferred you need to call {@link #freePrivateKey(long)} once the key is not used
+     * anymore to prevent memory leaks.
+     *
+     * @param keyId the id of the key.
+     * @param password the password to use or {@code null} if none.
+     * @return {@code EVP_PKEY} pointer
+     * @throws Exception if an error happened
+     */
+    public static native long loadPrivateKeyFromEngine(String keyId, String password) throws Exception;
+
+    /**
      * Parse private key from BIO and return {@code EVP_PKEY} pointer.
      *
      * <p>Be sure you understand how OpenSsl will behave with respect to reference counting!
