@@ -63,6 +63,7 @@
               <configureArgs>
                 <configureArg>--with-ssl=${sslHome}</configureArg>
                 <configureArg>--with-apr=${aprHome}</configureArg>
+                <configureArg>--with-static-libs</configureArg>
               </configureArgs>
             </configuration>
           </execution>
@@ -149,8 +150,9 @@
         </plugins>
       </build>
     </profile>
+
     <profile>
-      <id>build-libressl-linux-mac</id>
+      <id>build-libressl-non-windows</id>
       <activation>
         <os>
           <family>!windows</family>
@@ -163,7 +165,7 @@
             <executions>
               <!-- Download and build LibreSSL -->
               <execution>
-                <id>build-libressl-linux-mac</id>
+                <id>build-libressl-non-windows</id>
                 <phase>generate-sources</phase>
                 <goals>
                   <goal>run</goal>

@@ -290,7 +290,7 @@ static const JNINativeMethod method_table[] = {
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
 // JNI Method Registration Table End
 
-jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
     if (netty_internal_tcnative_util_register_natives(env, packagePrefix, "io/netty/internal/tcnative/Library", method_table, method_table_size) != 0) {
         return JNI_ERR;
     }
@@ -341,7 +341,7 @@ jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* package
     return TCN_JNI_VERSION;
 }
 
-void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
+static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
     if (tcn_global_pool != NULL) {
         TCN_UNLOAD_CLASS(env, jString_class);
         apr_terminate();
@@ -356,8 +356,7 @@ void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
     netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
 }
 
-// JNI Wrapper for statically built Java 8 deps
-jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
+static jint JNI_OnLoad_netty_tcnative0(JavaVM* vm, void* reserved) {
     JNIEnv* env;
     if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
         return JNI_ERR;
@@ -417,13 +416,7 @@ jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
     return ret;
 }
 
-#ifndef TCN_BUILD_STATIC
-JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
-    return JNI_OnLoad_netty_tcnative(vm, reserved);
-}
-#endif /* TCN_BUILD_STATIC */
-
-void JNI_OnUnload_netty_tcnative(JavaVM* vm, void* reserved) {
+static void JNI_OnUnload_netty_tcnative0(JavaVM* vm, void* reserved) {
     JNIEnv* env;
     if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
         // Something is wrong but nothing we can do about this :(
@@ -432,8 +425,28 @@ void JNI_OnUnload_netty_tcnative(JavaVM* vm, void* reserved) {
     netty_internal_tcnative_Library_JNI_OnUnLoad(env);
 }
 
+// As we build with -fvisibility=hidden we need to ensure we mark the entry load and unload functions used by the
+// JVM as visible.
+//
+// It's important to note that we will only export functions that are prefixed with JNI_ so if we ever need to export
+// more we need to ensure we add the prefix. This is enforced by the TCN_CHECK_STATIC function in tcnative.m4.
+
+// Invoked by the JVM when statically linked
+JNIEXPORT jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
+    return JNI_OnLoad_netty_tcnative0(vm, reserved);
+}
+
+// Invoked by the JVM when statically linked
+JNIEXPORT void JNI_OnUnload_netty_tcnative(JavaVM* vm, void* reserved) {
+    JNI_OnUnload_netty_tcnative0(vm, reserved);
+}
+
 #ifndef TCN_BUILD_STATIC
+JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+    return JNI_OnLoad_netty_tcnative0(vm, reserved);
+}
+
 JNIEXPORT void JNI_OnUnload(JavaVM* vm, void* reserved) {
-  JNI_OnUnload_netty_tcnative(vm, reserved);
+    JNI_OnUnload_netty_tcnative0(vm, reserved);
 }
 #endif /* TCN_BUILD_STATIC */

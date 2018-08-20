@@ -73,6 +73,7 @@
               <configureArgs>
                 <configureArg>--with-ssl=${sslHome}</configureArg>
                 <configureArg>--with-apr=${aprHome}</configureArg>
+                <configureArg>--with-static-libs</configureArg>
               </configureArgs>
             </configuration>
           </execution>
@@ -186,7 +187,7 @@
       <id>build-openssl-linux</id>
       <activation>
         <os>
-          <family>unix</family>
+          <family>linux</family>
         </os>
       </activation>
       <build>
