@@ -41,7 +41,10 @@ AC_DEFUN([CUSTOM_M4_SETUP],
     esac
   ])
 
-  dnl Make sure OpenSSL is available in the system.
+  dnl Check if the libs we link against are static
+  TCN_CHECK_STATIC
+
+  dnl Make sure OpenSSL is available in the system and set extra flags if we compile against a static version.
   if $use_openssl ; then
     TCN_CHECK_SSL_TOOLKIT
   fi

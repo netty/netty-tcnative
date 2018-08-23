@@ -276,6 +276,32 @@ dnl as the help string.
 AC_DEFUN([TCN_HELP_STRING],[ifelse(regexp(AC_ACVERSION, 2\.1), -1, AC_HELP_STRING($1,$2),[  ]$1 substr([                       ],len($1))$2)])dnl
 
 dnl
+dnl TCN_CHECK_STATIC
+dnl Will prepare more LDFLAGS that should be set to ensure we do not export any functions from the static compiled APR / OpenSSL libs.
+dnl
+AC_DEFUN([TCN_CHECK_STATIC],[
+    LD_FLAGS_STATIC=""
+
+    AC_ARG_WITH(static-libs,
+      [  --with-static-libs     The libraries we link against are static.],
+      [
+
+      case $host in
+      *-darwin*)
+          LD_FLAGS_STATIC="-Wl,-exported_symbol,_JNI_*"
+          ;;
+      *linux*)
+          LD_FLAGS_STATIC="-Wl,--exclude-libs,ALL"
+          ;;
+      *)
+          LD_FLAGS_STATIC=""
+          ;;
+      esac
+
+    ])
+])
+
+dnl
 dnl TCN_CHECK_SSL_TOOLKIT
 dnl
 dnl Configure for the detected openssl toolkit installation, giving
@@ -410,4 +436,6 @@ then
     APR_ADDTO(TCNATIVE_LDFLAGS, [$TCN_OPENSSL_LIBS])
     APR_ADDTO(CFLAGS, [-DHAVE_OPENSSL])
 fi
+
+APR_ADDTO(LDFLAGS, [$LD_FLAGS_STATIC])
 ])
