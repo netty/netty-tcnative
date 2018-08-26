@@ -230,8 +230,6 @@ int tcn_SSL_password_callback(char *buf, int bufsiz, int verify,
     return (int)strlen(buf);
 }
 
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED) || defined(LIBRESSL_VERSION_NUMBER)
-
 static unsigned char dh0512_p[]={
     0xD9,0xBA,0xBF,0xFD,0x69,0x38,0xC9,0x51,0x2D,0x19,0x37,0x39,
     0xD7,0x7D,0x7E,0x3E,0x25,0x58,0x55,0x94,0x90,0x60,0x93,0x7A,
@@ -328,38 +326,53 @@ static unsigned char dhxxx2_g[]={
 
 static DH *get_dh(int idx)
 {
-    DH *dh;
-    if ((dh = DH_new()) == NULL)
+    DH *dh = NULL;
+    BIGNUM *p = NULL;
+    BIGNUM *g = NULL;
+    if ((dh = DH_new()) == NULL) {
         return NULL;
+    }
+
     switch (idx) {
         case SSL_TMP_KEY_DH_512:
-            dh->p = BN_bin2bn(dh0512_p, sizeof(dh0512_p), NULL);
+            p = BN_bin2bn(dh0512_p, sizeof(dh0512_p), NULL);
         break;
         case SSL_TMP_KEY_DH_1024:
-            dh->p = BN_bin2bn(dh1024_p, sizeof(dh1024_p), NULL);
+            p = BN_bin2bn(dh1024_p, sizeof(dh1024_p), NULL);
         break;
         case SSL_TMP_KEY_DH_2048:
-            dh->p = BN_bin2bn(dh2048_p, sizeof(dh2048_p), NULL);
+            p = BN_bin2bn(dh2048_p, sizeof(dh2048_p), NULL);
         break;
         case SSL_TMP_KEY_DH_4096:
-            dh->p = BN_bin2bn(dh4096_p, sizeof(dh2048_p), NULL);
+            p = BN_bin2bn(dh4096_p, sizeof(dh4096_p), NULL);
         break;
     }
-    dh->g = BN_bin2bn(dhxxx2_g, sizeof(dhxxx2_g), NULL);
-    if ((dh->p == NULL) || (dh->g == NULL)) {
-        DH_free(dh);
-        return NULL;
+    if (p == NULL) {
+        goto error;
     }
-    else
-        return dh;
-    return NULL;
-}
+
+    g = BN_bin2bn(dhxxx2_g, sizeof(dhxxx2_g), NULL);
+    if (g == NULL) {
+        goto error;
+    } else {
+// DH_set0_pqg() was introduced to initialize the DH parameters in OpenSSL 1.1.0 and DH is opaque now.
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+        if (DH_set0_pqg(dh, p, NULL, g) == 0) {
+            goto error;
+        }
 #else
-static DH *get_dh(int idx)
-{
+        dh->p = p;
+        dh->g = g;
+#endif
+        return dh;
+    }
+error:
+    // All these functions can handle NULL as argument.
+    DH_free(dh);
+    BN_free(p);
+    BN_free(g);
     return NULL;
 }
-#endif
 
 DH *tcn_SSL_dh_get_tmp_param(int key_len)
 {
