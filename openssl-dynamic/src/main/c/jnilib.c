@@ -291,27 +291,41 @@ static const jint method_table_size = sizeof(method_table) / sizeof(method_table
 // JNI Method Registration Table End
 
 static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+    int errorOnLoadCalled = 0;
+    int bufferOnLoadCalled = 0;
+    int jniMethodsOnLoadCalled = 0;
+    int sslOnLoadCalled = 0;
+    int contextOnLoadCalled = 0;
+
     if (netty_internal_tcnative_util_register_natives(env, packagePrefix, "io/netty/internal/tcnative/Library", method_table, method_table_size) != 0) {
-        return JNI_ERR;
+        goto error;
     }
 
     // Load all c modules that we depend upon
     if (netty_internal_tcnative_Error_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
-        return JNI_ERR;
+        goto error;
     }
+    errorOnLoadCalled = 1;
+
     if (netty_internal_tcnative_Buffer_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
-        return JNI_ERR;
+        goto error;
     }
+    bufferOnLoadCalled = 1;
+
     if (netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
-        return JNI_ERR;
+        goto error;
     }
+    jniMethodsOnLoadCalled = 1;
 
     if (netty_internal_tcnative_SSL_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
-        return JNI_ERR;
+        goto error;
     }
+    sslOnLoadCalled = 1;
+
     if (netty_internal_tcnative_SSLContext_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
-        return JNI_ERR;
+        goto error;
     }
+    contextOnLoadCalled = 1;
 
     apr_version_t apv;
     int apvn;
@@ -324,7 +338,7 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
     if (apvn < 1201) {
         tcn_Throw(env, "Unsupported APR version (%s)",
                   apr_version_string());
-        return JNI_ERR;
+        goto error;
     }
 
 
@@ -339,6 +353,24 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
     TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
 
     return TCN_JNI_VERSION;
+error:
+    // Call unload methods if needed to ensure we correctly release any resources.
+    if (errorOnLoadCalled == 1) {
+        netty_internal_tcnative_Error_JNI_OnUnLoad(env);
+    }
+    if (bufferOnLoadCalled == 1) {
+        netty_internal_tcnative_Buffer_JNI_OnUnLoad(env);
+    }
+    if (jniMethodsOnLoadCalled == 1) {
+        netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env);
+    }
+    if (sslOnLoadCalled == 1) {
+        netty_internal_tcnative_SSL_JNI_OnUnLoad(env);
+    }
+    if (contextOnLoadCalled == 1) {
+        netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
+    }
+    return JNI_ERR;
 }
 
 static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
