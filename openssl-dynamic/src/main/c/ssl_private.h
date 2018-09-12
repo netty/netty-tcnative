@@ -131,6 +131,22 @@ extern const char* TCN_UNKNOWN_AUTH_METHOD;
 #define TLS1_3_VERSION 0x0304
 #endif
 
+#ifndef SSL_OP_NO_TLSv1_3
+// TLSV1_3 is not really supported by the underlying OPENSSL version
+#ifndef OPENSSL_NO_TLS1_3
+#define OPENSSL_NO_TLS1_3
+#endif // OPENSSL_NO_TLS1_3
+
+#define SSL_OP_NO_TLSv1_3                               0x20000000U
+#endif // SSL_OP_NO_TLSv1_3
+
+// BoringSSL does not support TLSv1.3 for now
+#ifdef OPENSSL_IS_BORINGSSL
+#ifndef OPENSSL_NO_TLS1_3
+#define OPENSSL_NO_TLS1_3
+#endif // OPENSSL_NO_TLS1_3
+#endif // OPENSSL_IS_BORINGSSL
+
 /* OpenSSL 1.0.2 compatibility */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 #define TLS_method SSLv23_method

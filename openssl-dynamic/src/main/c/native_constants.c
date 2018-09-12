@@ -42,6 +42,10 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpNoTLSv12)(TC
     return SSL_OP_NO_TLSv1_2;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpNoTLSv13)(TCN_STDARGS) {
+    return SSL_OP_NO_TLSv1_3;
+}
+
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpNoTicket)(TCN_STDARGS) {
     return SSL_OP_NO_TICKET;
 }
@@ -484,6 +488,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv1, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv11, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv12, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv13, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpNoTicket, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpNoCompression, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSessCacheOff, ()I, NativeStaticallyReferencedJniMethods) },

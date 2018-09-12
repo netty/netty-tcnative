@@ -50,9 +50,10 @@ public final class SSL {
     public static final int SSL_PROTOCOL_TLSV1 = (1<<2);
     public static final int SSL_PROTOCOL_TLSV1_1 = (1<<3);
     public static final int SSL_PROTOCOL_TLSV1_2 = (1<<4);
+    public static final int SSL_PROTOCOL_TLSV1_3 = (1<<5);
 
     /** TLS_*method according to <a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_CTX_new.html">SSL_CTX_new</a> */
-    public static final int SSL_PROTOCOL_TLS   = (SSL_PROTOCOL_SSLV3 | SSL_PROTOCOL_TLSV1 | SSL_PROTOCOL_TLSV1_1 | SSL_PROTOCOL_TLSV1_2);
+    public static final int SSL_PROTOCOL_TLS   = (SSL_PROTOCOL_SSLV3 | SSL_PROTOCOL_TLSV1 | SSL_PROTOCOL_TLSV1_1 | SSL_PROTOCOL_TLSV1_2 | SSL_PROTOCOL_TLSV1_3);
     public static final int SSL_PROTOCOL_ALL   = (SSL_PROTOCOL_SSLV2 | SSL_PROTOCOL_TLS);
 
     /*
@@ -69,6 +70,7 @@ public final class SSL {
     public static final int SSL_OP_NO_TLSv1 = sslOpNoTLSv1();
     public static final int SSL_OP_NO_TLSv1_1 = sslOpNoTLSv11();
     public static final int SSL_OP_NO_TLSv1_2 = sslOpNoTLSv12();
+    public static final int SSL_OP_NO_TLSv1_3 = sslOpNoTLSv13();
     public static final int SSL_OP_NO_TICKET = sslOpNoTicket();
 
     public static final int SSL_OP_NO_COMPRESSION = sslOpNoCompression();
@@ -500,10 +502,33 @@ public final class SSL {
      * @param ciphers an SSL cipher specification
      * @return {@code true} if successful
      * @throws Exception if an error happened
+     * @deprecated Use {@link #setCipherSuites(long, String, boolean)}
      */
-    public static native boolean setCipherSuites(long ssl, String ciphers)
-            throws Exception;
+    @Deprecated
+    public static boolean setCipherSuites(long ssl, String ciphers)
+            throws Exception {
+        return setCipherSuites(ssl, ciphers, false);
+    }
 
+    /**
+     * Returns the cipher suites available for negotiation in SSL handshake.
+     * <p>
+     * This complex directive uses a colon-separated cipher-spec string consisting
+     * of OpenSSL cipher specifications to configure the Cipher Suite the client
+     * is permitted to negotiate in the SSL handshake phase. Notice that this
+     * directive can be used both in per-server and per-directory context.
+     * In per-server context it applies to the standard SSL handshake when a
+     * connection is established. In per-directory context it forces a SSL
+     * renegotiation with the reconfigured Cipher Suite after the HTTP request
+     * was read but before the HTTP response is sent.
+     * @param ssl the SSL instance (SSL *)
+     * @param ciphers an SSL cipher specification
+     * @param tlsv13 {@code true} if the ciphers are for TLSv1.3
+     * @return {@code true} if successful
+     * @throws Exception if an error happened
+     */
+    public static native boolean setCipherSuites(long ssl, String ciphers, boolean tlsv13)
+            throws Exception;
     /**
      * Returns the ID of the session as byte array representation.
      *

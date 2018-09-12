@@ -106,6 +106,12 @@ const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
                 default:
                     return TCN_UNKNOWN_AUTH_METHOD;
             }
+#ifndef OPENSSL_NO_TLS1_3
+        case NID_kx_any:
+            // Let us just pick one as we could use whatever we want.
+            // See https://www.openssl.org/docs/man1.1.1/man3/SSL_CIPHER_get_kx_nid.html
+            return "ECDHE_" SSL_TXT_RSA;
+#endif
         default:
             return TCN_UNKNOWN_AUTH_METHOD;
     }
