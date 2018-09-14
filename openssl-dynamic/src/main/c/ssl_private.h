@@ -224,6 +224,9 @@ struct tcn_ssl_ctxt_t {
     jobject                  cert_requested_callback;
     jmethodID                cert_requested_callback_method;
 
+    jobject                  certificate_callback;
+    jmethodID                certificate_callback_method;
+
     jobject                  sni_hostname_matcher;
     jmethodID                sni_hostname_matcher_method;
 
@@ -317,6 +320,9 @@ const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
     extern X509_VERIFY_PARAM *SSL_get0_param(SSL *ssl) __attribute__((weak));
     extern void X509_VERIFY_PARAM_set_hostflags(X509_VERIFY_PARAM *param, unsigned int flags) __attribute__((weak));
     extern int X509_VERIFY_PARAM_set1_host(X509_VERIFY_PARAM *param, const char *name, size_t namelen) __attribute__((weak));
+
+    extern int SSL_get_sigalgs(SSL *s, int idx, int *psign, int *phash, int *psignhash, unsigned char *rsig, unsigned char *rhash) __attribute__((weak));
+    extern void SSL_CTX_set_cert_cb(SSL_CTX *c, int (*cert_cb)(SSL *ssl, void *arg), void *arg) __attribute__((weak));
 #endif
 
 #endif /* SSL_PRIVATE_H */

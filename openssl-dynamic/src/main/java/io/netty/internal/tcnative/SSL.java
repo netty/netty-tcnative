@@ -678,15 +678,31 @@ public final class SSL {
      * {@link #parseX509Chain(long)} and {@link #parsePrivateKey(long, String)}. It's important to note that the caller
      * of the method is responsible to free the passed in chain and key in any case as this method will increment the
      * reference count of the chain and key.
+     *
+     * @deprecated use {@link #setKeyMaterial(long, long, long)}
      */
-    public static native void setKeyMaterialServerSide(long ssl, long chain, long key) throws Exception;
+    @Deprecated
+    public static void setKeyMaterialServerSide(long ssl, long chain, long key) throws Exception {
+        setKeyMaterial(ssl, chain, key);
+    }
+
+    /**
+     * Sets the keymaterial to be used. The passed in chain and key needs to be generated via
+     * {@link #parseX509Chain(long)} and {@link #parsePrivateKey(long, String)}. It's important to note that the caller
+     * of the method is responsible to free the passed in chain and key in any case as this method will increment the
+     * reference count of the chain and key.
+     */
+    public static native void setKeyMaterial(long ssl, long chain, long key) throws Exception;
 
     /**
      * Sets the keymaterial to be used for the client side. The passed in chain and key needs to be generated via
      * {@link #parseX509Chain(long)} and {@link #parsePrivateKey(long, String)}. It's important to note that the caller
      * of the method is responsible to free the passed in chain and key in any case as this method will increment the
      * reference count of the chain and key.
+     *
+     * @deprecated use {@link #setKeyMaterial(long, long, long)}
      */
+    @Deprecated
     public static native void setKeyMaterialClientSide(long ssl, long x509Out, long pkeyOut, long chain, long key) throws Exception;
 
     /**
@@ -722,4 +738,21 @@ public final class SSL {
      * @throws Exception throws if setting the fips mode failed.
      */
     public static native void fipsModeSet(int mode) throws Exception;
+
+    /**
+     * Return the SNI hostname that was sent as part of the SSL Hello.
+     * @param ssl the SSL instance (SSL *)
+     * @return the SNI hostname or {@code null} if none was used.
+     */
+    public static native String getSniHostname(long ssl);
+
+    /**
+     * Return the signature algorithms that the remote peer supports or {@code null} if none are supported.
+     * See <a href="https://www.openssl.org/docs/man1.1.0/ssl/SSL_get_sigalgs.html"> man SSL_get_sigalgs</a> for more details.
+     * The returned names are generated using {@code OBJ_nid2ln} with the {@code psignhash} as parameter.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the signature algorithms or {@code null}.
+     */
+    public static native String[] getSigAlgs(long ssl);
 }

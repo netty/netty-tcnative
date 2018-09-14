@@ -487,6 +487,15 @@ public final class SSLContext {
     public static native void setCertRequestedCallback(long ctx, CertificateRequestedCallback callback);
 
     /**
+     * Allow to hook {@link CertificateCallback} into the certificate choosing process.
+     * This will call {@code SSL_CTX_set_cert_cb} and so replace the default verification
+     * callback used by openssl
+     * @param ctx Server or Client context to use.
+     * @param callback the callback to call during certificate selection.
+     */
+    public static native void setCertificateCallback(long ctx, CertificateCallback callback);
+
+    /**
      * Allow to hook {@link SniHostNameMatcher} into the sni processing.
      * This will call {@code SSL_CTX_set_tlsext_servername_callback} and so replace the default
      * callback used by openssl

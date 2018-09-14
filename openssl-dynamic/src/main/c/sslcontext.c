@@ -63,6 +63,13 @@ static apr_status_t ssl_context_cleanup(void *data)
         }
         c->cert_requested_callback_method = NULL;
 
+        if (c->certificate_callback != NULL) {
+            tcn_get_java_env(&e);
+            (*e)->DeleteGlobalRef(e, c->certificate_callback);
+            c->certificate_callback = NULL;
+        }
+        c->certificate_callback_method = NULL;
+
         if (c->sni_hostname_matcher != NULL) {
             tcn_get_java_env(&e);
             (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
@@ -1427,6 +1434,24 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     }
 }
 
+
+static jbyteArray keyTypes(JNIEnv* e, SSL* ssl) {
+    jbyte* ctype_bytes;
+    jbyteArray types;
+    int ctype_num = tcn_SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
+    if (ctype_num <= 0) {
+        // Use no certificate
+        return NULL;
+    }
+    types = (*e)->NewByteArray(e, ctype_num);
+    if (types == NULL) {
+        return NULL;
+    }
+    (*e)->SetByteArrayRegion(e, types, 0, ctype_num, ctype_bytes);
+    return types;
+}
+
+
 /**
  * Returns an array containing all the X500 principal's bytes.
  *
@@ -1495,31 +1520,22 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 #endif // OPENSSL_IS_BORINGSSL
 
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
-    int ctype_num;
-    jbyte* ctype_bytes;
     jobjectArray issuers;
     JNIEnv *e;
-    jbyteArray keyTypes;
+    jbyteArray types;
 
     tcn_get_java_env(&e);
 
-    ctype_num = tcn_SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
-    if (ctype_num <= 0) {
-        // Use no certificate
+    types = keyTypes(e, ssl);
+    if (types == NULL) {
         return 0;
     }
-    keyTypes = (*e)->NewByteArray(e, ctype_num);
-    if (keyTypes == NULL) {
-        // Something went seriously wrong, bail out!
-        return -1;
-    }
-    (*e)->SetByteArrayRegion(e, keyTypes, 0, ctype_num, ctype_bytes);
 
     issuers = principalBytes(e,  SSL_get_client_CA_list(ssl));
 
     // Execute the java callback
     (*e)->CallVoidMethod(e, c->cert_requested_callback, c->cert_requested_callback_method,
-             P2J(ssl), P2J(x509Out), P2J(pkeyOut), keyTypes, issuers);
+             P2J(ssl), P2J(x509Out), P2J(pkeyOut), types, issuers);
 
     // Check if java threw an exception and if so signal back that we should not continue with the handshake.
     if ((*e)->ExceptionCheck(e)) {
@@ -1562,6 +1578,105 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 
         SSL_CTX_set_client_cert_cb(c->ctx, cert_requested);
     }
+}
+
+
+static int certificate_cb(SSL* ssl, void* arg) {
+#if defined(LIBRESSL_VERSION_NUMBER)
+    // Not supported with LibreSSL
+    return -1;
+#else
+#ifndef OPENSSL_IS_BORINGSSL
+    if (OpenSSL_version_num() < 0x10002000L) {
+        // Only supported on openssl 1.0.2+
+        return -1;
+    }
+#endif // OPENSSL_IS_BORINGSSL
+
+    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
+    TCN_ASSERT(c != NULL);
+
+    jobjectArray issuers;
+    JNIEnv *e;
+    jbyteArray types;
+
+    tcn_get_java_env(&e);
+
+    if (c->mode == SSL_MODE_SERVER) {
+        // TODO: Consider filling these somehow.
+        types = NULL;
+        issuers = NULL;
+    } else {
+        types = keyTypes(e, ssl);
+        if (types == NULL) {
+            return 0;
+        }
+
+        issuers = principalBytes(e, SSL_get_client_CA_list(ssl));
+    }
+
+    // Execute the java callback
+    (*e)->CallVoidMethod(e, c->certificate_callback, c->certificate_callback_method,
+             P2J(ssl), types, issuers);
+
+    // Check if java threw an exception and if so signal back that we should not continue with the handshake.
+    if ((*e)->ExceptionCheck(e)) {
+        return -1;
+    }
+
+    // Everything good...
+    return 1;
+#endif /* defined(LIBRESSL_VERSION_NUMBER) */
+}
+
+TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong ctx, jobject callback)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
+#if defined(LIBRESSL_VERSION_NUMBER)
+    tcn_Throw(e, "Not supported with LibreSSL");
+#else
+    UNREFERENCED(o);
+
+// Use weak linking with GCC as this will alow us to run the same packaged version with multiple
+// version of openssl.
+#if defined(__GNUC__) || defined(__GNUG__)
+    if (!SSL_CTX_set_cert_cb) {
+        UNREFERENCED(o);
+        tcn_ThrowException(e, "Requires OpenSSL 1.0.2+");
+    }
+#endif // defined(__GNUC__) || defined(__GNUG__)
+
+// We can only support it when either use openssl version >= 1.0.2 or GCC as this way we can use weak linking
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
+    if (callback == NULL) {
+        SSL_CTX_set_cert_cb(c->ctx, NULL, NULL);
+    } else {
+        jclass callback_class = (*e)->GetObjectClass(e, callback);
+        if (callback_class == NULL) {
+            tcn_Throw(e, "Unable to retrieve callback class");
+            return;
+        }
+
+        jmethodID method = (*e)->GetMethodID(e, callback_class, "handle", "(J[B[[B)V");
+
+        if (method == NULL) {
+            tcn_Throw(e, "Unable to retrieve callback method");
+            return;
+        }
+        if (c->certificate_callback != NULL) {
+            (*e)->DeleteGlobalRef(e, c->certificate_callback);
+        }
+        c->certificate_callback = (*e)->NewGlobalRef(e, callback);
+        c->certificate_callback_method = method;
+
+        SSL_CTX_set_cert_cb(c->ctx, certificate_cb, NULL);
+    }
+#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
+
+#endif // defined(LIBRESSL_VERSION_NUMBER)
 }
 
 static int ssl_servername_cb(SSL *ssl, int *ad, void *arg)
@@ -1791,6 +1906,7 @@ static const JNINativeMethod fixed_method_table[] = {
 
   // setCertVerifyCallback -> needs dynamic method table
   // setCertRequestedCallback -> needs dynamic method table
+  // setCertificateCallback -> needs dynamic method table
   // setSniHostnameMatcher -> needs dynamic method table
 
   { TCN_METHOD_TABLE_ENTRY(setSessionIdContext, (J[B)Z, SSLContext) },
@@ -1803,7 +1919,7 @@ static const JNINativeMethod fixed_method_table[] = {
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
 
 static jint dynamicMethodsTableSize() {
-    return fixed_method_table_size + 3;
+    return fixed_method_table_size + 4;
 }
 
 static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
@@ -1823,8 +1939,15 @@ static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setCertRequestedCallback);
     free(dynamicTypeName);
 
-    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SniHostNameMatcher;)V");
+    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateCallback;)V");
     dynamicMethod = &dynamicMethods[fixed_method_table_size + 2];
+    dynamicMethod->name = "setCertificateCallback";
+    dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setCertificateCallback);
+    free(dynamicTypeName);
+
+    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SniHostNameMatcher;)V");
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 3];
     dynamicMethod->name = "setSniHostnameMatcher";
     dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSniHostnameMatcher);

@@ -1910,7 +1910,7 @@ TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
     sk_X509_pop_free(chain, X509_free);
 }
 
-TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialServerSide)(TCN_STDARGS, jlong ssl, jlong chain, jlong key)
+TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chain, jlong key)
 {
 #if defined(LIBRESSL_VERSION_NUMBER)
     tcn_Throw(e, "Not supported with LibreSSL");
@@ -2196,6 +2196,70 @@ TCN_IMPLEMENT_CALL(void, SSL, fipsModeSet)(TCN_STDARGS, jint mode)
 #endif
 }
 
+TCN_IMPLEMENT_CALL(jstring, SSL, getSniHostname)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+
+    const char *servername = SSL_get_servername(ssl_, TLSEXT_NAMETYPE_host_name);
+    if (servername == NULL) {
+        return NULL;
+    }
+    return tcn_new_string(e, servername);
+}
+
+TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
+
+// Not supported by BoringSSL and LibreSSL
+// https://boringssl.googlesource.com/boringssl/+/ba16a1e405c617f4179bd780ad15522fb25b0a65%5E%21/
+#if defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
+    return NULL;
+#else
+
+// Use weak linking with GCC as this will alow us to run the same packaged version with multiple
+// version of openssl.
+#if defined(__GNUC__) || defined(__GNUG__)
+    if (!SSL_get_sigalgs) {
+        UNREFERENCED(o);
+        return NULL;
+    }
+#endif
+
+// We can only support it when either use openssl version >= 1.0.2 or GCC as this way we can use weak linking
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
+    int i;
+    int nsig;
+    int psignhash;
+    jobjectArray array;
+    jstring algString;
+
+    UNREFERENCED(o);
+
+    nsig = SSL_get_sigalgs(ssl_, 0, NULL, NULL, NULL, NULL, NULL);
+    if (nsig <= 0) {
+        return NULL;
+    }
+    array = (*e)->NewObjectArray(e, nsig, tcn_get_string_class(), NULL);
+
+    if (array == NULL) {
+        return NULL;
+    }
+
+    for (i = 0; i < nsig; i++) {
+        SSL_get_sigalgs(ssl_, i, NULL, NULL, &psignhash, NULL, NULL);
+        algString = (*e)->NewStringUTF(e, OBJ_nid2ln(psignhash));
+        if (algString == NULL) {
+            // something is wrong we should better just return here
+            return NULL;
+        }
+        (*e)->SetObjectArrayElement(e, array, i, algString);
+    }
+    return array;
+#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
+}
 
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
@@ -2257,12 +2321,14 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(freePrivateKey, (J)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(parseX509Chain, (J)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(freeX509Chain, (J)V, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(setKeyMaterialServerSide, (JJJ)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setKeyMaterial, (JJJ)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setKeyMaterialClientSide, (JJJJJ)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(enableOcsp, (J)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setOcspResponse, (J[B)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getOcspResponse, (J)[B, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(fipsModeSet, (I)V, SSL) }
+  { TCN_METHOD_TABLE_ENTRY(fipsModeSet, (I)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getSniHostname, (J)Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getSigAlgs, (J)[Ljava/lang/String;, SSL) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
