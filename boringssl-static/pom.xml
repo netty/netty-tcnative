@@ -135,42 +135,52 @@
                     <!-- Add the ant tasks from ant-contrib -->
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
-                    <mkdir dir="${boringsslBuildDir}" />
-
                     <if>
-                      <equals arg1="${os.detected.name}" arg2="windows" />
+                      <available file="${boringsslBuildDir}" />
                       <then>
-                        <!-- On Windows, build with /MT for static linking -->
-                        <property name="cmakeAsmFlags" value="" />
-                        <property name="cmakeCFlags" value="/MT" />
-                        <property name="cmakeCxxFlags" value="/MT" />
+                        <echo message="BoringSSL was already build, skipping the build step." />
                       </then>
-                      <elseif>
-                        <equals arg1="${os.detected.name}" arg2="linux" />
-                        <then>
-                          <!-- On *nix, add ASM flags to disable executable stack -->
-                          <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                          <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
-                          <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized" />
-                        </then>
-                      </elseif>
                       <else>
-                        <!-- On *nix, add ASM flags to disable executable stack -->
-                        <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                        <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
-                        <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
+                        <echo message="Building BoringSSL" />
+
+                        <mkdir dir="${boringsslBuildDir}" />
+
+                        <if>
+                          <equals arg1="${os.detected.name}" arg2="windows" />
+                          <then>
+                            <!-- On Windows, build with /MT for static linking -->
+                            <property name="cmakeAsmFlags" value="" />
+                            <property name="cmakeCFlags" value="/MT" />
+                            <property name="cmakeCxxFlags" value="/MT" />
+                          </then>
+                          <elseif>
+                            <equals arg1="${os.detected.name}" arg2="linux" />
+                            <then>
+                              <!-- On *nix, add ASM flags to disable executable stack -->
+                              <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
+                              <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                              <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized" />
+                            </then>
+                          </elseif>
+                          <else>
+                            <!-- On *nix, add ASM flags to disable executable stack -->
+                            <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
+                            <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                            <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
+                          </else>
+                        </if>
+                        <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
+                          <arg value="-GNinja" />
+                          <arg value=".." />
+                        </exec>
+                        <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
                       </else>
                     </if>
-                    <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
-                      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
-                      <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                      <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
-                      <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
-                      <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
-                      <arg value="-GNinja" />
-                      <arg value=".." />
-                    </exec>
-                    <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
                   </target>
                 </configuration>
               </execution>

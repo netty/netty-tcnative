@@ -133,46 +133,56 @@
                     <!-- Add the ant tasks from ant-contrib -->
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
-                    <!-- Download the openssl source. -->
-                    <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
-                      <fileset dir="${project.build.directory}">
-                        <include name="**/openssl-${opensslVersion}.tar.gz" />
-                      </fileset>
-                    </ftp>
                     <if>
-                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
+                      <available file="${sslHome}" />
                       <then>
-                        <echo>Move old version of openssl to correct directory</echo>
-                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
-                      </then>
-                    </if>
-                    <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
-                    <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/" />
-                    <untar src="${project.build.directory}/openssl-${opensslVersion}.tar" dest="${project.build.directory}/" />
-
-                    <!-- Build for the correct platform -->
-                    <pathconvert property="sslHomePath" targetos="windows">
-                      <path location="${sslHome}" />
-                    </pathconvert>
-                    <if>
-                      <equals arg1="${archBits}" arg2="32" />
-                      <then>
-                        <echo message="Building OpenSSL for Win32" />
-                        <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg line="Configure VC-WIN32 --prefix=${sslHomePath}" />
-                        </exec>
-                        <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg line="install" />
-                        </exec>
+                        <echo message="OpenSSL was already build, skipping the build step." />
                       </then>
                       <else>
-                        <echo message="Building OpenSSL for Win64" />
-                        <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg line="Configure VC-WIN64A --prefix=${sslHome}" />
-                        </exec>
-                        <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg line="install" />
-                        </exec>
+                        <echo message="Downloading and building OpenSSL" />
+
+                        <!-- Download the openssl source. -->
+                        <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
+                          <fileset dir="${project.build.directory}">
+                            <include name="**/openssl-${opensslVersion}.tar.gz" />
+                          </fileset>
+                        </ftp>
+                        <if>
+                          <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
+                          <then>
+                            <echo>Move old version of openssl to correct directory</echo>
+                            <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
+                          </then>
+                        </if>
+                        <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
+                        <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/" />
+                        <untar src="${project.build.directory}/openssl-${opensslVersion}.tar" dest="${project.build.directory}/" />
+
+                        <!-- Build for the correct platform -->
+                        <pathconvert property="sslHomePath" targetos="windows">
+                          <path location="${sslHome}" />
+                        </pathconvert>
+                        <if>
+                          <equals arg1="${archBits}" arg2="32" />
+                          <then>
+                            <echo message="Building OpenSSL for Win32" />
+                            <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                              <arg line="Configure VC-WIN32 --prefix=${sslHomePath}" />
+                            </exec>
+                            <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                              <arg line="install" />
+                            </exec>
+                          </then>
+                          <else>
+                            <echo message="Building OpenSSL for Win64" />
+                            <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                              <arg line="Configure VC-WIN64A --prefix=${sslHome}" />
+                            </exec>
+                            <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                              <arg line="install" />
+                            </exec>
+                          </else>
+                        </if>
                       </else>
                     </if>
                   </target>
@@ -206,35 +216,45 @@
                     <!-- Add the ant tasks from ant-contrib -->
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
-                    <!-- Download the openssl source. -->
-                    <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
-                      <fileset dir="${project.build.directory}">
-                        <include name="**/openssl-${opensslVersion}.tar.gz" />
-                      </fileset>
-                    </ftp>
                     <if>
-                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
+                      <available file="${sslHome}" />
                       <then>
-                        <echo>Move old version of openssl to correct directory</echo>
-                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
+                        <echo message="OpenSSL was already build, skipping the build step." />
                       </then>
-                    </if>
-                    <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
-                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
-                      <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
-                    </exec>
+                      <else>
+                        <echo message="Downloading and building OpenSSL" />
 
-                    <mkdir dir="${sslHome}" />
-                    <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg line="-O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
-                    </exec>
-                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg value="depend" />
-                    </exec>
-                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
-                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg value="install" />
-                    </exec>
+                        <!-- Download the openssl source. -->
+                        <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
+                          <fileset dir="${project.build.directory}">
+                            <include name="**/openssl-${opensslVersion}.tar.gz" />
+                          </fileset>
+                        </ftp>
+                        <if>
+                          <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
+                          <then>
+                            <echo>Move old version of openssl to correct directory</echo>
+                            <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
+                          </then>
+                        </if>
+                        <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
+                        <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                          <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
+                        </exec>
+
+                        <mkdir dir="${sslHome}" />
+                        <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg line="-O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
+                        </exec>
+                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg value="depend" />
+                        </exec>
+                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
+                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg value="install" />
+                        </exec>
+                      </else>
+                    </if>
                   </target>
                 </configuration>
               </execution>
@@ -266,35 +286,45 @@
                     <!-- Add the ant tasks from ant-contrib -->
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
-                    <!-- Download the openssl source. -->
-                    <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
-                      <fileset dir="${project.build.directory}">
-                        <include name="**/openssl-${opensslVersion}.tar.gz" />
-                      </fileset>
-                    </ftp>
                     <if>
-                      <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
+                      <available file="${sslHome}" />
                       <then>
-                        <echo>Move old version of openssl to correct directory</echo>
-                        <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
+                        <echo message="OpenSSL was already build, skipping the build step." />
                       </then>
-                    </if>
-                    <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
-                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
-                      <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
-                    </exec>
+                      <else>
+                        <echo message="Downloading and building OpenSSL" />
 
-                    <mkdir dir="${sslHome}" />
-                    <exec executable="Configure" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg line="darwin64-x86_64-cc -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
-                    </exec>
-                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg value="depend" />
-                    </exec>
-                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
-                    <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                      <arg value="install" />
-                    </exec>
+                        <!-- Download the openssl source. -->
+                        <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
+                          <fileset dir="${project.build.directory}">
+                            <include name="**/openssl-${opensslVersion}.tar.gz" />
+                          </fileset>
+                        </ftp>
+                        <if>
+                          <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
+                          <then>
+                            <echo>Move old version of openssl to correct directory</echo>
+                            <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
+                          </then>
+                        </if>
+                        <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
+                        <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                          <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
+                        </exec>
+
+                        <mkdir dir="${sslHome}" />
+                        <exec executable="Configure" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg line="darwin64-x86_64-cc -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
+                        </exec>
+                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg value="depend" />
+                        </exec>
+                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
+                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                          <arg value="install" />
+                        </exec>
+                      </else>
+                    </if>
                   </target>
                 </configuration>
               </execution>
