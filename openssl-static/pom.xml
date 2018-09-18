@@ -251,7 +251,8 @@
                         </exec>
                         <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
                         <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg value="install" />
+                          <!-- Don't install manpages to make things as fast a possible -->
+                          <arg value="install_sw" />
                         </exec>
                       </else>
                     </if>
@@ -321,7 +322,8 @@
                         </exec>
                         <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
                         <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg value="install" />
+                          <!-- Don't install manpages to make things as fast a possible -->
+                          <arg value="install_sw" />
                         </exec>
                       </else>
                     </if>
