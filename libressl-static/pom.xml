@@ -172,20 +172,33 @@
                 </goals>
                 <configuration>
                   <target>
-                    <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}" dest="${project.build.directory}/${libresslArchive}" verbose="on" />
-                    <checksum file="${project.build.directory}/${libresslArchive}" algorithm="SHA-256" property="${libresslSha256}" verifyProperty="isEqual" />
-                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
-                      <arg value="xfv" />
-                      <arg value="${libresslArchive}" />
-                    </exec>
-                    <mkdir dir="${sslHome}" />
-                    <exec executable="configure" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
-                      <arg line="--disable-shared --prefix=${sslHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
-                    </exec>
-                    <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true" />
-                    <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
-                      <arg line="install" />
-                    </exec>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${sslHome}" />
+                      <then>
+                        <echo message="LibreSSL was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Downloading and building LibreSSL" />
+
+                        <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}" dest="${project.build.directory}/${libresslArchive}" verbose="on" />
+                        <checksum file="${project.build.directory}/${libresslArchive}" algorithm="SHA-256" property="${libresslSha256}" verifyProperty="isEqual" />
+                        <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                          <arg value="xfv" />
+                          <arg value="${libresslArchive}" />
+                        </exec>
+                        <mkdir dir="${sslHome}" />
+                        <exec executable="configure" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
+                          <arg line="--disable-shared --prefix=${sslHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
+                        </exec>
+                        <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true" />
+                        <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
+                          <arg line="install" />
+                        </exec>
+                      </else>
+                    </if>
                   </target>
                 </configuration>
               </execution>

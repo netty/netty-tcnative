@@ -320,28 +320,41 @@
                 </goals>
                 <configuration>
                   <target name="build-apr" if="${linkStatic}">
-                    <property name="aprArchiveFile" value="apr-${aprVersion}-win32-src.zip" />
-                    <get src="http://archive.apache.org/dist/apr/${aprArchiveFile}" dest="${project.build.directory}/${aprArchiveFile}" verbose="on" />
-                    <unzip src="${project.build.directory}/${aprArchiveFile}" dest="${project.build.directory}" />
-                    <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
-                      <equals arg1="${archBits}" arg2="32" />
-                    </condition>
-                    <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
-                    <!-- On Windows, force building APR with /MT for static linking -->
-                    <replace dir="${aprBuildDir}" token="/MD" value="/MT">
-                      <include name="*.mak" />
-                    </replace>
-                    <retry retrycount="3">
-                      <exec executable="nmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
-                        <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />
-                      </exec>
-                    </retry>
-                    <copy todir="${aprHome}/include">
-                      <fileset dir="${aprBuildDir}/include/arch/win32" includes="*.h" />
-                    </copy>
-                    <copy todir="${aprHome}">
-                      <fileset dir="${aprBuildDir}/include/arch" includes="*.h" />
-                    </copy>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${aprHome}" />
+                      <then>
+                        <echo message="APR was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Downloading and building APR" />
+
+                        <property name="aprArchiveFile" value="apr-${aprVersion}-win32-src.zip" />
+                        <get src="http://archive.apache.org/dist/apr/${aprArchiveFile}" dest="${project.build.directory}/${aprArchiveFile}" verbose="on" />
+                        <unzip src="${project.build.directory}/${aprArchiveFile}" dest="${project.build.directory}" />
+                        <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
+                          <equals arg1="${archBits}" arg2="32" />
+                        </condition>
+                        <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
+                        <!-- On Windows, force building APR with /MT for static linking -->
+                        <replace dir="${aprBuildDir}" token="/MD" value="/MT">
+                          <include name="*.mak" />
+                        </replace>
+                        <retry retrycount="3">
+                          <exec executable="nmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
+                            <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />
+                          </exec>
+                        </retry>
+                        <copy todir="${aprHome}/include">
+                          <fileset dir="${aprBuildDir}/include/arch/win32" includes="*.h" />
+                        </copy>
+                        <copy todir="${aprHome}">
+                          <fileset dir="${aprBuildDir}/include/arch" includes="*.h" />
+                        </copy>
+                      </else>
+                    </if>
                   </target>
                 </configuration>
               </execution>
@@ -370,23 +383,36 @@
                 </goals>
                 <configuration>
                   <target if="${linkStatic}">
-                    <property name="aprTarGzFile" value="apr-${aprVersion}.tar.gz" />
-                    <property name="aprTarFile" value="apr-${aprVersion}.tar" />
-                    <get src="http://archive.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
-                    <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="MD5" property="${aprMd5}" verifyProperty="isEqual" />
-                    <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
-                    <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
-                    <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
-                      <arg line="xfvz ${aprTarGzFile}" />
-                    </exec>
-                    <mkdir dir="${aprHome}" />
-                    <exec executable="configure" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
-                      <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
-                    </exec>
-                    <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
-                    <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
-                      <arg line="install" />
-                    </exec>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${aprHome}" />
+                      <then>
+                        <echo message="APR was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Downloading and building APR" />
+
+                        <property name="aprTarGzFile" value="apr-${aprVersion}.tar.gz" />
+                        <property name="aprTarFile" value="apr-${aprVersion}.tar" />
+                        <get src="http://archive.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
+                        <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="MD5" property="${aprMd5}" verifyProperty="isEqual" />
+                        <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
+                        <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
+                        <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                          <arg line="xfvz ${aprTarGzFile}" />
+                        </exec>
+                        <mkdir dir="${aprHome}" />
+                        <exec executable="configure" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
+                          <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
+                        </exec>
+                        <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
+                        <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
+                          <arg line="install" />
+                        </exec>
+                      </else>
+                    </if>
                   </target>
                 </configuration>
               </execution>
