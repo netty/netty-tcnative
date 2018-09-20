@@ -110,8 +110,31 @@ public final class SSLContext {
      * @param ciphers An SSL cipher specification.
      * @return {@code true} if successful
      * @throws Exception if an error happened
+     * @deprecated Use {@link #setCipherSuite(long, String, boolean)}.
      */
-    public static native boolean setCipherSuite(long ctx, String ciphers) throws Exception;
+    @Deprecated
+    public static boolean setCipherSuite(long ctx, String ciphers) throws Exception {
+        return setCipherSuite(ctx, ciphers, false);
+    }
+
+    /**
+     * Cipher Suite available for negotiation in SSL handshake.
+     * <br>
+     * This complex directive uses a colon-separated cipher-spec string consisting
+     * of OpenSSL cipher specifications to configure the Cipher Suite the client
+     * is permitted to negotiate in the SSL handshake phase. Notice that this
+     * directive can be used both in per-server and per-directory context.
+     * In per-server context it applies to the standard SSL handshake when a
+     * connection is established. In per-directory context it forces a SSL
+     * renegotiation with the reconfigured Cipher Suite after the HTTP request
+     * was read but before the HTTP response is sent.
+     * @param ctx Server or Client context to use.
+     * @param ciphers An SSL cipher specification.
+     * @param tlsv13 {@code true} if the ciphers are for TLSv1.3
+     * @return {@code true} if successful
+     * @throws Exception if an error happened
+     */
+    public static native boolean setCipherSuite(long ctx, String ciphers, boolean tlsv13) throws Exception;
 
     /**
      * Set File of PEM-encoded Server CA Certificates

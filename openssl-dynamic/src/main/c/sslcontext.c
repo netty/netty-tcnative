@@ -422,24 +422,40 @@ TCN_IMPLEMENT_CALL(void, SSLContext, clearOptions)(TCN_STDARGS, jlong ctx,
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
-                                                         jstring ciphers)
+                                                         jstring ciphers, jboolean tlsv13)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jboolean rv = JNI_TRUE;
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
 
-    TCN_ALLOC_CSTRING(ciphers);
-
-    UNREFERENCED(o);
-    if (!J2S(ciphers))
+#ifdef OPENSSL_NO_TLS1_3
+    if (tlsv13 == JNI_TRUE) {
+        tcn_Throw(e, "TLSv1.3 not supported");
         return JNI_FALSE;
+    }
+#endif
 
-    if (!SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers))) {
+    TCN_ALLOC_CSTRING(ciphers);
+    UNREFERENCED(o);
+    if (!J2S(ciphers)) {
+        return JNI_FALSE;
+    }
+
+#ifdef OPENSSL_NO_TLS1_3
+    rv = SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
+#else
+    if (tlsv13 == JNI_TRUE) {
+        rv = SSL_CTX_set_ciphersuites(c->ctx, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
+    } else {
+        rv = SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
+    }
+#endif
+
+    if (rv == JNI_FALSE) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
-        rv = JNI_FALSE;
     }
     TCN_FREE_CSTRING(ciphers);
     return rv;
@@ -1434,13 +1450,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     }
 }
 
-
 static jbyteArray keyTypes(JNIEnv* e, SSL* ssl) {
     jbyte* ctype_bytes;
     jbyteArray types;
     int ctype_num = tcn_SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
     if (ctype_num <= 0) {
-        // Use no certificate
+        // No idea what we should use... Let the caller handle it.
         return NULL;
     }
     types = (*e)->NewByteArray(e, ctype_num);
@@ -1450,7 +1465,6 @@ static jbyteArray keyTypes(JNIEnv* e, SSL* ssl) {
     (*e)->SetByteArrayRegion(e, types, 0, ctype_num, ctype_bytes);
     return types;
 }
-
 
 /**
  * Returns an array containing all the X500 principal's bytes.
@@ -1527,10 +1541,6 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     tcn_get_java_env(&e);
 
     types = keyTypes(e, ssl);
-    if (types == NULL) {
-        return 0;
-    }
-
     issuers = principalBytes(e,  SSL_get_client_CA_list(ssl));
 
     // Execute the java callback
@@ -1870,7 +1880,7 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setOptions, (JI)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(getOptions, (J)I, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(clearOptions, (JI)V, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(setCipherSuite, (JLjava/lang/String;)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setCipherSuite, (JLjava/lang/String;Z)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCertificateChainFile, (JLjava/lang/String;Z)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCertificateChainBio, (JJZ)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCACertificateBio, (JJ)Z, SSLContext) },

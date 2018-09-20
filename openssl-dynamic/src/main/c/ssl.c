@@ -1559,27 +1559,41 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
-                                                         jstring ciphers)
+                                                         jstring ciphers, jboolean tlsv13)
 {
     jboolean rv = JNI_TRUE;
-    TCN_ALLOC_CSTRING(ciphers);
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, JNI_FALSE);
 
-    UNREFERENCED(o);
+#ifdef OPENSSL_NO_TLS1_3
+    if (tlsv13 == JNI_TRUE) {
+        tcn_Throw(e, "TLSv1.3 not supported");
+        return JNI_FALSE;
+    }
+    #endif
 
+    TCN_ALLOC_CSTRING(ciphers);
+    UNREFERENCED(o);
     if (!J2S(ciphers)) {
         return JNI_FALSE;
     }
 
-    if (!SSL_set_cipher_list(ssl_, J2S(ciphers))) {
-        char err[ERR_LEN];
+#ifdef OPENSSL_NO_TLS1_3
+    rv = SSL_set_cipher_list(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
+#else
+    if (tlsv13 == JNI_TRUE) {
+        rv = SSL_set_ciphersuites(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
+    } else {
+        rv = SSL_set_cipher_list(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
+    }
+#endif
+
+    if (rv == JNI_FALSE) {
+        char err[256];
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
-        rv = JNI_FALSE;
     }
-
     TCN_FREE_CSTRING(ciphers);
     return rv;
 }
@@ -2307,7 +2321,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getMode, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getMaxWrapOverhead, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getCiphers, (J)[Ljava/lang/String;, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(setCipherSuites, (JLjava/lang/String;)Z, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setCipherSuites, (JLjava/lang/String;Z)Z, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getSessionId, (J)[B, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getHandshakeCount, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(clearError, ()V, SSL) },

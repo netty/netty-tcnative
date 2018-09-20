@@ -40,6 +40,7 @@ final class NativeStaticallyReferencedJniMethods {
     static native int sslOpNoTLSv1();
     static native int sslOpNoTLSv11();
     static native int sslOpNoTLSv12();
+    static native int sslOpNoTLSv13();
     static native int sslOpNoTicket();
 
     /**
