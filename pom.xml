@@ -22,7 +22,7 @@
     <version>4.0.18.Final</version>
   </parent>
   <artifactId>netty-tcnative-parent</artifactId>
-  <version>2.0.16.Final-SNAPSHOT</version>
+  <version>2.0.16.Final</version>
   <packaging>pom</packaging>
 
   <name>Netty/TomcatNative [Parent]</name>
@@ -35,7 +35,7 @@
     <url>https://github.com/netty/netty-tcnative</url>
     <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>netty-tcnative-parent-2.0.16.Final</tag>
   </scm>
 
   <properties>
@@ -66,7 +66,7 @@
     -->
     <libresslSha256>1e3a9fada06c1c060011470ad0ff960de28f9a0515277d7336f7e09362517da6</libresslSha256>
     <opensslMinorVersion>1.1.1</opensslMinorVersion>
-    <opensslPatchVersion></opensslPatchVersion>
+    <opensslPatchVersion />
     <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
     <opensslSha256>2836875a0f89c03d0fdf483941512613a50cfb421d6fd94b9f41d7279d586a3d</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
