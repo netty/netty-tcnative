@@ -1722,7 +1722,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
 
     for (i = 0; i < len; i++) {
         (*e)->SetObjectArrayElement(e, array, i,
-        (*e)->NewStringUTF(e, tcn_SSL_cipher_authentication_method((SSL_CIPHER*) sk_value((_STACK*) ciphers, i))));
+        (*e)->NewStringUTF(e, tcn_SSL_cipher_authentication_method(sk_SSL_CIPHER_value(ciphers, i))));
     }
     return array;
 }
