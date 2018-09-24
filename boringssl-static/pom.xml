@@ -126,7 +126,7 @@
               <!-- Build the BoringSSL static libs -->
               <execution>
                 <id>build-boringssl</id>
-                <phase>generate-sources</phase>
+                <phase>compile</phase>
                 <goals>
                   <goal>run</goal>
                 </goals>

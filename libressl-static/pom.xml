@@ -41,34 +41,6 @@
 
   <build>
     <plugins>
-      <!-- Configure the distribution statically linked against OpenSSL and APR -->
-      <plugin>
-        <groupId>org.fusesource.hawtjni</groupId>
-        <artifactId>maven-hawtjni-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>build-native-lib</id>
-            <goals>
-              <goal>generate</goal>
-              <goal>build</goal>
-            </goals>
-            <phase>compile</phase>
-            <configuration>
-              <name>netty_tcnative</name>
-              <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
-              <libDirectory>${nativeLibOnlyDir}</libDirectory>
-              <forceAutogen>${forceAutogen}</forceAutogen>
-              <forceConfigure>${forceConfigure}</forceConfigure>
-              <windowsBuildTool>msbuild</windowsBuildTool>
-              <configureArgs>
-                <configureArg>--with-ssl=${sslHome}</configureArg>
-                <configureArg>--with-apr=${aprHome}</configureArg>
-                <configureArg>--with-static-libs</configureArg>
-              </configureArgs>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
 
       <!-- Add the LibreSSL version to the manifest. -->
       <plugin>
@@ -104,6 +76,35 @@
                 <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
                 <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
               </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Configure the distribution statically linked against OpenSSL and APR -->
+      <plugin>
+        <groupId>org.fusesource.hawtjni</groupId>
+        <artifactId>maven-hawtjni-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>build-native-lib</id>
+            <goals>
+              <goal>generate</goal>
+              <goal>build</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <name>netty_tcnative</name>
+              <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+              <libDirectory>${nativeLibOnlyDir}</libDirectory>
+              <forceAutogen>${forceAutogen}</forceAutogen>
+              <forceConfigure>${forceConfigure}</forceConfigure>
+              <windowsBuildTool>msbuild</windowsBuildTool>
+              <configureArgs>
+                <configureArg>--with-ssl=${sslHome}</configureArg>
+                <configureArg>--with-apr=${aprHome}</configureArg>
+                <configureArg>--with-static-libs</configureArg>
+              </configureArgs>
             </configuration>
           </execution>
         </executions>
@@ -165,8 +166,38 @@
             <executions>
               <!-- Download and build LibreSSL -->
               <execution>
-                <id>build-libressl-non-windows</id>
+                <id>source-libressl-non-windows</id>
                 <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${libresslCheckoutDir}" />
+                      <then>
+                        <echo message="LibreSSL was already downloaded, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Downloading LibreSSL" />
+
+                        <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}" dest="${project.build.directory}/${libresslArchive}" verbose="on" />
+                        <checksum file="${project.build.directory}/${libresslArchive}" algorithm="SHA-256" property="${libresslSha256}" verifyProperty="isEqual" />
+                        <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                          <arg value="xfv" />
+                          <arg value="${libresslArchive}" />
+                        </exec>
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>build-libressl-non-windows</id>
+                <phase>compile</phase>
                 <goals>
                   <goal>run</goal>
                 </goals>
@@ -181,14 +212,7 @@
                         <echo message="LibreSSL was already build, skipping the build step." />
                       </then>
                       <else>
-                        <echo message="Downloading and building LibreSSL" />
-
-                        <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}" dest="${project.build.directory}/${libresslArchive}" verbose="on" />
-                        <checksum file="${project.build.directory}/${libresslArchive}" algorithm="SHA-256" property="${libresslSha256}" verifyProperty="isEqual" />
-                        <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
-                          <arg value="xfv" />
-                          <arg value="${libresslArchive}" />
-                        </exec>
+                        <echo message="Building LibreSSL" />
                         <mkdir dir="${sslHome}" />
                         <exec executable="configure" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
                           <arg line="--disable-shared --prefix=${sslHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
