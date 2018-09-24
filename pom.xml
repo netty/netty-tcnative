@@ -78,6 +78,7 @@
     <msvcSslLibDirs>${sslHome}/lib</msvcSslLibDirs>
     <msvcSslLibs>libssl.lib;libcrypto.lib</msvcSslLibs>
     <strip.skip>false</strip.skip>
+    <generatedSourcesDir>${project.build.directory}/generated-sources</generatedSourcesDir>
   </properties>
 
   <build>
@@ -170,8 +171,8 @@
                 <!-- Copy all of the code from the dynamic module -->
                 <delete dir="src" quiet="true" />
                 <mkdir dir="src" />
-                <copy todir="${basedir}/src" verbose="true">
-                  <fileset dir="${opensslDynamicDir}/src" />
+                <copy todir="${generatedSourcesDir}" verbose="true">
+                  <fileset dir="${opensslDynamicDir}/src/main" />
                 </copy>
 
                 <!-- Convert the paths to windows format -->
@@ -199,7 +200,7 @@
                 <filter token="SSL_INCLUDE_DIRS" value="${sslIncludeDirsWindowsPath}" />
                 <filter token="SSL_LIB_DIR" value="${sslLibDirsWindowsPath}" />
                 <filter token="SSL_LIBS" value="${msvcSslLibs}" />
-                <copy file="${vsStaticTemplateFile}" tofile="src/main/native-package/vs2010.vcxproj" filtering="true" overwrite="true" verbose="true" />
+                <copy file="${vsStaticTemplateFile}" tofile="${generatedSourcesDir}/native-package/vs2010.vcxproj" filtering="true" overwrite="true" verbose="true" />
               </target>
             </configuration>
           </execution>
