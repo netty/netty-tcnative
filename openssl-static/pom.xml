@@ -51,6 +51,33 @@
         </configuration>
       </plugin>
 
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <!-- Build the additional JAR that contains the native library. -->
+          <execution>
+            <id>native-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <copy todir="${nativeJarWorkdir}">
+                  <zipfileset src="${defaultJarFile}" />
+                </copy>
+                <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
+                </copy>
+                <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- Configure the distribution statically linked against OpenSSL and APR -->
       <plugin>
         <groupId>org.fusesource.hawtjni</groupId>
@@ -79,33 +106,6 @@
           </execution>
         </executions>
       </plugin>
-
-      <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <!-- Build the additional JAR that contains the native library. -->
-          <execution>
-            <id>native-jar</id>
-            <phase>package</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target>
-                <copy todir="${nativeJarWorkdir}">
-                  <zipfileset src="${defaultJarFile}" />
-                </copy>
-                <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
-                  <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
-                  <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
-                </copy>
-                <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
-                <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
-              </target>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
@@ -123,7 +123,7 @@
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
               <execution>
-                <id>build-openssl</id>
+                <id>source-openssl</id>
                 <phase>generate-sources</phase>
                 <goals>
                   <goal>run</goal>
@@ -134,12 +134,12 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${sslHome}" />
+                      <available file="${opensslBuildDir}" />
                       <then>
-                        <echo message="OpenSSL was already build, skipping the build step." />
+                        <echo message="OpenSSL was already downloaded, skipping the build step." />
                       </then>
                       <else>
-                        <echo message="Downloading and building OpenSSL" />
+                        <echo message="Downloading OpenSSL" />
 
                         <!-- Download the openssl source. -->
                         <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
@@ -157,6 +157,30 @@
                         <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
                         <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/" />
                         <untar src="${project.build.directory}/openssl-${opensslVersion}.tar" dest="${project.build.directory}/" />
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+
+              <execution>
+                <id>build-openssl</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${sslHome}" />
+                      <then>
+                        <echo message="OpenSSL was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building OpenSSL" />
 
                         <!-- Build for the correct platform -->
                         <pathconvert property="sslHomePath" targetos="windows">
@@ -206,7 +230,7 @@
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
               <execution>
-                <id>build-openssl</id>
+                <id>source-openssl</id>
                 <phase>generate-sources</phase>
                 <goals>
                   <goal>run</goal>
@@ -217,12 +241,12 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${sslHome}" />
+                      <available file="${opensslBuildDir}" />
                       <then>
-                        <echo message="OpenSSL was already build, skipping the build step." />
+                        <echo message="OpenSSL was already downloaded, skipping the build step." />
                       </then>
                       <else>
-                        <echo message="Downloading and building OpenSSL" />
+                        <echo message="Downloading OpenSSL" />
 
                         <!-- Download the openssl source. -->
                         <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
@@ -241,7 +265,30 @@
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                           <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
                         </exec>
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
 
+              <execution>
+                <id>build-openssl</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${sslHome}" />
+                      <then>
+                        <echo message="OpenSSL was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building OpenSSL" />
                         <mkdir dir="${sslHome}" />
                         <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                           <arg line="-O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
@@ -277,7 +324,7 @@
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
               <execution>
-                <id>build-openssl</id>
+                <id>source-openssl</id>
                 <phase>generate-sources</phase>
                 <goals>
                   <goal>run</goal>
@@ -288,12 +335,12 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${sslHome}" />
+                      <available file="${opensslBuildDir}" />
                       <then>
-                        <echo message="OpenSSL was already build, skipping the build step." />
+                        <echo message="OpenSSL was already downloaded, skipping the build step." />
                       </then>
                       <else>
-                        <echo message="Downloading and building OpenSSL" />
+                        <echo message="Downloading OpenSSL" />
 
                         <!-- Download the openssl source. -->
                         <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
@@ -312,7 +359,29 @@
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                           <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
                         </exec>
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>build-openssl</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
+                    <if>
+                      <available file="${sslHome}" />
+                      <then>
+                        <echo message="OpenSSL was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building OpenSSL" />
                         <mkdir dir="${sslHome}" />
                         <exec executable="Configure" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                           <arg line="darwin64-x86_64-cc -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
