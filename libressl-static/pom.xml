@@ -95,7 +95,8 @@
             <phase>compile</phase>
             <configuration>
               <name>netty_tcnative</name>
-              <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+              <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
+              <customPackageDirectory>${generatedSourcesDir}/native-package</customPackageDirectory>
               <libDirectory>${nativeLibOnlyDir}</libDirectory>
               <forceAutogen>${forceAutogen}</forceAutogen>
               <forceConfigure>${forceConfigure}</forceConfigure>
