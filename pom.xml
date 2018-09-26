@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-parent</artifactId>
-    <version>4.0.18.Final</version>
+    <version>4.0.29.Final</version>
   </parent>
   <artifactId>netty-tcnative-parent</artifactId>
   <version>2.0.18.Final-SNAPSHOT</version>
@@ -40,6 +40,10 @@
 
   <properties>
     <checkstyle.skip>true</checkstyle.skip>
+    <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
+    <maven.compiler.source>1.6</maven.compiler.source>
+    <maven.compiler.target>1.6</maven.compiler.target>
+    <netty.build.version>22</netty.build.version>
     <animal.sniffer.skip>true</animal.sniffer.skip>
     <forceAutogen>false</forceAutogen>
     <forceConfigure>false</forceConfigure>
@@ -147,12 +151,34 @@
     </pluginManagement>
 
     <plugins>
-      <!-- Recent tcnative requires JDK 1.7 to build -->
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration combine.self="override">
+          <includes>
+            <include>**/*Test*.java</include>
+            <include>**/*Benchmark*.java</include>
+          </includes>
+          <excludes>
+            <exclude>**/Abstract*</exclude>
+            <exclude>**/*TestUtil*</exclude>
+          </excludes>
+          <runOrder>random</runOrder>
+          <properties>
+            <property>
+              <name>listener</name>
+              <value>io.netty.build.junit.TimedOutTestsListener</value>
+            </property>
+          </properties>
+          <!-- Ensure the whole stacktrace is preserved when an exception is thrown. See https://issues.apache.org/jira/browse/SUREFIRE-1457 -->
+          <trimStackTrace>false</trimStackTrace>
         </configuration>
       </plugin>
 
@@ -271,6 +297,7 @@
 
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${enforcer.plugin.version}</version>
         <executions>
           <execution>
             <id>enforce-tools</id>
@@ -290,6 +317,14 @@
     </plugins>
   </build>
 
+  <dependencies>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-build</artifactId>
+      <version>${netty.build.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
   <profiles>
     <profile>
       <id>disable-autogen-windows</id>
@@ -521,7 +556,7 @@
               <dependency>
                 <groupId>com.ceilfors.maven.plugin</groupId>
                 <artifactId>enforcer-rules</artifactId>
-                <version>1.1.0</version>
+                <version>1.2.0</version>
               </dependency>
             </dependencies>
           </plugin>
@@ -551,6 +586,54 @@
         <module>boringssl-static</module>
         <module>libressl-static</module>
       </modules>
+    </profile>
+
+    <profile>
+      <id>java9</id>
+      <activation>
+        <jdk>9</jdk>
+      </activation>
+      <properties>
+        <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
+        <enforcer.plugin.version>3.0.0-M1</enforcer.plugin.version>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>java10</id>
+      <activation>
+        <jdk>10</jdk>
+      </activation>
+      <properties>
+        <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
+        <enforcer.plugin.version>3.0.0-M1</enforcer.plugin.version>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>java11</id>
+      <activation>
+        <jdk>11</jdk>
+      </activation>
+      <properties>
+        <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
+        <enforcer.plugin.version>3.0.0-M1</enforcer.plugin.version>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>java12</id>
+      <activation>
+        <jdk>12</jdk>
+      </activation>
+      <properties>
+        <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
+        <enforcer.plugin.version>3.0.0-M1</enforcer.plugin.version>
+
+        <!-- This is the minimum supported by Java12 -->
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+      </properties>
     </profile>
   </profiles>
 </project>
