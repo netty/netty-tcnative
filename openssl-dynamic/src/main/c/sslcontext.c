@@ -1618,10 +1618,6 @@ static int certificate_cb(SSL* ssl, void* arg) {
         issuers = NULL;
     } else {
         types = keyTypes(e, ssl);
-        if (types == NULL) {
-            return 0;
-        }
-
         issuers = principalBytes(e, SSL_get_client_CA_list(ssl));
     }
 
