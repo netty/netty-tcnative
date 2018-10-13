@@ -556,7 +556,16 @@ public final class SSL {
      * @param ssl the SSL instance (SSL *)
      * @param hostname the hostname
      */
-    public static native void setTlsExtHostName(long ssl, String hostname);
+    public static void setTlsExtHostName(long ssl, String hostname) {
+        if (hostname != null && hostname.endsWith(".")) {
+            // Strip trailing dot if included.
+            // See https://github.com/netty/netty-tcnative/issues/400
+            hostname = hostname.substring(0, hostname.length() - 1);
+        }
+        setTlsExtHostName0(ssl, hostname);
+    }
+
+    private static native void setTlsExtHostName0(long ssl, String hostname);
 
     /**
      * Explicitly control <a href="https://wiki.openssl.org/index.php/Hostname_validation">hostname validation</a>
