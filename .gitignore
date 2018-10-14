@@ -29,3 +29,7 @@
 
 # Do not include stuff in the static modules as this is generated during the build
 *-static/src
+
+# exclude mainframer files
+mainframer
+.mainframer
