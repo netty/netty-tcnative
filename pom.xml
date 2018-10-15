@@ -53,8 +53,8 @@
     <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}.jar</nativeJarFile>
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
-    <aprVersion>1.6.3</aprVersion>
-    <aprMd5>57c6cc26a31fe420c546ad2234f22db4</aprMd5>
+    <aprVersion>1.6.5</aprVersion>
+    <aprSha256>70dcf9102066a2ff2ffc47e93c289c8e54c95d8dda23b503f9e61bb0cbd2d105</aprSha256>
     <boringsslBranch>chromium-stable</boringsslBranch>
     <libresslVersion>2.7.4</libresslVersion>
     <!--
@@ -460,7 +460,7 @@
                         <property name="aprTarGzFile" value="apr-${aprVersion}.tar.gz" />
                         <property name="aprTarFile" value="apr-${aprVersion}.tar" />
                         <get src="http://archive.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
-                        <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="MD5" property="${aprMd5}" verifyProperty="isEqual" />
+                        <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="SHA-256" property="${aprSha256}" verifyProperty="isEqual" />
                         <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
                         <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
