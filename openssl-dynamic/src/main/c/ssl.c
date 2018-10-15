@@ -1646,7 +1646,7 @@ TCN_IMPLEMENT_CALL(void, SSL, clearError)(TCN_STDARGS)
     ERR_clear_error();
 }
 
-TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName)(TCN_STDARGS, jlong ssl, jstring hostname) {
+TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName0)(TCN_STDARGS, jlong ssl, jstring hostname) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
@@ -2325,7 +2325,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getSessionId, (J)[B, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getHandshakeCount, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(clearError, ()V, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(setTlsExtHostName, (JLjava/lang/String;)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setTlsExtHostName0, (JLjava/lang/String;)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setHostNameValidation, (JILjava/lang/String;)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(authenticationMethods, (J)[Ljava/lang/String;, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setCertificateBio, (JJJLjava/lang/String;)V, SSL) },
