@@ -1583,11 +1583,16 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
     rv = SSL_set_cipher_list(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
 #else
     if (tlsv13 == JNI_TRUE) {
+#ifdef OPENSSL_IS_BORINGSSL
+        // BoringSSL does not support setting TLSv1.3 cipher suites explicit for now.
+        rv = JNI_TRUE;
+#else
         rv = SSL_set_ciphersuites(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
+#endif // OPENSSL_IS_BORINGSSL
     } else {
         rv = SSL_set_cipher_list(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
     }
-#endif
+#endif // OPENSSL_NO_TLS1_3
 
     if (rv == JNI_FALSE) {
         char err[256];

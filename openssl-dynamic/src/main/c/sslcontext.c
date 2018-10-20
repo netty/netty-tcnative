@@ -125,6 +125,15 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         ctx = SSL_CTX_new(TLS_server_method());
     else
         ctx = SSL_CTX_new(TLS_method());
+
+
+    // Needed in BoringSSL to be able to use TLSv1.3
+    //
+    // See http://hg.nginx.org/nginx/rev/7ad0f4ace359
+    #if defined(OPENSSL_IS_BORINGSSL)
+        SSL_CTX_set_min_proto_version(ctx, 0);
+        SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
+    #endif
 #else
     switch (protocol) {
     case SSL_PROTOCOL_TLS:
@@ -445,13 +454,19 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
 #ifdef OPENSSL_NO_TLS1_3
     rv = SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
 #else
+
     if (tlsv13 == JNI_TRUE) {
+#ifdef OPENSSL_IS_BORINGSSL
+        // BoringSSL does not support setting TLSv1.3 cipher suites explicit for now.
+        rv = JNI_TRUE;
+#else
         rv = SSL_CTX_set_ciphersuites(c->ctx, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
+#endif // OPENSSL_IS_BORINGSSL
+
     } else {
         rv = SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
     }
-#endif
-
+#endif // OPENSSL_NO_TLS1_3
     if (rv == JNI_FALSE) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
