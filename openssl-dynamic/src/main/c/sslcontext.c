@@ -131,7 +131,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     //
     // See http://hg.nginx.org/nginx/rev/7ad0f4ace359
     #if defined(OPENSSL_IS_BORINGSSL)
-        SSL_CTX_set_min_proto_version(ctx, 0);
         SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
     #endif
 #else
@@ -444,6 +443,10 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
         return JNI_FALSE;
     }
 #endif
+
+    if (ciphers == NULL || (*e)->GetStringUTFLength(e, ciphers) == 0) {
+        return JNI_FALSE;
+    }
 
     TCN_ALLOC_CSTRING(ciphers);
     UNREFERENCED(o);

@@ -1573,6 +1573,10 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
     }
     #endif
 
+    if (ciphers == NULL || (*e)->GetStringUTFLength(e, ciphers) == 0) {
+        return JNI_FALSE;
+    }
+
     TCN_ALLOC_CSTRING(ciphers);
     UNREFERENCED(o);
     if (!J2S(ciphers)) {
