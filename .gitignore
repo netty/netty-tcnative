@@ -33,3 +33,7 @@
 # exclude mainframer files
 mainframer
 .mainframer
+
+# exclude cmake related files
+CMakeLists.txt
+cmake-*
