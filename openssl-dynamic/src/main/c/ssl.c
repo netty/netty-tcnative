@@ -2235,10 +2235,35 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, NULL);
 
-// Not supported by BoringSSL and LibreSSL
-// https://boringssl.googlesource.com/boringssl/+/ba16a1e405c617f4179bd780ad15522fb25b0a65%5E%21/
-#if defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
+// Not supported in LibreSSL
+#if defined(LIBRESSL_VERSION_NUMBER)
     return NULL;
+#elif defined(OPENSSL_IS_BORINGSSL)
+    // Using a different API in BoringSSL
+    // https://boringssl.googlesource.com/boringssl/+/ba16a1e405c617f4179bd780ad15522fb25b0a65%5E%21/
+    int i;
+    jobjectArray array;
+    jstring algString;
+    const uint16_t *peer_sigalgs;
+    size_t num_peer_sigalgs = SSL_get0_peer_verify_algorithms(ssl_, &peer_sigalgs);
+    if (num_peer_sigalgs <= 0) {
+        return NULL;
+    }
+    array = (*e)->NewObjectArray(e, num_peer_sigalgs, tcn_get_string_class(), NULL);
+
+    if (array == NULL) {
+        return NULL;
+    }
+
+    for (i = 0; i < num_peer_sigalgs; i++) {
+        algString = (*e)->NewStringUTF(e, SSL_get_signature_algorithm_name(peer_sigalgs[i], SSL_version(ssl_) != TLS1_2_VERSION));
+        if (algString == NULL) {
+            // something is wrong we should better just return here
+            return NULL;
+        }
+        (*e)->SetObjectArrayElement(e, array, i, algString);
+    }
+    return array;
 #else
 
 // Use weak linking with GCC as this will alow us to run the same packaged version with multiple
