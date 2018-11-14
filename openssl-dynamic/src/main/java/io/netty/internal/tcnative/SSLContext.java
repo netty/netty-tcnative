@@ -597,4 +597,9 @@ public final class SSLContext {
      * <p><a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html">Search for OCSP</a>
      */
     public static native void disableOcsp(long ctx);
+
+    /**
+     * Returns the {@code SSL_CTX}.
+     */
+    public static native long getSslCtx(long ctx);
 }
