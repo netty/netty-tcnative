@@ -1813,6 +1813,15 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, getMode)(TCN_STDARGS, jlong ctx)
     return (jint) SSL_CTX_get_mode(c->ctx);
 }
 
+TCN_IMPLEMENT_CALL(jlong, SSLContext, getSslCtx)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+    return P2J(c->ctx);
+}
+
+
 #if !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL)
 
 static const int OCSP_CLIENT_ACK = 1;
@@ -1937,7 +1946,8 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setMode, (JI)I, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(getMode, (J)I, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(enableOcsp, (JZ)V, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(disableOcsp, (J)V, SSLContext) }
+  { TCN_METHOD_TABLE_ENTRY(disableOcsp, (J)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(getSslCtx, (J)J, SSLContext) }
 };
 
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
