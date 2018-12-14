@@ -56,19 +56,11 @@
     <aprVersion>1.6.5</aprVersion>
     <aprSha256>70dcf9102066a2ff2ffc47e93c289c8e54c95d8dda23b503f9e61bb0cbd2d105</aprSha256>
     <boringsslBranch>chromium-stable</boringsslBranch>
-    <libresslVersion>2.7.4</libresslVersion>
+    <libresslVersion>2.8.2</libresslVersion>
     <!--
-        NB: libressl does not currently publish sha256 signatures and instead relies on signify
-        to verify releases. The project does not have a securely published GPG key.
-
-        Verifying a libressl release:
-        - Download the new version and the SHA256.sig from http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/
-        - Grab the signify public key from https://www.openbsd.org/libressl/signing.html if you
-          don't already have it
-        - Verify the release: signify -V -x SHA256.sig  -p libressl.pub -m libressl-{libresslVersion}.tar.gz -e
-        - Record the sha256: sha1sum -a 256 libressl-{libresslVersion}.tar.gz (shasum on osx)
+      See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
     -->
-    <libresslSha256>1e3a9fada06c1c060011470ad0ff960de28f9a0515277d7336f7e09362517da6</libresslSha256>
+    <libresslSha256>b8cb31e59f1294557bfc80f2a662969bc064e83006ceef0574e2553a1c254fd5</libresslSha256>
     <opensslMinorVersion>1.1.1</opensslMinorVersion>
     <opensslPatchVersion />
     <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
