@@ -255,26 +255,48 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
     if (packagePrefix == packageNameEnd) {
         return NULL;
     }
-    // packagePrefix length is > 0
-    // Make a copy so we can modify the value without impacting libraryPathName.
-    size_t packagePrefixLen = packageNameEnd - packagePrefix;
-    packagePrefix = netty_internal_tcnative_util_strndup(packagePrefix, packagePrefixLen);
-    // Make sure the packagePrefix is in the correct format for the JNI functions it will be used with.
+
+    int packageNameLen = 0;
     char* temp = packagePrefix;
-    packageNameEnd = packagePrefix + packagePrefixLen;
-    // Package names must be sanitized, in JNI packages names are separated by '/' characters.
     for (; temp != packageNameEnd; ++temp) {
+        ++packageNameLen;
         if (*temp == '_') {
-            *temp = '/';
+	    // TODO: support _0xxxx as a unicode char
+	    // Escape sequences _2 and _3 apply only to signatures, not package name
+	    if ((temp+1 != packageNameEnd) && (*(temp+1) == '1')) {
+              ++temp; // escapes _1, _2, _3 are 1 char in output
+            }
         }
     }
+
+    char* result = (char*) malloc(sizeof(char) * packageNameLen+1);
+
+    // Copy while unescaping
+    char *dst, *src;
+    for (src = packagePrefix, dst = result; src != packageNameEnd; ++src) {
+        if (*src != '_') {
+	    *dst = *src;
+	    ++dst;
+	} else {
+	    // TODO: support _0xxxx as unicode char
+	    if ((src+1 != packageNameEnd) && (*(src+1) == '1')) {
+	        *dst = '_';
+		++src;
+            } else {
+	        *dst = '/';
+	    }
+	    ++dst;
+	}
+    }
+    dst = '\0';
+
     // Make sure packagePrefix is terminated with the '/' JNI package separator.
-    if(*(--temp) != '/') {
-        temp = packagePrefix;
-        packagePrefix = netty_internal_tcnative_util_prepend(packagePrefix, "/");
+    if(*(--dst) != '/') {
+        temp = result;
+        result = netty_internal_tcnative_util_prepend(result, "/");
         free(temp);
     }
-    return packagePrefix;
+    return result;
 }
 
 #endif /* TCN_BUILD_STATIC */
