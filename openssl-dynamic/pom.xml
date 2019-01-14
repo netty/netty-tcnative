@@ -35,6 +35,22 @@
   </properties>
 
   <build>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <configuration>
+            <archive>
+              <manifestEntries>
+                <Automatic-Module-Name>io.netty.tcnative.openssl.dynamic</Automatic-Module-Name>
+              </manifestEntries>
+            </archive>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
     <plugins>
       <!--
         Set the classifier property based on the settings of the os-detector-plugin.
