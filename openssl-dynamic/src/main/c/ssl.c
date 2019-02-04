@@ -1607,6 +1607,137 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
     return rv;
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+/*
+ * Backport of SSL_SESSION_get_master_key from 1.1
+ */
+size_t SSL_SESSION_get_master_key(const SSL_SESSION *session,
+                                  unsigned char *out, size_t outlen)
+{
+    if (outlen == 0) {
+        return session->master_key_length;
+    }
+    if (outlen > session->master_key_length) {
+        outlen = session->master_key_length;
+    }
+    memcpy(out, session->master_key, outlen);
+    return outlen;
+}
+
+/*
+ * Backport of SSL_get_server_random from 1.1
+ */
+size_t SSL_get_server_random(const SSL *ssl, unsigned char *out, size_t outlen)
+{
+    if (outlen == 0) {
+        return sizeof(ssl->s3->server_random);
+    }
+    if (outlen > sizeof(ssl->s3->server_random)) {
+        outlen = sizeof(ssl->s3->server_random);
+    }
+    memcpy(out, ssl->s3->server_random, outlen);
+    return outlen;
+}
+
+/*
+ * Backport of SSL_get_client_random from 1.1
+ */
+size_t SSL_get_client_random(const SSL *ssl, unsigned char *out, size_t outlen)
+{
+    if (outlen == 0) {
+        return sizeof(ssl->s3->client_random);
+    }
+    if (outlen > sizeof(ssl->s3->client_random)) {
+        outlen = sizeof(ssl->s3->client_random);
+    }
+    memcpy(out, ssl->s3->client_random, outlen);
+    return outlen;
+}
+#endif
+
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getClientRandom)(TCN_STDARGS, jlong ssl)
+{
+
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
+
+    size_t keyLength = SSL_get_client_random(ssl_, NULL, 0);
+    TCN_ASSERT(keyLength <= 0x7FFFFFFF); /* must fit into 32 bit unsigned jsize */
+
+    unsigned char *key = OPENSSL_malloc(sizeof(unsigned char) * keyLength);
+    if (key == NULL) {
+        tcn_ThrowException(e, "OPENSSL_malloc() returned null");
+        return NULL;
+    }
+
+    size_t bytesMoved = SSL_get_client_random(ssl_, key, keyLength);
+    TCN_ASSERT(bytesMoved == keyLength);
+
+    jbyteArray jKey = (*e)->NewByteArray(e, (jsize) bytesMoved);
+    (*e)->SetByteArrayRegion(e, jKey, 0, bytesMoved, (jbyte*) key);
+
+    OPENSSL_free(key);
+
+    return jKey;
+}
+
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getServerRandom)(TCN_STDARGS, jlong ssl)
+{
+
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
+
+    size_t keyLength = SSL_get_server_random(ssl_, NULL, 0);
+    TCN_ASSERT(keyLength <= 0x7FFFFFFF); /* must fit into 32 bit unsigned jsize */
+
+    unsigned char *key = OPENSSL_malloc(sizeof(unsigned char) * keyLength);
+    if (key == NULL) {
+        tcn_ThrowException(e, "OPENSSL_malloc() returned null");
+        return NULL;
+    }
+
+    size_t bytesMoved = SSL_get_server_random(ssl_, key, keyLength);
+    TCN_ASSERT(bytesMoved == keyLength);
+
+    jbyteArray jKey = (*e)->NewByteArray(e, (jsize) bytesMoved);
+    (*e)->SetByteArrayRegion(e, jKey, 0, bytesMoved, (jbyte*) key);
+
+    OPENSSL_free(key);
+
+    return jKey;
+}
+
+TCN_IMPLEMENT_CALL(jbyteArray, SSL, getMasterKey)(TCN_STDARGS, jlong ssl)
+{
+
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, NULL);
+
+    SSL_SESSION *session = SSL_get0_session(ssl_);
+    if (session == NULL) {
+        return NULL;
+    }
+
+    size_t keyLength = SSL_SESSION_get_master_key(session, NULL, 0);
+    TCN_ASSERT(keyLength <= 0x7FFFFFFF); /* must fit into 32 bit unsigned jsize */
+
+    unsigned char *key = OPENSSL_malloc(sizeof(unsigned char) * keyLength);
+    if (key == NULL) {
+        tcn_ThrowException(e, "OPENSSL_malloc() returned null");
+        return NULL;
+    }
+
+    size_t bytesMoved = SSL_SESSION_get_master_key(session, key, keyLength);
+    TCN_ASSERT(bytesMoved == keyLength);
+
+    jbyteArray jKey = (*e)->NewByteArray(e, (jsize) bytesMoved);
+    (*e)->SetByteArrayRegion(e, jKey, 0, bytesMoved, (jbyte*) key);
+
+    OPENSSL_free(key);
+
+    return jKey;
+}
+
 TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
 {
 
@@ -2376,7 +2507,10 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getOcspResponse, (J)[B, SSL) },
   { TCN_METHOD_TABLE_ENTRY(fipsModeSet, (I)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getSniHostname, (J)Ljava/lang/String;, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(getSigAlgs, (J)[Ljava/lang/String;, SSL) }
+  { TCN_METHOD_TABLE_ENTRY(getSigAlgs, (J)[Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getMasterKey, (J)[B, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getClientRandom, (J)[B, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getServerRandom, (J)[B, SSL) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);

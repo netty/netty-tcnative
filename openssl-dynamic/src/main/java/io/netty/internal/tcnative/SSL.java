@@ -789,4 +789,34 @@ public final class SSL {
      * @return the signature algorithms or {@code null}.
      */
     public static native String[] getSigAlgs(long ssl);
+
+    /**
+     * Returns the master key used for the current ssl session.
+     * This should be used extremely sparingly as leaking this key defeats the whole purpose of encryption
+     * especially forward secrecy. This exists here strictly for debugging purposes.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the master key used for the ssl session
+     */
+    public static native byte[] getMasterKey(long ssl);
+
+    /**
+     * Extracts the random value sent from the server to the client during the initial SSL/TLS handshake.
+     * This is needed to extract the HMAC & keys from the master key according to the TLS PRF.
+     * <b>This is not a random number generator.</b>
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the random server value used for the ssl session
+     */
+    public static native byte[] getServerRandom(long ssl);
+
+    /**
+     * Extracts the random value sent from the client to the server during the initial SSL/TLS handshake.
+     * This is needed to extract the HMAC & keys from the master key according to the TLS PRF.
+     * <b>This is not a random number generator.</b>
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the random client value used for the ssl session
+     */
+    public static native byte[] getClientRandom(long ssl);
 }
