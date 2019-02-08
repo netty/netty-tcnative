@@ -194,7 +194,7 @@
                               <!-- On *nix, add ASM flags to disable executable stack -->
                               <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
                               <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
-                              <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized" />
+                              <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
                             </then>
                           </elseif>
                           <else>
