@@ -1609,15 +1609,16 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 }
 
 
+// See https://www.openssl.org/docs/man1.0.2/man3/SSL_set_cert_cb.html for return values.
 static int certificate_cb(SSL* ssl, void* arg) {
 #if defined(LIBRESSL_VERSION_NUMBER)
     // Not supported with LibreSSL
-    return -1;
+    return 0;
 #else
 #ifndef OPENSSL_IS_BORINGSSL
     if (OpenSSL_version_num() < 0x10002000L) {
         // Only supported on openssl 1.0.2+
-        return -1;
+        return 0;
     }
 #endif // OPENSSL_IS_BORINGSSL
 
@@ -1645,7 +1646,7 @@ static int certificate_cb(SSL* ssl, void* arg) {
 
     // Check if java threw an exception and if so signal back that we should not continue with the handshake.
     if ((*e)->ExceptionCheck(e)) {
-        return -1;
+        return 0;
     }
 
     // Everything good...
