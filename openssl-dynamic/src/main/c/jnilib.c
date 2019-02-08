@@ -380,7 +380,6 @@ static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
     }
 
     TCN_UNLOAD_CLASS(env, byteArrayClass);
-
     netty_internal_tcnative_Error_JNI_OnUnLoad(env);
     netty_internal_tcnative_Buffer_JNI_OnUnLoad(env);
     netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env);

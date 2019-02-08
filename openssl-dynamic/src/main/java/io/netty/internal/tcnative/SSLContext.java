@@ -602,4 +602,12 @@ public final class SSLContext {
      * Returns the {@code SSL_CTX}.
      */
     public static native long getSslCtx(long ctx);
+
+    /**
+     * Enable or disable producing of tasks that should be obtained via {@link SSL#getTask(int)} and run.
+     *
+     * @param ctx context to use
+     * @param useTasks {@code true} to enable, {@code false} to disable.
+     */
+    public static native void setUseTasks(long ctx, boolean useTasks);
 }
