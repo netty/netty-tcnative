@@ -1681,6 +1681,12 @@ static int certificate_cb(SSL* ssl, void* arg) {
         jobject task = (*e)->NewObject(e, certificateCallbackTask_class, certificateCallbackTask_init, P2J(ssl), types, issuers, c->certificate_callback);
         sslTask = (tcn_ssl_task_t*) OPENSSL_malloc(sizeof(tcn_ssl_task_t));
         sslTask->task = (*e)->NewGlobalRef(e, task);
+        if (sslTask->task == NULL) {
+            // NewGlobalRef failed because we ran out of memory, free what we malloc'ed and fail the handshake.
+            OPENSSL_free(sslTask);
+
+            return 0;
+        }
         sslTask->consumed = JNI_FALSE;
 
         tcn_SSL_set_app_data5(ssl, sslTask);

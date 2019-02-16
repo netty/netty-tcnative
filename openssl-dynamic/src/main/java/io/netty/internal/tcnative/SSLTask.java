@@ -27,6 +27,7 @@ abstract class SSLTask implements Runnable {
     private boolean complete;
 
     protected SSLTask(long ssl) {
+        // It is important that this constructor never throws. Be sure to not change this!
         this.ssl = ssl;
     }
 

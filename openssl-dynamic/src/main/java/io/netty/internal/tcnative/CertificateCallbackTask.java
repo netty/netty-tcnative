@@ -25,6 +25,7 @@ final class CertificateCallbackTask extends SSLTask {
 
     CertificateCallbackTask(long ssl, byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals,
                             CertificateCallback callback) {
+        // It is important that this constructor never throws. Be sure to not change this!
         super(ssl);
         // It's ok to not clone the arrays as we create these in JNI and not-reuse.
         this.keyTypeBytes = keyTypeBytes;
@@ -39,6 +40,9 @@ final class CertificateCallbackTask extends SSLTask {
             callback.handle(ssl, keyTypeBytes, asn1DerEncodedPrincipals);
             return 1;
         } catch (Exception e) {
+            // Just catch the exception and return 0 to fail the handshake.
+            // The problem is that rethrowing here is really "useless" as we will process it as part of an openssl
+            // c callback which needs to return 0 for an error to abort the handshake.
             return 0;
         }
     }
