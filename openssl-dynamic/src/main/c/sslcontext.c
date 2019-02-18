@@ -38,6 +38,14 @@
 #include <stdint.h>
 #include "sslcontext.h"
 
+
+static jclass    sslTask_class;
+static jfieldID  sslTask_returnValue;
+static jfieldID  sslTask_complete;
+
+static jclass    certificateCallbackTask_class;
+static jmethodID certificateCallbackTask_init;
+
 extern apr_pool_t *tcn_global_pool;
 
 static apr_status_t ssl_context_cleanup(void *data)
@@ -1628,8 +1636,34 @@ static int certificate_cb(SSL* ssl, void* arg) {
     jobjectArray issuers;
     JNIEnv *e;
     jbyteArray types;
+    tcn_ssl_task_t* sslTask = NULL;
 
     tcn_get_java_env(&e);
+
+    // Let's check if we retried the operation and so have stored a sslTask that runs the certificiate callback.
+    sslTask = tcn_SSL_get_app_data5(ssl);
+    if (sslTask != NULL) {
+        // Check if the task complete yet. If not the complete field will be still false.
+        if ((*e)->GetBooleanField(e, sslTask->task, sslTask_complete) == JNI_FALSE) {
+            // Not done yet, try again later.
+            return -1;
+        }
+
+        // The task is complete, retrieve the return value that should be signaled back.
+        jint ret = (*e)->GetIntField(e, sslTask->task, sslTask_returnValue);
+
+        // As we created a Global reference before we need to delete the reference as otherwise we will leak memory.
+        (*e)->DeleteGlobalRef(e, sslTask->task);
+        sslTask->task = NULL;
+
+        // The task was malloc'ed before, free it and clear it from the SSL storage.
+        OPENSSL_free(sslTask);
+        tcn_SSL_set_app_data5(ssl, NULL);
+
+        TCN_ASSERT(ret >= 0);
+
+        return ret;
+    }
 
     if (c->mode == SSL_MODE_SERVER) {
         // TODO: Consider filling these somehow.
@@ -1640,17 +1674,39 @@ static int certificate_cb(SSL* ssl, void* arg) {
         issuers = principalBytes(e, SSL_get_client_CA_list(ssl));
     }
 
-    // Execute the java callback
-    (*e)->CallVoidMethod(e, c->certificate_callback, c->certificate_callback_method,
-             P2J(ssl), types, issuers);
+    // Let's check if we should provide the certificate callback as task that can be run on another Thread.
+    if (c->use_tasks != 0) {
+        // Lets create the CertificateCallbackTask and store it on the SSL object. We then later retrieve it via
+        // SSL.getTask(ssl) and run it.
+        jobject task = (*e)->NewObject(e, certificateCallbackTask_class, certificateCallbackTask_init, P2J(ssl), types, issuers, c->certificate_callback);
+        sslTask = (tcn_ssl_task_t*) OPENSSL_malloc(sizeof(tcn_ssl_task_t));
+        sslTask->task = (*e)->NewGlobalRef(e, task);
+        if (sslTask->task == NULL) {
+            // NewGlobalRef failed because we ran out of memory, free what we malloc'ed and fail the handshake.
+            OPENSSL_free(sslTask);
 
-    // Check if java threw an exception and if so signal back that we should not continue with the handshake.
-    if ((*e)->ExceptionCheck(e)) {
-        return 0;
+            return 0;
+        }
+        sslTask->consumed = JNI_FALSE;
+
+        tcn_SSL_set_app_data5(ssl, sslTask);
+
+        // Signal back that we want to suspend the handshake.
+        return -1;
+    } else {
+        // Execute the java callback
+        (*e)->CallVoidMethod(e, c->certificate_callback, c->certificate_callback_method,
+                 P2J(ssl), types, issuers);
+
+        // Check if java threw an exception and if so signal back that we should not continue with the handshake.
+        if ((*e)->ExceptionCheck(e)) {
+            return 0;
+        }
+
+        // Everything good...
+        return 1;
     }
 
-    // Everything good...
-    return 1;
 #endif /* defined(LIBRESSL_VERSION_NUMBER) */
 }
 
@@ -1896,6 +1952,14 @@ TCN_IMPLEMENT_CALL(void, SSLContext, disableOcsp)(TCN_STDARGS, jlong ctx) {
 #endif
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, setUseTasks)(TCN_STDARGS, jlong ctx, jboolean useTasks) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
+    c->use_tasks = useTasks == JNI_TRUE ? 1 : 0;
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(make, (II)J, SSLContext) },
@@ -1948,7 +2012,8 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getMode, (J)I, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(enableOcsp, (JZ)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(disableOcsp, (J)V, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(getSslCtx, (J)J, SSLContext) }
+  { TCN_METHOD_TABLE_ENTRY(getSslCtx, (J)J, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) }
 };
 
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
@@ -2012,8 +2077,29 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     }
     freeDynamicMethodsTable(dynamicMethods);
 
+    char* sslTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLTask");
+    TCN_LOAD_CLASS(env, sslTask_class, sslTaskName, JNI_ERR);
+    free(sslTaskName);
+
+    TCN_GET_FIELD(env, sslTask_class, sslTask_returnValue, "returnValue", "I", JNI_ERR);
+    TCN_GET_FIELD(env, sslTask_class, sslTask_complete, "complete", "Z", JNI_ERR);
+
+    char* certificateCallbackTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateCallbackTask");
+    TCN_LOAD_CLASS(env, certificateCallbackTask_class, certificateCallbackTaskName, JNI_ERR);
+    free(certificateCallbackTaskName);
+
+    char* certificateCallbackName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateCallback;)V");
+    char* initArguments = netty_internal_tcnative_util_prepend("(J[B[[BL", certificateCallbackName);
+    free(certificateCallbackName);
+
+    TCN_GET_METHOD(env, certificateCallbackTask_class, certificateCallbackTask_init,
+                   "<init>", initArguments, JNI_ERR);
+    free(initArguments);
+
     return TCN_JNI_VERSION;
 }
 
 void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env) {
+    TCN_UNLOAD_CLASS(env, sslTask_class);
+    TCN_UNLOAD_CLASS(env, certificateCallbackTask_class);
 }

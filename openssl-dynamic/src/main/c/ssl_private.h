@@ -266,6 +266,15 @@ struct tcn_ssl_ctxt_t {
     apr_uint32_t             ticket_keys_fail;
 
     unsigned char            context_id[SHA_DIGEST_LENGTH];
+
+    int                      use_tasks;
+};
+
+// Store the callback to run and also if it was consumed via SSL.getTask(...).
+typedef struct tcn_ssl_task_t tcn_ssl_task_t;
+struct tcn_ssl_task_t {
+    jboolean consumed;
+    jobject task;
 };
 
 /*
@@ -282,6 +291,10 @@ void        tcn_SSL_set_app_data3(SSL *, void *);
 // This will initially point back to the tcn_ssl_ctxt_t in tcn_ssl_ctxt_t.
 void       *tcn_SSL_get_app_data4(SSL *);
 void        tcn_SSL_set_app_data4(SSL *, void *);
+// The app_data5 is used to store ssl_task.
+void       *tcn_SSL_get_app_data5(SSL *);
+void        tcn_SSL_set_app_data5(SSL *, void *);
+
 int         tcn_SSL_password_callback(char *, int, int, void *);
 DH         *tcn_SSL_dh_get_tmp_param(int);
 DH         *tcn_SSL_callback_tmp_DH(SSL *, int, int);

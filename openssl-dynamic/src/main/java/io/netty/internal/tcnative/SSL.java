@@ -819,4 +819,13 @@ public final class SSL {
      * @return the random client value used for the ssl session
      */
     public static native byte[] getClientRandom(long ssl);
+
+    /**
+     * Return the {@link Runnable} thats needs to be run as an operation returned {@link #SSL_ERROR_WANT_X509_LOOKUP}.
+     * After the task was run we should retry the operations that returned {@link #SSL_ERROR_WANT_X509_LOOKUP}.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the task to run.
+     */
+    public static native Runnable getTask(long ssl);
 }

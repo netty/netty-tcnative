@@ -167,6 +167,8 @@ const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
 static int tcn_SSL_app_data2_idx = -1;
 static int tcn_SSL_app_data3_idx = -1;
 static int tcn_SSL_app_data4_idx = -1;
+static int tcn_SSL_app_data5_idx = -1;
+
 void tcn_SSL_init_app_data_idx()
 {
     int i;
@@ -184,6 +186,10 @@ void tcn_SSL_init_app_data_idx()
 
     if (tcn_SSL_app_data4_idx == -1) {
         tcn_SSL_app_data4_idx = SSL_get_ex_new_index(0, "tcn_ssl_verify_config_t*", NULL, NULL, NULL);
+    }
+
+    if (tcn_SSL_app_data5_idx == -1) {
+        tcn_SSL_app_data5_idx = SSL_get_ex_new_index(0, "tcn_ssl_task*", NULL, NULL, NULL);
     }
 }
 
@@ -216,6 +222,16 @@ void *tcn_SSL_get_app_data4(SSL *ssl)
 void tcn_SSL_set_app_data4(SSL *ssl, void *arg)
 {
     SSL_set_ex_data(ssl, tcn_SSL_app_data4_idx, arg);
+}
+
+void *tcn_SSL_get_app_data5(SSL *ssl)
+{
+    return SSL_get_ex_data(ssl, tcn_SSL_app_data5_idx);
+}
+
+void tcn_SSL_set_app_data5(SSL *ssl, void *arg)
+{
+    SSL_set_ex_data(ssl, tcn_SSL_app_data5_idx, arg);
 }
 
 int tcn_SSL_password_callback(char *buf, int bufsiz, int verify,

@@ -1068,12 +1068,34 @@ TCN_IMPLEMENT_CALL(void, SSL, setShutdown)(TCN_STDARGS,
     SSL_set_shutdown(ssl_, mode);
 }
 
+TCN_IMPLEMENT_CALL(jobject /* task */, SSL, getTask)(TCN_STDARGS,
+                                                        jlong ssl /* SSL * */) {
+
+    tcn_ssl_task_t* ssl_task = NULL;
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+
+    UNREFERENCED_STDARGS;
+
+    ssl_task = tcn_SSL_get_app_data5(ssl_);
+    if (ssl_task == NULL || ssl_task->consumed == JNI_TRUE) {
+        // Either no task was produced or it was already consumed by SSL.getTask(...).
+        return NULL;
+    }
+    ssl_task->consumed = JNI_TRUE;
+    return ssl_task->task;
+}
+
+
 // Free the SSL * and its associated internal BIO
 TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
                                        jlong ssl /* SSL * */) {
     int *handshakeCount = NULL;
     tcn_ssl_ctxt_t* c = NULL;
     tcn_ssl_verify_config_t* verify_config = NULL;
+    tcn_ssl_task_t* ssl_task = NULL;
+
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
@@ -1081,6 +1103,7 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
     c = tcn_SSL_get_app_data2(ssl_);
     handshakeCount = tcn_SSL_get_app_data3(ssl_);
     verify_config = tcn_SSL_get_app_data4(ssl_);
+    ssl_task = tcn_SSL_get_app_data5(ssl_);
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(c != NULL);
@@ -1095,6 +1118,17 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
         OPENSSL_free(verify_config);
         tcn_SSL_set_app_data4(ssl_, &c->verify_config);
     }
+
+    if (ssl_task != NULL) {
+        if (ssl_task->task != NULL) {
+            // Delete the global reference to ensure we not leak any memory.
+            (*e)->DeleteGlobalRef(e, ssl_task->task);
+            ssl_task->task = NULL;
+        }
+        OPENSSL_free(ssl_task);
+        tcn_SSL_set_app_data5(ssl_, NULL);
+    }
+
     SSL_free(ssl_);
 }
 
@@ -2510,7 +2544,8 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getSigAlgs, (J)[Ljava/lang/String;, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getMasterKey, (J)[B, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getClientRandom, (J)[B, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(getServerRandom, (J)[B, SSL) }
+  { TCN_METHOD_TABLE_ENTRY(getServerRandom, (J)[B, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getTask, (J)Ljava/lang/Runnable;, SSL) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
