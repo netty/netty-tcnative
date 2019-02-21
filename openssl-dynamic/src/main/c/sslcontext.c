@@ -1345,6 +1345,7 @@ static const char* authentication_method(const SSL* ssl) {
 }
 /* Android end */
 
+// See https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_cert_verify_callback.html for return values.
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
@@ -1417,7 +1418,14 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         /// We need to delete the local references so we not leak memory as this method is called via callback.
         (*e)->DeleteLocalRef(e, authMethodString);
         (*e)->DeleteLocalRef(e, array);
-        return -1;
+
+        // We always need to set the error as stated in the SSL_CTX_set_cert_verify_callback manpage.
+#ifdef X509_V_ERR_UNSPECIFIED
+        X509_STORE_CTX_set_error(ctx, X509_V_ERR_UNSPECIFIED);
+#else
+        X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_REJECTED);
+#endif
+        return 0;
     }
 
 #ifdef X509_V_ERR_UNSPECIFIED
