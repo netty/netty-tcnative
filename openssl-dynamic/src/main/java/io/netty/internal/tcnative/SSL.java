@@ -157,6 +157,9 @@ public final class SSL {
     public static final int SSL_ERROR_WANT_CONNECT     = sslErrorWantConnect();
     public static final int SSL_ERROR_WANT_ACCEPT      = sslErrorWantAccept();
 
+    // BoringSSL specific
+    public static final int SSL_ERROR_WANT_CERTIFICATE_VERIFY = sslErrorWantCertificateVerify();
+
     /**
      * SSL_new
      * @param ctx Server or Client context to use.

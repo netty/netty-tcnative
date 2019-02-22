@@ -46,6 +46,9 @@ static jfieldID  sslTask_complete;
 static jclass    certificateCallbackTask_class;
 static jmethodID certificateCallbackTask_init;
 
+static jclass    certificateVerifierTask_class;
+static jmethodID certificateVerifierTask_init;
+
 extern apr_pool_t *tcn_global_pool;
 
 static apr_status_t ssl_context_cleanup(void *data)
@@ -562,19 +565,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
             tcn_Throw(e, "Unsupported length %s", length);
             return;
     }
-}
-
-TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint level, jint depth)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-
-    TCN_CHECK_NULL(c, ctx, /* void */);
-
-    UNREFERENCED(o);
-
-    // No need to set the callback for SSL_CTX_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
-    SSL_CTX_set_verify(c->ctx, tcn_set_verify_config(&c->verify_config, level, depth), NULL);
-    SSL_CTX_set_verify_depth(c->ctx, c->verify_config.verify_depth);
 }
 
 static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
@@ -1344,23 +1334,16 @@ static const char* authentication_method(const SSL* ssl) {
     }
 }
 /* Android end */
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL)
+static STACK_OF(X509)* X509_STORE_CTX_get0_untrusted(X509_STORE_CTX *ctx) {
+    return ctx->untrusted;
+}
+#endif
 
-// See https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_cert_verify_callback.html for return values.
-static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
-    /* Get Apache context back through OpenSSL context */
-    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-    TCN_ASSERT(ssl != NULL);
-    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
-    TCN_ASSERT(c != NULL);
+static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* sk) {
     tcn_ssl_verify_config_t* verify_config = tcn_SSL_get_app_data4(ssl);
     TCN_ASSERT(verify_config != NULL);
 
-    // Get a stack of all certs in the chain
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL)
-    STACK_OF(X509) *sk = ctx->untrusted;
-#else
-    STACK_OF(X509) *sk = X509_STORE_CTX_get0_untrusted(ctx);
-#endif
     // SSL_CTX_set_verify_depth() and SSL_set_verify_depth() set the limit up to which depth certificates in a chain are
     // used during the verification procedure. If the certificate chain is longer than allowed, the certificates above
     // the limit are ignored. Error messages are generated as if these certificates would not be present,
@@ -1369,69 +1352,105 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     const int totalQueuedLength = sk_X509_num(sk);
     int len = TCN_MIN(verify_config->verify_depth, totalQueuedLength);
     unsigned i;
-    X509 *cert;
+    X509 *cert = NULL;
     int length;
-    unsigned char *buf;
-    JNIEnv *e;
-    jbyteArray array;
-    jbyteArray bArray;
-    const char *authMethod;
-    jstring authMethodString;
-    jint result;
+    unsigned char *buf = NULL;
+    jbyteArray array = NULL;
+    jbyteArray bArray = NULL;
     jclass byteArrayClass = tcn_get_byte_array_class();
-    tcn_get_java_env(&e);
 
     // Create the byte[][] array that holds all the certs
-    array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
+    if ((array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL)) == NULL) {
+        return NULL;
+    }
 
     for(i = 0; i < len; i++) {
         cert = sk_X509_value(sk, i);
 
-        buf = NULL;
-        length = i2d_X509(cert, &buf);
-        if (length < 0) {
-            // In case of error just return an empty byte[][]
-            array = (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
-            if (buf != NULL) {
-                // We need to delete the local references so we not leak memory as this method is called via callback.
-                OPENSSL_free(buf);
-            }
-            break;
+        if ((length = i2d_X509(cert, &buf)) <= 0 || (bArray = (*e)->NewByteArray(e, length)) == NULL ) {
+            (*e)->DeleteLocalRef(e, array);
+            array = NULL;
+            goto complete;
         }
-        bArray = (*e)->NewByteArray(e, length);
+
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
         (*e)->DeleteLocalRef(e, bArray);
+        bArray = NULL;
+
         OPENSSL_free(buf);
+        buf = NULL;
     }
 
-    authMethod = authentication_method(ssl);
-    authMethodString = (*e)->NewStringUTF(e, authMethod);
+complete:
+    // We need to delete the local references so we not leak memory as this method is called via callback.
+    OPENSSL_free(buf);
+    if (bArray != NULL) {
+        // Delete the local reference as we not know how long the chain is and local references are otherwise
+        // only freed once jni method returns.
+        (*e)->DeleteLocalRef(e, bArray);
+    }
+    return array;
+}
+
+// See https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_cert_verify_callback.html for return values.
+static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
+    /* Get Apache context back through OpenSSL context */
+    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    TCN_ASSERT(ssl != NULL);
+    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
+    TCN_ASSERT(c != NULL);
+
+    STACK_OF(X509) *sk = NULL;
+    JNIEnv *e = NULL;
+    jstring authMethodString = NULL;
+    int ret = 0;
+#ifdef X509_V_ERR_UNSPECIFIED
+    jint result = X509_V_ERR_UNSPECIFIED;
+#else
+    jint result = X509_V_ERR_CERT_REJECTED;
+#endif // X509_V_ERR_UNSPECIFIED
+    jint len;
+    jbyteArray array = NULL;
+
+    tcn_get_java_env(&e);
+
+    // Get a stack of all certs in the chain
+    if ((sk = X509_STORE_CTX_get0_untrusted(ctx)) == NULL) {
+        goto complete;
+    }
+
+    // Create the byte[][] array that holds all the certs
+    if ((array = get_certs(e, ssl, sk)) == NULL) {
+        goto complete;
+    }
+
+    len = (*e)->GetArrayLength(e, array);
+
+    if ((authMethodString = (*e)->NewStringUTF(e, authentication_method(ssl))) == NULL) {
+        goto complete;
+    }
 
     result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
 
     if ((*e)->ExceptionCheck(e)) {
-        /// The java method threw an exception, we can not depend on the return value.
-        /// We need to delete the local references so we not leak memory as this method is called via callback.
-        (*e)->DeleteLocalRef(e, authMethodString);
-        (*e)->DeleteLocalRef(e, array);
-
-        // We always need to set the error as stated in the SSL_CTX_set_cert_verify_callback manpage.
+         // We always need to set the error as stated in the SSL_CTX_set_cert_verify_callback manpage, so set the result
+         // to the correct value.
 #ifdef X509_V_ERR_UNSPECIFIED
-        X509_STORE_CTX_set_error(ctx, X509_V_ERR_UNSPECIFIED);
+        result = X509_V_ERR_UNSPECIFIED;
 #else
-        X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_REJECTED);
-#endif
-        return 0;
+        result = X509_V_ERR_CERT_REJECTED;
+#endif  // X509_V_ERR_UNSPECIFIED
+        goto complete;
     }
 
 #ifdef X509_V_ERR_UNSPECIFIED
     // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
     // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-    if (result == X509_V_ERR_UNSPECIFIED && len < totalQueuedLength) {
+    if (result == X509_V_ERR_UNSPECIFIED && len < sk_X509_num(sk)) {
         result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
     }
 #else
@@ -1439,21 +1458,170 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     // LibreSSL 2.4.x doesn't support the X509_V_ERR_UNSPECIFIED so we introduce a work around to make sure a supported alert is used.
     // This should be reverted when we support LibreSSL 2.5.x (which does support X509_V_ERR_UNSPECIFIED).
     if (result == TCN_X509_V_ERR_UNSPECIFIED) {
-        result = len < totalQueuedLength ? X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY : X509_V_ERR_CERT_REJECTED;
+        result = len < sk_X509_num(sk) ? X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY : X509_V_ERR_CERT_REJECTED;
     }
-#endif
+#endif // X509_V_ERR_UNSPECIFIED
+
 
     // TODO(scott): if verify_config->verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
     // succeed for some of the "informational" error messages (e.g. X509_V_ERR_EMAIL_MISMATCH ?)
 
-    // Set the correct error so it will be included in the alert.
+complete:
+    // We need to delete the local references so we not leak memory as this method is called via callback.
+    if (authMethodString != NULL) {
+        (*e)->DeleteLocalRef(e, authMethodString);
+    }
+    if (array != NULL) {
+        (*e)->DeleteLocalRef(e, array);
+    }
+
     X509_STORE_CTX_set_error(ctx, result);
 
-    // We need to delete the local references so we not leak memory as this method is called via callback.
-    (*e)->DeleteLocalRef(e, authMethodString);
-    (*e)->DeleteLocalRef(e, array);
+    ret = result == X509_V_OK ? 1 : 0;
+    return ret;
+}
 
-    return result == X509_V_OK ? 1 : 0;
+#ifdef OPENSSL_IS_BORINGSSL
+static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert) {
+    enum ssl_verify_result_t ret = ssl_verify_invalid;
+    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
+    TCN_ASSERT(c != NULL);
+    STACK_OF(X509) *sk = NULL;
+    jstring authMethodString = NULL;
+    jint result = X509_V_ERR_UNSPECIFIED;
+    jint len = 0;
+    jbyteArray array = NULL;
+    tcn_ssl_task_t* sslTask = NULL;
+    JNIEnv *e = NULL;
+
+    tcn_get_java_env(&e);
+
+    // Let's check if we retried the operation and so have stored a sslTask that runs the certificiate callback.
+    sslTask = tcn_SSL_get_app_data5(ssl);
+    if (sslTask != NULL) {
+        // Check if the task complete yet. If not the complete field will be still false.
+        if ((*e)->GetBooleanField(e, sslTask->task, sslTask_complete) == JNI_FALSE) {
+            // Not done yet, try again later.
+            ret = ssl_verify_retry;
+            goto complete;
+        }
+
+        // The task is complete, retrieve the return value that should be signaled back.
+        result = (*e)->GetIntField(e, sslTask->task, sslTask_returnValue);
+
+        // As we created a Global reference before we need to delete the reference as otherwise we will leak memory.
+        (*e)->DeleteGlobalRef(e, sslTask->task);
+        sslTask->task = NULL;
+
+        // The task was malloc'ed before, free it and clear it from the SSL storage.
+        OPENSSL_free(sslTask);
+        tcn_SSL_set_app_data5(ssl, NULL);
+
+        TCN_ASSERT(result >= 0);
+
+        // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
+        // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
+        if (result == X509_V_ERR_UNSPECIFIED && len < sk_X509_num(sk)) {
+            result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
+        }
+        goto complete;
+    }
+
+    if ((sk = SSL_get_peer_full_cert_chain(ssl)) == NULL) {
+        goto complete;
+    }
+
+    // Create the byte[][] array that holds all the certs
+    if ((array = get_certs(e, ssl, sk)) == NULL) {
+        goto complete;
+    }
+
+    len = (*e)->GetArrayLength(e, array);
+
+    if ((authMethodString = (*e)->NewStringUTF(e, authentication_method(ssl))) == NULL) {
+        goto complete;
+    }
+
+    // Let's check if we should provide the certificate callback as task that can be run on another Thread.
+    if (c->use_tasks != 0) {
+        // Lets create the CertificateCallbackTask and store it on the SSL object. We then later retrieve it via
+        // SSL.getTask(ssl) and run it.
+        jobject task = (*e)->NewObject(e, certificateVerifierTask_class, certificateVerifierTask_init, P2J(ssl), array, authMethodString, c->verifier);
+        sslTask = (tcn_ssl_task_t*) OPENSSL_malloc(sizeof(tcn_ssl_task_t));
+        sslTask->task = (*e)->NewGlobalRef(e, task);
+        if (sslTask->task == NULL) {
+            // NewGlobalRef failed because we ran out of memory, free what we malloc'ed and fail the handshake.
+            OPENSSL_free(sslTask);
+
+            goto complete;
+        }
+
+        sslTask->consumed = JNI_FALSE;
+        tcn_SSL_set_app_data5(ssl, sslTask);
+
+         // Signal back that we want to suspend the handshake.
+        ret = ssl_verify_retry;
+        goto complete;
+    } else {
+        // Execute the java callback
+        result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
+
+        if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
+            result = X509_V_ERR_UNSPECIFIED;
+            goto complete;
+        }
+
+        // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
+        // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
+        if (result == X509_V_ERR_UNSPECIFIED && len < sk_X509_num(sk)) {
+            result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
+        }
+
+        // TODO(scott): if verify_config->verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
+        // succeed for some of the "informational" error messages (e.g. X509_V_ERR_EMAIL_MISMATCH ?)
+    }
+complete:
+
+    // We need to delete the local references so we not leak memory as this method is called via callback.
+    if (authMethodString != NULL) {
+        (*e)->DeleteLocalRef(e, authMethodString);
+    }
+    if (array != NULL) {
+        (*e)->DeleteLocalRef(e, array);
+    }
+
+    if (ret != ssl_verify_retry) {
+        if (result == X509_V_OK) {
+            ret = ssl_verify_ok;
+        } else {
+            ret = ssl_verify_invalid;
+            *out_alert = SSL_alert_from_verify_result(result);
+        }
+    }
+    return ret;
+}
+#endif // OPENSSL_IS_BORINGSSL
+
+
+TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint level, jint depth)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
+    UNREFERENCED(o);
+
+    int mode = tcn_set_verify_config(&c->verify_config, level, depth);
+    // No need to set the callback for SSL_CTX_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
+    SSL_CTX_set_verify(c->ctx, mode, NULL);
+    SSL_CTX_set_verify_depth(c->ctx, c->verify_config.verify_depth);
+
+#ifdef OPENSSL_IS_BORINGSSL
+    if (c->verifier != NULL) {
+        SSL_CTX_set_custom_verify(c->ctx, mode, tcn_SSL_cert_custom_verify);
+    }
+#else
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong ctx, jobject verifier)
@@ -1465,7 +1633,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     UNREFERENCED(o);
 
     if (verifier == NULL) {
+#ifdef OPENSSL_IS_BORINGSSL
+        SSL_CTX_set_custom_verify(c->ctx, SSL_VERIFY_NONE, NULL);
+#else
         SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
+#endif // OPENSSL_IS_BORINGSSL
     } else {
         jclass verifier_class = (*e)->GetObjectClass(e, verifier);
         jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)I");
@@ -1480,7 +1652,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
         c->verifier = (*e)->NewGlobalRef(e, verifier);
         c->verifier_method = method;
 
+#ifdef OPENSSL_IS_BORINGSSL
+        SSL_CTX_set_custom_verify(c->ctx, tcn_set_verify_config(&c->verify_config, c->verify_config.verify_mode,
+                 c->verify_config.verify_depth), tcn_SSL_cert_custom_verify);
+#else
         SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, NULL);
+#endif // OPENSSL_IS_BORINGSSL
     }
 }
 
@@ -1689,7 +1866,6 @@ static int certificate_cb(SSL* ssl, void* arg) {
         jobject task = (*e)->NewObject(e, certificateCallbackTask_class, certificateCallbackTask_init, P2J(ssl), types, issuers, c->certificate_callback);
         sslTask = (tcn_ssl_task_t*) OPENSSL_malloc(sizeof(tcn_ssl_task_t));
         sslTask->task = (*e)->NewGlobalRef(e, task);
-        sslTask->consumed = JNI_FALSE;
         if (sslTask->task == NULL) {
             // NewGlobalRef failed because we ran out of memory, free what we malloc'ed and fail the handshake.
             OPENSSL_free(sslTask);
@@ -2102,6 +2278,19 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     free(certificateCallbackName);
 
     TCN_GET_METHOD(env, certificateCallbackTask_class, certificateCallbackTask_init,
+                   "<init>", initArguments, JNI_ERR);
+    free(initArguments);
+
+
+    char* certificateVerifierTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateVerifierTask");
+    TCN_LOAD_CLASS(env, certificateVerifierTask_class, certificateVerifierTaskName, JNI_ERR);
+    free(certificateVerifierTaskName);
+
+    char* certificateVerifierName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateVerifier;)V");
+    initArguments = netty_internal_tcnative_util_prepend("(J[[BLjava/lang/String;L", certificateVerifierName);
+    free(certificateVerifierName);
+
+    TCN_GET_METHOD(env, certificateVerifierTask_class, certificateVerifierTask_init,
                    "<init>", initArguments, JNI_ERR);
     free(initArguments);
 

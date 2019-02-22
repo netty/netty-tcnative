@@ -146,4 +146,7 @@ final class NativeStaticallyReferencedJniMethods {
     static native int x509vErrEmailMismatch();
     static native int x509vErrIpAddressMismatch();
     static native int x509vErrDaneNoMatch();
+
+    // BoringSSL specific.
+    static native int sslErrorWantCertificateVerify();
 }

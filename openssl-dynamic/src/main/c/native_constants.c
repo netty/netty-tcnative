@@ -480,6 +480,11 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, x509vErrDaneNoMat
 #endif
 }
 
+// BoringSSL specific
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslErrorWantCertificateVerify)(TCN_STDARGS) {
+    return SSL_ERROR_WANT_CERTIFICATE_VERIFY;
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslOpCipherServerPreference, ()I, NativeStaticallyReferencedJniMethods) },
@@ -580,7 +585,9 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(x509vErrHostnameMismatch, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(x509vErrEmailMismatch, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(x509vErrIpAddressMismatch, ()I, NativeStaticallyReferencedJniMethods) },
-  { TCN_METHOD_TABLE_ENTRY(x509vErrDaneNoMatch, ()I, NativeStaticallyReferencedJniMethods) }
+  { TCN_METHOD_TABLE_ENTRY(x509vErrDaneNoMatch, ()I, NativeStaticallyReferencedJniMethods) },
+  // BoringSSL specific
+  { TCN_METHOD_TABLE_ENTRY(sslErrorWantCertificateVerify, ()I, NativeStaticallyReferencedJniMethods) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);

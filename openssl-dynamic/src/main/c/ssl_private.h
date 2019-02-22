@@ -199,6 +199,11 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define SSL_CTRL_GET_CLIENT_CERT_TYPES          103
 #endif
 
+#ifndef SSL_ERROR_WANT_CERTIFICATE_VERIFY
+// See https://github.com/google/boringssl/blob/chromium-stable/include/openssl/ssl.h#L538
+#define SSL_ERROR_WANT_CERTIFICATE_VERIFY       -1
+#endif
+
 typedef struct tcn_ssl_ctxt_t tcn_ssl_ctxt_t;
 
 typedef struct {
