@@ -552,13 +552,6 @@ int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
     unsigned long err;
     int n;
 
-#ifndef OPENSSL_IS_BORINGSSL
-    if (OpenSSL_version_num() < 0x10002000L) {
-        // Only supported on openssl 1.0.2+
-       return -1;
-    }
-#endif
-
     /* optionally skip a leading server certificate */
     if (skipfirst) {
         if ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) == NULL) {

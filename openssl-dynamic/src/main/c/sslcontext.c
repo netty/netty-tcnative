@@ -1560,13 +1560,6 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     // Not supported with LibreSSL
     return -1;
 #else
-#ifndef OPENSSL_IS_BORINGSSL
-    if (OpenSSL_version_num() < 0x10002000L) {
-        // Only supported on openssl 1.0.2+
-        return -1;
-    }
-#endif // OPENSSL_IS_BORINGSSL
-
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
     jobjectArray issuers;
     JNIEnv *e;
@@ -1631,13 +1624,6 @@ static int certificate_cb(SSL* ssl, void* arg) {
     // Not supported with LibreSSL
     return 0;
 #else
-#ifndef OPENSSL_IS_BORINGSSL
-    if (OpenSSL_version_num() < 0x10002000L) {
-        // Only supported on openssl 1.0.2+
-        return 0;
-    }
-#endif // OPENSSL_IS_BORINGSSL
-
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
     TCN_ASSERT(c != NULL);
 
