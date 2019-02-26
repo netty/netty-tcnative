@@ -2103,14 +2103,6 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
 #if defined(LIBRESSL_VERSION_NUMBER)
     tcn_Throw(e, "Not supported with LibreSSL");
 #else
-#ifndef OPENSSL_IS_BORINGSSL
-    if (OpenSSL_version_num() < 0x10002000L) {
-        // Only supported on openssl 1.0.2+
-        tcn_Throw(e, "Only supported with OpenSSL >= 1.0.2");
-        return;
-    }
-#endif // OPENSSL_IS_BORINGSSL
-
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
@@ -2173,14 +2165,6 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialClientSide)(TCN_STDARGS, jlong ssl, 
 #if defined(LIBRESSL_VERSION_NUMBER)
     tcn_Throw(e, "Not supported with LibreSSL");
 #else
-#ifndef OPENSSL_IS_BORINGSSL
-    if (OpenSSL_version_num() < 0x10002000L) {
-        // Only supported on openssl 1.0.2+
-        tcn_Throw(e, "Only supported with OpenSSL >= 1.0.2");
-        return;
-    }
-#endif // OPENSSL_IS_BORINGSSL
-
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
