@@ -1396,6 +1396,7 @@ complete:
     return array;
 }
 
+#ifndef OPENSSL_IS_BORINGSSL
 // See https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_cert_verify_callback.html for return values.
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
@@ -1480,6 +1481,7 @@ complete:
     ret = result == X509_V_OK ? 1 : 0;
     return ret;
 }
+#endif // OPENSSL_IS_BORINGSSL
 
 #ifdef OPENSSL_IS_BORINGSSL
 static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert) {
