@@ -1481,9 +1481,7 @@ complete:
     ret = result == X509_V_OK ? 1 : 0;
     return ret;
 }
-#endif // OPENSSL_IS_BORINGSSL
-
-#ifdef OPENSSL_IS_BORINGSSL
+#else // OPENSSL_IS_BORINGSSL
 static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert) {
     enum ssl_verify_result_t ret = ssl_verify_invalid;
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
