@@ -1333,6 +1333,36 @@ static const char* authentication_method(const SSL* ssl) {
         }
     }
 }
+
+static tcn_ssl_task_t* tcn_ssl_task_new(JNIEnv* e, jobject task) {
+    tcn_ssl_task_t* sslTask = (tcn_ssl_task_t*) OPENSSL_malloc(sizeof(tcn_ssl_task_t));
+    if (sslTask == NULL) {
+        return NULL;
+    }
+    sslTask->task = (*e)->NewGlobalRef(e, task);
+    if (sslTask->task == NULL) {
+        // NewGlobalRef failed because we ran out of memory, free what we malloc'ed and fail the handshake.
+        OPENSSL_free(sslTask);
+        return NULL;
+    }
+    sslTask->consumed = JNI_FALSE;
+    return sslTask;
+}
+
+static void tcn_ssl_task_free(JNIEnv* e, tcn_ssl_task_t* sslTask) {
+    if (sslTask == NULL) {
+        return;
+    }
+
+    // As we created a Global reference before we need to delete the reference as otherwise we will leak memory.
+    (*e)->DeleteGlobalRef(e, sslTask->task);
+    sslTask->task = NULL;
+
+    // The task was malloc'ed before, free it and clear it from the SSL storage.
+    OPENSSL_free(sslTask);
+}
+
+
 /* Android end */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL)
 static STACK_OF(X509)* X509_STORE_CTX_get0_untrusted(X509_STORE_CTX *ctx) {
@@ -1482,6 +1512,7 @@ complete:
     return ret;
 }
 #else // OPENSSL_IS_BORINGSSL
+
 static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert) {
     enum ssl_verify_result_t ret = ssl_verify_invalid;
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
@@ -1509,12 +1540,8 @@ static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *ou
         // The task is complete, retrieve the return value that should be signaled back.
         result = (*e)->GetIntField(e, sslTask->task, sslTask_returnValue);
 
-        // As we created a Global reference before we need to delete the reference as otherwise we will leak memory.
-        (*e)->DeleteGlobalRef(e, sslTask->task);
-        sslTask->task = NULL;
+        tcn_ssl_task_free(e, sslTask);
 
-        // The task was malloc'ed before, free it and clear it from the SSL storage.
-        OPENSSL_free(sslTask);
         tcn_SSL_set_app_data5(ssl, NULL);
 
         TCN_ASSERT(result >= 0);
@@ -1547,16 +1574,11 @@ static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *ou
         // Lets create the CertificateCallbackTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
         jobject task = (*e)->NewObject(e, certificateVerifierTask_class, certificateVerifierTask_init, P2J(ssl), array, authMethodString, c->verifier);
-        sslTask = (tcn_ssl_task_t*) OPENSSL_malloc(sizeof(tcn_ssl_task_t));
-        sslTask->task = (*e)->NewGlobalRef(e, task);
-        if (sslTask->task == NULL) {
-            // NewGlobalRef failed because we ran out of memory, free what we malloc'ed and fail the handshake.
-            OPENSSL_free(sslTask);
 
+        if ((sslTask = tcn_ssl_task_new(e, task)) == NULL) {
             goto complete;
         }
 
-        sslTask->consumed = JNI_FALSE;
         tcn_SSL_set_app_data5(ssl, sslTask);
 
          // Signal back that we want to suspend the handshake.
@@ -1823,12 +1845,7 @@ static int certificate_cb(SSL* ssl, void* arg) {
         // The task is complete, retrieve the return value that should be signaled back.
         jint ret = (*e)->GetIntField(e, sslTask->task, sslTask_returnValue);
 
-        // As we created a Global reference before we need to delete the reference as otherwise we will leak memory.
-        (*e)->DeleteGlobalRef(e, sslTask->task);
-        sslTask->task = NULL;
-
-        // The task was malloc'ed before, free it and clear it from the SSL storage.
-        OPENSSL_free(sslTask);
+        tcn_ssl_task_free(e, sslTask);
         tcn_SSL_set_app_data5(ssl, NULL);
 
         TCN_ASSERT(ret >= 0);
@@ -1850,15 +1867,10 @@ static int certificate_cb(SSL* ssl, void* arg) {
         // Lets create the CertificateCallbackTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
         jobject task = (*e)->NewObject(e, certificateCallbackTask_class, certificateCallbackTask_init, P2J(ssl), types, issuers, c->certificate_callback);
-        sslTask = (tcn_ssl_task_t*) OPENSSL_malloc(sizeof(tcn_ssl_task_t));
-        sslTask->task = (*e)->NewGlobalRef(e, task);
-        if (sslTask->task == NULL) {
-            // NewGlobalRef failed because we ran out of memory, free what we malloc'ed and fail the handshake.
-            OPENSSL_free(sslTask);
 
+        if ((sslTask = tcn_ssl_task_new(e, task)) == NULL) {
             return 0;
         }
-        sslTask->consumed = JNI_FALSE;
 
         tcn_SSL_set_app_data5(ssl, sslTask);
 
