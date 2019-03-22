@@ -2391,27 +2391,44 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
     // Using a different API in BoringSSL
     // https://boringssl.googlesource.com/boringssl/+/ba16a1e405c617f4179bd780ad15522fb25b0a65%5E%21/
     int i;
-    jobjectArray array;
-    jstring algString;
-    const uint16_t *peer_sigalgs;
+    int num_known_sigalgs = 0;
+    jobjectArray array = NULL;
+    jstring algString = NULL;
+    const char *alg = NULL;
+    const uint16_t *peer_sigalgs = NULL;
     size_t num_peer_sigalgs = SSL_get0_peer_verify_algorithms(ssl_, &peer_sigalgs);
+
     if (num_peer_sigalgs <= 0) {
         return NULL;
     }
-    array = (*e)->NewObjectArray(e, num_peer_sigalgs, tcn_get_string_class(), NULL);
+    const char* algs[num_peer_sigalgs];
 
-    if (array == NULL) {
+    for (i = 0; i < num_peer_sigalgs; i++) {
+        if ((alg = SSL_get_signature_algorithm_name(peer_sigalgs[i], SSL_version(ssl_) != TLS1_2_VERSION)) == NULL) {
+            // The signature algorithm is not known to BoringSSL, skip it.
+            continue;
+        }
+
+        algs[num_known_sigalgs++] = alg;
+    }
+
+    if (num_known_sigalgs == 0) {
         return NULL;
     }
 
-    for (i = 0; i < num_peer_sigalgs; i++) {
-        algString = (*e)->NewStringUTF(e, SSL_get_signature_algorithm_name(peer_sigalgs[i], SSL_version(ssl_) != TLS1_2_VERSION));
-        if (algString == NULL) {
+    if ((array = (*e)->NewObjectArray(e, num_known_sigalgs, tcn_get_string_class(), NULL)) == NULL) {
+        return NULL;
+    }
+
+    for (i = 0; i < num_known_sigalgs; i++) {
+        if ((algString = (*e)->NewStringUTF(e, algs[i])) == NULL) {
             // something is wrong we should better just return here
             return NULL;
         }
+
         (*e)->SetObjectArrayElement(e, array, i, algString);
     }
+
     return array;
 #else
 
