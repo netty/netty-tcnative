@@ -2395,13 +2395,17 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
     jobjectArray array = NULL;
     jstring algString = NULL;
     const char *alg = NULL;
+    const char** algs = NULL;
     const uint16_t *peer_sigalgs = NULL;
     size_t num_peer_sigalgs = SSL_get0_peer_verify_algorithms(ssl_, &peer_sigalgs);
 
     if (num_peer_sigalgs <= 0) {
         return NULL;
     }
-    const char* algs[num_peer_sigalgs];
+
+    if ((algs = OPENSSL_malloc(sizeof(char*) * num_peer_sigalgs)) == NULL) {
+        return NULL;
+    }
 
     for (i = 0; i < num_peer_sigalgs; i++) {
         if ((alg = SSL_get_signature_algorithm_name(peer_sigalgs[i], SSL_version(ssl_) != TLS1_2_VERSION)) == NULL) {
@@ -2413,22 +2417,25 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
     }
 
     if (num_known_sigalgs == 0) {
-        return NULL;
+        goto complete;
     }
 
     if ((array = (*e)->NewObjectArray(e, num_known_sigalgs, tcn_get_string_class(), NULL)) == NULL) {
-        return NULL;
+        goto complete;
     }
 
     for (i = 0; i < num_known_sigalgs; i++) {
         if ((algString = (*e)->NewStringUTF(e, algs[i])) == NULL) {
-            // something is wrong we should better just return here
-            return NULL;
+            // something is wrong we should better bail out.
+            array = NULL;
+            goto complete;
         }
 
         (*e)->SetObjectArrayElement(e, array, i, algString);
     }
 
+complete:
+    OPENSSL_free(algs);
     return array;
 #else
 
