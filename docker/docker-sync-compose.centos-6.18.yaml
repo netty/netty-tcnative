@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-centos:centos-6-1.8
+    build:
+      args:
+        centos_version : "6"
+        java_version : "adopt@1.8.202-08"
+
+  build:
+    image: netty-tcnative-centos:centos-6-1.8
+    volumes:
+      - netty-tcnative-code-sync:/code:nocopy
+
+  shell:
+    image: netty-tcnative-centos:centos-6-1.8
+    volumes:
+      - netty-tcnative-code-sync:/code:nocopy
+
+volumes:
+  netty-tcnative-code-sync:
+    external: true
+

@@ -37,3 +37,7 @@ mainframer
 # exclude cmake related files
 CMakeLists.txt
 cmake-*
+
+# exclude docker-sync stuff
+.docker-sync
+*/.docker-sync
