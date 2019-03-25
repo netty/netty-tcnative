@@ -478,11 +478,19 @@ int tcn_SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipf
     return n;
 }
 
+// TODO: in the future we may want to add a function which does not need X509 at all for this.
 static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
 {
-    X509 *x509;
+#ifdef OPENSSL_IS_BORINGSSL
+    STACK_OF(CRYPTO_BUFFER) *names = sk_CRYPTO_BUFFER_new_null();
+    CRYPTO_BUFFER *buffer = NULL;
+    uint8_t *outp = NULL;
+    int len;
+#endif // OPENSSL_IS_BORINGSSL
+
+    X509 *x509 = NULL;
     unsigned long err;
-    int n;
+    int n = 0;
 
     /* optionally skip a leading server certificate */
     if (skipfirst) {
@@ -492,9 +500,26 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
         X509_free(x509);
     }
 
-    n = 0;
     if (ca) {
         while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
+#ifdef OPENSSL_IS_BORINGSSL
+            len = i2d_X509_NAME(X509_get_subject_name(x509), &outp);
+            if (len < 0) {
+                sk_CRYPTO_BUFFER_pop_free(names, CRYPTO_BUFFER_free);
+                X509_free(x509);
+                return -1;
+            }
+            buffer = CRYPTO_BUFFER_new(outp, len, NULL);
+            OPENSSL_free(outp);
+            outp = NULL;
+
+            if (buffer == NULL || sk_CRYPTO_BUFFER_push(names, buffer) <= 0) {
+                sk_CRYPTO_BUFFER_pop_free(names, CRYPTO_BUFFER_free);
+                CRYPTO_BUFFER_free(buffer);
+                X509_free(x509);
+                return -1;
+            }
+#else
             if (SSL_CTX_add_client_CA(ctx, x509) != 1) {
                 X509_free(x509);
                 return -1;
@@ -502,10 +527,21 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
             // SSL_CTX_add_client_CA does not take ownership of the x509. It just calls X509_get_subject_name
             // and make a duplicate of this value. So we should always free the x509 after this call.
             // See https://github.com/netty/netty/issues/6249.
+#endif // OPENSSL_IS_BORINGSSL
+
             X509_free(x509);
             n++;
         }
+
+#ifdef OPENSSL_IS_BORINGSSL
+        SSL_CTX_set0_client_CAs(ctx, names);
+#endif // OPENSSL_IS_BORINGSSL
+
     } else {
+
+#ifdef OPENSSL_IS_BORINGSSL
+        return -1;
+#else
         /* free a perhaps already configured extra chain */
         SSL_CTX_clear_extra_chain_certs(ctx);
 
@@ -518,8 +554,9 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
             }
             n++;
         }
-    }
+#endif // OPENSSL_IS_BORINGSSL
 
+    }
     /* Make sure that only the error is just an EOF */
     if ((err = ERR_peek_error()) > 0) {
         if (!(   ERR_GET_LIB(err) == ERR_LIB_PEM
@@ -536,12 +573,12 @@ int tcn_SSL_CTX_use_certificate_chain_bio(SSL_CTX *ctx, BIO *bio, bool skipfirst
     return SSL_CTX_setup_certs(ctx, bio, skipfirst, false);
 }
 
-
 int tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *ctx, BIO *bio)
 {
     return SSL_CTX_setup_certs(ctx, bio, false, true);
 }
 
+#ifndef OPENSSL_IS_BORINGSSL
 int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
 {
 #if defined(LIBRESSL_VERSION_NUMBER)
@@ -579,7 +616,7 @@ int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
         ERR_clear_error();
     }
     return n;
-#endif
+#endif // defined(LIBRESSL_VERSION_NUMBER)
 }
 
 X509 *tcn_load_pem_cert_bio(const char *password, const BIO *bio)
@@ -595,6 +632,7 @@ X509 *tcn_load_pem_cert_bio(const char *password, const BIO *bio)
     }
     return cert;
 }
+#endif // OPENSSL_IS_BORINGSSL
 
 EVP_PKEY *tcn_load_pem_key_bio(const char *password, const BIO *bio)
 {

@@ -506,7 +506,9 @@ public final class SSLContext {
      * callback used by openssl
      * @param ctx Server or Client context to use.
      * @param callback the callback to call during certificate selection.
+     * @deprecated use {@link #setCertificateCallback(long, CertificateCallback)}
      */
+    @Deprecated
     public static native void setCertRequestedCallback(long ctx, CertificateRequestedCallback callback);
 
     /**

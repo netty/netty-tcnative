@@ -312,8 +312,12 @@ DH         *tcn_SSL_callback_tmp_DH_4096(SSL *, int, int);
 int         tcn_SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, bool);
 int         tcn_SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, bool);
 int         tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *, BIO *);
-int         tcn_SSL_use_certificate_chain_bio(SSL *, BIO *, bool);
+
+#ifndef OPENSSL_IS_BORINGSSL
 X509        *tcn_load_pem_cert_bio(const char *, const BIO *);
+int         tcn_SSL_use_certificate_chain_bio(SSL *, BIO *, bool);
+#endif // OPENSSL_IS_BORINGSSL
+
 EVP_PKEY    *tcn_load_pem_key_bio(const char *, const BIO *);
 int         tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth);
 int         tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey);
@@ -323,16 +327,24 @@ int         tcn_SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned
 int         tcn_SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
 
-#if defined(OPENSSL_IS_BORINGSSL) || (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER))
+#ifdef OPENSSL_IS_BORINGSSL
+enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert);
+#endif // OPENSSL_IS_BORINGSSL
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER))
+
+#ifndef OPENSSL_IS_BORINGSSL
 #define tcn_SSL_add1_chain_cert(ssl, x509) SSL_add1_chain_cert(ssl, x509)
 #define tcn_SSL_add0_chain_cert(ssl, x509) SSL_add0_chain_cert(ssl, x509)
+#endif // OPENSSL_IS_BORINGSSL
+
 #define tcn_SSL_get0_certificate_types(ssl, clist) SSL_get0_certificate_types(ssl, clist)
 #else
 // This is what is defined in the SSL_add1_chain_cert / SSL_add0_chain_cert / SSL_get0_certificate_types macros.
 #define tcn_SSL_add1_chain_cert(ssl, x509) SSL_ctrl(ssl, SSL_CTRL_CHAIN_CERT, 1, (char *) x509)
 #define tcn_SSL_add0_chain_cert(ssl, x509) SSL_ctrl(ssl, SSL_CTRL_CHAIN_CERT, 0, (char *) x509)
 #define tcn_SSL_get0_certificate_types(ssl, clist) SSL_ctrl(ssl, SSL_CTRL_GET_CLIENT_CERT_TYPES, 0, (char *)(clist))
-#endif
+#endif // defined(OPENSSL_IS_BORINGSSL) || (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER))
 
 #if defined(__GNUC__) || defined(__GNUG__)
     // only supported with GCC, this will be used to support different openssl versions at the same time.
@@ -344,9 +356,11 @@ const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
     extern void SSL_get0_alpn_selected(const SSL *ssl, const unsigned char **data,
            unsigned *len) __attribute__((weak));
 
+#ifndef OPENSSL_IS_BORINGSSL
     extern X509_VERIFY_PARAM *SSL_get0_param(SSL *ssl) __attribute__((weak));
     extern void X509_VERIFY_PARAM_set_hostflags(X509_VERIFY_PARAM *param, unsigned int flags) __attribute__((weak));
     extern int X509_VERIFY_PARAM_set1_host(X509_VERIFY_PARAM *param, const char *name, size_t namelen) __attribute__((weak));
+#endif // OPENSSL_IS_BORINGSSL
 
     extern int SSL_get_sigalgs(SSL *s, int idx, int *psign, int *phash, int *psignhash, unsigned char *rsig, unsigned char *rhash) __attribute__((weak));
     extern void SSL_CTX_set_cert_cb(SSL_CTX *c, int (*cert_cb)(SSL *ssl, void *arg), void *arg) __attribute__((weak));

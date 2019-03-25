@@ -202,6 +202,7 @@ static char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1
     return NULL;
 }
 
+#ifdef _WIN32
 static char* netty_internal_tcnative_util_rstrchar(char* s1rbegin, const char* s1rend, const char c2) {
     for (; s1rbegin >= s1rend; --s1rbegin) {
         if (*s1rbegin == c2) {
@@ -210,6 +211,7 @@ static char* netty_internal_tcnative_util_rstrchar(char* s1rbegin, const char* s
     }
     return NULL;
 }
+#endif // _WIN32
 
 static char* netty_internal_tcnative_util_strstr_last(const char* haystack, const char* needle) {
     char* prevptr = NULL;

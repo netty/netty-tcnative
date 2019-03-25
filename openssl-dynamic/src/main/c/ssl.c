@@ -1298,14 +1298,21 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS,
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
                                                   jlong ssl /* SSL * */)
 {
-    STACK_OF(X509) *sk;
+#ifdef OPENSSL_IS_BORINGSSL
+    const STACK_OF(CRYPTO_BUFFER) *chain = NULL;
+    const CRYPTO_BUFFER * cert = NULL;
+    const tcn_ssl_ctxt_t* c = NULL;
+#else
+    STACK_OF(X509) *chain = NULL;
+    X509 *cert = NULL;
+    unsigned char *buf = NULL;
+#endif // OPENSSL_IS_BORINGSSL
     int len;
     int i;
-    X509 *cert;
     int length;
-    unsigned char *buf;
-    jobjectArray array;
-    jbyteArray bArray;
+    int offset;
+    jobjectArray array = NULL;
+    jbyteArray bArray = NULL;
     jclass byteArrayClass = tcn_get_byte_array_class();
 
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -1315,37 +1322,66 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     UNREFERENCED(o);
 
     // Get a stack of all certs in the chain.
-    sk = SSL_get_peer_cert_chain(ssl_);
+#ifdef OPENSSL_IS_BORINGSSL
+    c = tcn_SSL_get_app_data2(ssl_);
 
-    len = sk_X509_num(sk);
+    TCN_ASSERT(c != NULL);
+
+    chain = SSL_get0_peer_certificates(ssl_);
+    len = sk_CRYPTO_BUFFER_num(chain);
+
+    if (c->mode == SSL_MODE_SERVER) {
+        // We don't want to include the leaf certificate to mimic the behaviour of SSL_get_peer_cert_chain(...).
+        offset = 1;
+    } else {
+        offset = 0;
+    }
+#else
+    chain = SSL_get_peer_cert_chain(ssl_);
+    len = sk_X509_num(chain);
+    offset = 0;
+#endif // OPENSSL_IS_BORINGSSL
+
+    len -= offset;
     if (len <= 0) {
         // No peer certificate chain as no auth took place yet, or the auth was not successful.
         return NULL;
     }
+
     // Create the byte[][] array that holds all the certs
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
-        cert = sk_X509_value(sk, i);
 
-        buf = NULL;
+#ifdef OPENSSL_IS_BORINGSSL
+        cert = sk_CRYPTO_BUFFER_value(chain, i + offset);
+        length = CRYPTO_BUFFER_len(cert);
+#else
+        cert = sk_X509_value(chain, i + offset);
+
         length = i2d_X509(cert, &buf);
         if (length < 0) {
-            if (buf != NULL) {
-                OPENSSL_free(buf);
-            }
+            OPENSSL_free(buf);
             // In case of error just return an empty byte[][]
             return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
         }
+#endif // OPENSSL_IS_BORINGSSL
+
         bArray = (*e)->NewByteArray(e, length);
+
+#ifdef OPENSSL_IS_BORINGSSL
+        (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(cert));
+#else
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+        OPENSSL_free(buf);
+        buf = NULL;
+
+#endif // OPENSSL_IS_BORINGSSL
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
         (*e)->DeleteLocalRef(e, bArray);
-
-        OPENSSL_free(buf);
     }
     return array;
 }
@@ -1353,10 +1389,16 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
 TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
                                                   jlong ssl /* SSL * */)
 {
-    X509 *cert;
-    int length;
+#ifdef OPENSSL_IS_BORINGSSL
+    const STACK_OF(CRYPTO_BUFFER) *certs = NULL;
+    const CRYPTO_BUFFER *leafCert = NULL;
+#else
+    X509 *cert = NULL;
     unsigned char *buf = NULL;
-    jbyteArray bArray;
+#endif // OPENSSL_IS_BORINGSSL
+
+    jbyteArray bArray = NULL;
+    int length;
 
     SSL *ssl_ = J2P(ssl, SSL *);
 
@@ -1364,15 +1406,28 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
 
     UNREFERENCED(o);
 
-    // Get a stack of all certs in the chain
+#ifdef OPENSSL_IS_BORINGSSL
+    // Get a stack of all certs in the chain, the first is the leaf.
+    certs = SSL_get0_peer_certificates(ssl_);
+    if (certs == NULL || sk_CRYPTO_BUFFER_num(certs) <= 0) {
+        return NULL;
+    }
+    leafCert = sk_CRYPTO_BUFFER_value(certs, 0);
+    length = CRYPTO_BUFFER_len(leafCert);
+#else
     cert = SSL_get_peer_certificate(ssl_);
     if (cert == NULL) {
         return NULL;
     }
 
     length = i2d_X509(cert, &buf);
+#endif // OPENSSL_IS_BORINGSSL
 
     bArray = (*e)->NewByteArray(e, length);
+
+#ifdef OPENSSL_IS_BORINGSSL
+    (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(leafCert));
+#else
     (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
 
     // We need to free the cert as the reference count is incremented by one and it is not destroyed when the
@@ -1381,7 +1436,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
     X509_free(cert);
 
     OPENSSL_free(buf);
-
+#endif // OPENSSL_IS_BORINGSSL
     return bArray;
 }
 
@@ -1480,9 +1535,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jin
        tcn_SSL_set_app_data4(ssl_, verify_config);
     }
 
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL_set_custom_verify(ssl_, tcn_set_verify_config(verify_config, level, depth), tcn_SSL_cert_custom_verify);
+#else
     // No need to specify a callback for SSL_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
     SSL_set_verify(ssl_, tcn_set_verify_config(verify_config, level, depth), NULL);
     SSL_set_verify_depth(ssl_, verify_config->verify_depth);
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
@@ -1843,6 +1902,12 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
+#ifdef OPENSSL_IS_BORINGSSL
+    if (flags != 0) {
+        tcn_ThrowException(e, "flags must be 0");
+    }
+    // Let's just ignore this as it is done in the Java level anyway.
+#else
 // Use weak linking with GCC as this will allow us to run the same packaged version with multiple
 // version of openssl.
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -1850,10 +1915,10 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
         tcn_ThrowException(e, "hostname verification requires OpenSSL 1.0.2+");
         return;
     }
-#endif
+#endif // defined(__GNUC__) || defined(__GNUG__)
 
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) || LIBRESSL_VERSION_NUMBER >= 0x2060000fL || defined(OPENSSL_IS_BORINGSSL) || defined(__GNUC__) || defined(__GNUG__)
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) || LIBRESSL_VERSION_NUMBER >= 0x2060000fL || defined(__GNUC__) || defined(__GNUG__)
     if (hostnameString == NULL) {
         return;
     }
@@ -1875,7 +1940,9 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
     (*e)->ReleaseStringUTFChars(e, hostnameString, hostname);
 #else
     tcn_ThrowException(e, "hostname verification requires OpenSSL 1.0.2+");
-#endif
+#endif // (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) || LIBRESSL_VERSION_NUMBER >= 0x2060000fL || defined(__GNUC__) || defined(__GNUG__)
+
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong ssl) {
@@ -1905,6 +1972,9 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
                                                          jlong cert, jlong key,
                                                          jstring password)
 {
+#ifdef OPENSSL_IS_BORINGSSL
+    tcn_Throw(e, "Not supported using BoringSSL");
+#else
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
@@ -1965,6 +2035,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
@@ -1973,18 +2044,23 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
 {
     SSL *ssl_ = J2P(ssl, SSL *);
     BIO *b = J2P(chain, BIO *);
-    char err[ERR_LEN];
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
     TCN_CHECK_NULL(b, chain, /* void */);
 
     UNREFERENCED(o);
 
+// This call is only used to detect if we support KeyManager or not in netty. As we know that we support it in
+// BoringSSL we can just ignore this call. In the future we should remove the method all together.
+#ifndef OPENSSL_IS_BORINGSSL
+    char err[ERR_LEN];
+
     if (tcn_SSL_use_certificate_chain_bio(ssl_, b, skipfirst) < 0)  {
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate chain (%s)", err);
     }
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSL, loadPrivateKeyFromEngine)(TCN_STDARGS, jstring keyId, jstring password)
@@ -2050,8 +2126,19 @@ TCN_IMPLEMENT_CALL(void, SSL, freePrivateKey)(TCN_STDARGS, jlong privateKey)
 TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 {
     BIO *cert_bio = J2P(x509ChainBio, BIO *);
+
+#ifdef OPENSSL_IS_BORINGSSL
+    STACK_OF(CRYPTO_BUFFER) *chain = sk_CRYPTO_BUFFER_new_null();
+    CRYPTO_BUFFER *buffer = NULL;
+    char *name = NULL;
+    char *header = NULL;
+    uint8_t *data = NULL;
+    long data_len;
+#else
     X509* cert = NULL;
     STACK_OF(X509) *chain = NULL;
+#endif // OPENSSL_IS_BORINGSSL
+
     char err[ERR_LEN];
     unsigned long error;
     int n = 0;
@@ -2060,13 +2147,33 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 
     UNREFERENCED(o);
 
+#ifdef OPENSSL_IS_BORINGSSL
+    while (PEM_read_bio(cert_bio, &name, &header, &data, &data_len)) {
+
+        OPENSSL_free(name);
+        name = NULL;
+
+        OPENSSL_free(header);
+        header = NULL;
+
+        buffer = CRYPTO_BUFFER_new(data, data_len, NULL);
+        OPENSSL_free(data);
+        data = NULL;
+
+        if (buffer == NULL || sk_CRYPTO_BUFFER_push(chain, buffer) <= 0) {
+#else
     chain = sk_X509_new_null();
     while ((cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL)) != NULL) {
         if (sk_X509_push(chain, cert) <= 0) {
+#endif // OPENSSL_IS_BORINGSSL
+
             tcn_Throw(e, "No Certificate specified or invalid format");
             goto cleanup;
         }
+
+#ifndef OPENSSL_IS_BORINGSSL
         cert = NULL;
+#endif // OPENSSL_IS_BORINGSSL
         n++;
     }
 
@@ -2086,16 +2193,28 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 
 cleanup:
     ERR_clear_error();
+
+#ifdef OPENSSL_IS_BORINGSSL
+    sk_CRYPTO_BUFFER_pop_free(chain, CRYPTO_BUFFER_free);
+#else
     sk_X509_pop_free(chain, X509_free);
     X509_free(cert);
+#endif // OPENSSL_IS_BORINGSSL
+
     return 0;
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
 {
+#ifdef OPENSSL_IS_BORINGSSL
+    STACK_OF(CRYPTO_BUFFER) *chain = J2P(x509Chain, STACK_OF(CRYPTO_BUFFER) *);
+    UNREFERENCED(o);
+    sk_CRYPTO_BUFFER_pop_free(chain, CRYPTO_BUFFER_free);
+#else
     STACK_OF(X509) *chain = J2P(x509Chain, STACK_OF(X509) *);
     UNREFERENCED(o);
     sk_X509_pop_free(chain, X509_free);
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chain, jlong key)
@@ -2108,8 +2227,16 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
     EVP_PKEY* pkey = J2P(key, EVP_PKEY *);
+
+#ifdef OPENSSL_IS_BORINGSSL
+    STACK_OF(CRYPTO_BUFFER) *cchain = J2P(chain, STACK_OF(CRYPTO_BUFFER) *);
+    int numCerts = sk_CRYPTO_BUFFER_num(cchain);
+    CRYPTO_BUFFER* certs[numCerts];
+#else
     STACK_OF(X509) *cchain = J2P(chain, STACK_OF(X509) *);
-    int numCerts;
+    int numCerts = sk_X509_num(cchain);
+#endif // OPENSSL_IS_BORINGSSL
+
     char err[ERR_LEN];
     int i;
 
@@ -2118,16 +2245,24 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
 
     TCN_CHECK_NULL(cchain, chain, /* void */);
 
-    numCerts = sk_X509_num(cchain);
+#ifdef OPENSSL_IS_BORINGSSL
+    for (i = 0; i < numCerts; i++) {
+        certs[i] = sk_CRYPTO_BUFFER_value(cchain, i);
+    }
 
+    if (numCerts <= 0 || SSL_set_chain_and_key(ssl_, certs, numCerts, pkey, NULL) <= 0) {
+#else
     // SSL_use_certificate will increment the reference count of the cert.
     if (numCerts <= 0 || SSL_use_certificate(ssl_, sk_X509_value(cchain, 0)) <= 0) {
+#endif // OPENSSL_IS_BORINGSSL
+
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate (%s)", err);
         return;
     }
 
+#ifndef OPENSSL_IS_BORINGSSL
     if (pkey != NULL) {
         // SSL_use_PrivateKey will increment the reference count of the key.
         if (SSL_use_PrivateKey(ssl_, pkey) <= 0) {
@@ -2157,6 +2292,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
             return;
         }
     }
+#endif // OPENSSL_IS_BORINGSSL
+
 #endif
 }
 
@@ -2164,6 +2301,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialClientSide)(TCN_STDARGS, jlong ssl, 
 {
 #if defined(LIBRESSL_VERSION_NUMBER)
     tcn_Throw(e, "Not supported with LibreSSL");
+#elif defined(OPENSSL_IS_BORINGSSL)
+    tcn_Throw(e, "Not supported with BoringSSL");
 #else
     SSL *ssl_ = J2P(ssl, SSL *);
 
