@@ -2261,7 +2261,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
         certs[i] = sk_CRYPTO_BUFFER_value(cchain, i);
     }
 
-    if (numCerts <= 0 || SSL_set_chain_and_key(ssl_, certs, numCerts, pkey, NULL) <= 0) {
+    if (numCerts <= 0 || SSL_set_chain_and_key(ssl_, certs, numCerts, pkey, pkey == NULL ? &private_key_method : NULL) <= 0) {
 #else
     // SSL_use_certificate will increment the reference count of the cert.
     if (numCerts <= 0 || SSL_use_certificate(ssl_, sk_X509_value(cchain, 0)) <= 0) {

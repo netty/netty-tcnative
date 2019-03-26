@@ -606,10 +606,21 @@ public final class SSLContext {
     public static native long getSslCtx(long ctx);
 
     /**
-     * Enable or disable producing of tasks that should be obtained via {@link SSL#getTask(int)} and run.
+     * Enable or disable producing of tasks that should be obtained via {@link SSL#getTask(long)} and run.
      *
      * @param ctx context to use
      * @param useTasks {@code true} to enable, {@code false} to disable.
      */
     public static native void setUseTasks(long ctx, boolean useTasks);
+
+    /**
+     * Set the {@link SSLPrivateKeyMethod} to use for the given {@link SSLContext}. This allows to offload privatekey operations
+     * if needed.
+     *
+     * This method is currently only supported when {@code BoringSSL} is used.
+     *
+     * @param ctx context to use
+     * @param method method to use for the given context.
+     */
+    public static native void setPrivateKeyMethod(long ctx, SSLPrivateKeyMethod method);
 }

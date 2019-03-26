@@ -183,6 +183,67 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define TCN_X509_V_ERR_UNSPECIFIED (X509_V_ERR_UNSPECIFIED)
 #endif /*X509_V_ERR_UNSPECIFIED*/
 
+// BoringSSL compat
+#ifndef OPENSSL_IS_BORINGSSL
+#ifndef SSL_ERROR_WANT_PRIVATE_KEY_OPERATION
+#define SSL_ERROR_WANT_PRIVATE_KEY_OPERATION -1
+#endif // SSL_ERROR_WANT_PRIVATE_KEY_OPERATION
+
+// SSL_SIGN_* are signature algorithm values as defined in TLS 1.3.
+#ifndef SSL_SIGN_RSA_PKCS1_SHA1
+#define SSL_SIGN_RSA_PKCS1_SHA1 0x0201
+#endif // SSL_SIGN_RSA_PKCS1_SHA1
+
+#ifndef SSL_SIGN_RSA_PKCS1_SHA256
+#define SSL_SIGN_RSA_PKCS1_SHA256 0x0401
+#endif // SSL_SIGN_RSA_PKCS1_SHA256
+
+#ifndef SSL_SIGN_RSA_PKCS1_SHA384
+#define SSL_SIGN_RSA_PKCS1_SHA384 0x0501
+#endif // SSL_SIGN_RSA_PKCS1_SHA384
+
+#ifndef SSL_SIGN_RSA_PKCS1_SHA512
+#define SSL_SIGN_RSA_PKCS1_SHA512 0x0601
+#endif // SSL_SIGN_RSA_PKCS1_SHA512
+
+#ifndef SSL_SIGN_ECDSA_SHA1
+#define SSL_SIGN_ECDSA_SHA1 0x0203
+#endif // SSL_SIGN_ECDSA_SHA1
+
+#ifndef SSL_SIGN_ECDSA_SECP256R1_SHA256
+#define SSL_SIGN_ECDSA_SECP256R1_SHA256 0x0403
+#endif // SSL_SIGN_ECDSA_SECP256R1_SHA256
+
+#ifndef SSL_SIGN_ECDSA_SECP384R1_SHA384
+#define SSL_SIGN_ECDSA_SECP384R1_SHA384 0x0503
+#endif // SSL_SIGN_ECDSA_SECP384R1_SHA384
+
+#ifndef SSL_SIGN_ECDSA_SECP521R1_SHA512
+#define SSL_SIGN_ECDSA_SECP521R1_SHA512 0x0603
+#endif
+
+#ifndef SSL_SIGN_RSA_PSS_RSAE_SHA256
+#define SSL_SIGN_RSA_PSS_RSAE_SHA256 0x0804
+#endif // SSL_SIGN_RSA_PSS_RSAE_SHA256
+
+#ifndef SSL_SIGN_RSA_PSS_RSAE_SHA384
+#define SSL_SIGN_RSA_PSS_RSAE_SHA384 0x0805
+#endif // SSL_SIGN_RSA_PSS_RSAE_SHA384
+
+#ifndef SSL_SIGN_RSA_PSS_RSAE_SHA512
+#define SSL_SIGN_RSA_PSS_RSAE_SHA512 0x0806
+#endif // SSL_SIGN_RSA_PSS_RSAE_SHA512
+
+#ifndef SSL_SIGN_ED25519
+#define SSL_SIGN_ED25519 0x0807
+#endif // SSL_SIGN_ED25519
+
+#ifndef SSL_SIGN_RSA_PKCS1_MD5_SHA1
+#define SSL_SIGN_RSA_PKCS1_MD5_SHA1 0xff01
+#endif // SSL_SIGN_RSA_PKCS1_MD5_SHA1
+
+#endif // OPENSSL_IS_BORINGSSL
+
 // OCSP stapling should be present in OpenSSL as of version 1.0.0 but
 // we've only tested 1.0.2 and we need to support 1.0.1 because the
 // dynamically linked version of netty-tcnative is built with 1.0.1.
@@ -217,6 +278,10 @@ typedef struct {
     int verify_mode;
 } tcn_ssl_verify_config_t;
 
+#ifdef OPENSSL_IS_BORINGSSL
+extern const SSL_PRIVATE_KEY_METHOD private_key_method;
+#endif // OPENSSL_IS_BORINGSSL
+
 struct tcn_ssl_ctxt_t {
     apr_pool_t*              pool;
     SSL_CTX*                 ctx;
@@ -243,6 +308,12 @@ struct tcn_ssl_ctxt_t {
 
     jobject                  sni_hostname_matcher;
     jmethodID                sni_hostname_matcher_method;
+
+#ifdef OPENSSL_IS_BORINGSSL
+    jobject                  ssl_private_key_method;
+    jmethodID                ssl_private_key_sign_method;
+    jmethodID                ssl_private_key_decrypt_method;
+#endif // OPENSSL_IS_BORINGSSL
 
     tcn_ssl_verify_config_t  verify_config;
 
