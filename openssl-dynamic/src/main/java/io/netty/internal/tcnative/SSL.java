@@ -607,7 +607,10 @@ public final class SSL {
      * @param bio BIO of PEM-encoded Server CA Certificates.
      * @param skipfirst Skip first certificate if chain file is inside
      *                  certificate file.
+     *
+     * @deprecated use {@link #setKeyMaterial(long, long, long)}
      */
+    @Deprecated
     public static native void setCertificateChainBio(long ssl, long bio, boolean skipfirst);
 
     /**
@@ -631,7 +634,10 @@ public final class SSL {
      * @param password Certificate password. If null and certificate
      *                 is encrypted.
      * @throws Exception if an error happened
+     *
+     * @deprecated use {@link #setKeyMaterial(long, long, long)}
      */
+    @Deprecated
     public static native void setCertificateBio(
             long ssl, long certBio, long keyBio, String password) throws Exception;
 

@@ -126,24 +126,29 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
 
     UNREFERENCED(o);
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
-    // TODO this is very hacky as io.netty.handler.ssl.OpenSsl#doesSupportProtocol also uses this method to test for supported protocols. Furthermore
-    // in OpenSSL 1.1.0 the way protocols are enable/disabled changes
-    // (SSL_OP_NO_SSLv3,... are deprecated and you should use: https://www.openssl.org/docs/man1.1.0/ssl/SSL_CTX_set_max_proto_version.html)
-    if (mode == SSL_MODE_CLIENT)
-        ctx = SSL_CTX_new(TLS_client_method());
-    else if (mode == SSL_MODE_SERVER)
-        ctx = SSL_CTX_new(TLS_server_method());
-    else
-        ctx = SSL_CTX_new(TLS_method());
-
+#ifdef OPENSSL_IS_BORINGSSL
+    // When using BoringSSL we want to use CRYPTO_BUFFER to reduce memory usage and minimize overhead as we do not need
+    // X509* at all and just need the raw bytes of the certificates to construct our Java X509Certificate.
+    //
+    // See https://github.com/google/boringssl/blob/chromium-stable/PORTING.md#crypto_buffer
+    ctx = SSL_CTX_new(TLS_with_buffers_method());
 
     // Needed in BoringSSL to be able to use TLSv1.3
     //
     // See http://hg.nginx.org/nginx/rev/7ad0f4ace359
-    #if defined(OPENSSL_IS_BORINGSSL)
-        SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
-    #endif
+    SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
+
+#elif OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+    // TODO this is very hacky as io.netty.handler.ssl.OpenSsl#doesSupportProtocol also uses this method to test for supported protocols. Furthermore
+    // in OpenSSL 1.1.0 the way protocols are enable/disabled changes
+    // (SSL_OP_NO_SSLv3,... are deprecated and you should use: https://www.openssl.org/docs/man1.1.0/ssl/SSL_CTX_set_max_proto_version.html)
+    if (mode == SSL_MODE_CLIENT) {
+        ctx = SSL_CTX_new(TLS_client_method());
+    } else if (mode == SSL_MODE_SERVER) {
+        ctx = SSL_CTX_new(TLS_server_method());
+    } else {
+        ctx = SSL_CTX_new(TLS_method());
+    }
 #else
     switch (protocol) {
     case SSL_PROTOCOL_TLS:
@@ -259,7 +264,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         tcn_Throw(e, "Unsupported SSL protocol (%d)", protocol);
         goto cleanup;
     }
-#endif /* OPENSSL_VERSION_NUMBER >= 0x10100000L */
+#endif /* OPENSSL_IS_BORINGSSL */
 
     if (ctx == NULL) {
         char err[256];
@@ -494,6 +499,11 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
                                                                   jstring file,
                                                                   jboolean skipfirst)
 {
+#ifdef OPENSSL_IS_BORINGSSL
+    tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#else
+
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jboolean rv = JNI_FALSE;
 
@@ -508,12 +518,17 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
         rv = JNI_TRUE;
     TCN_FREE_CSTRING(file);
     return rv;
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jlong ctx,
                                                                   jlong chain,
                                                                   jboolean skipfirst)
 {
+#ifdef OPENSSL_IS_BORINGSSL
+    tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#else
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     BIO *b = J2P(chain, BIO *);
 
@@ -526,6 +541,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jl
         return JNI_TRUE;
     }
     return JNI_FALSE;
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS, jlong ctx, jlong certs)
@@ -567,6 +583,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
     }
 }
 
+#ifndef OPENSSL_IS_BORINGSSL
 static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
 {
     BIO *bio = NULL;
@@ -668,11 +685,16 @@ static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jbo
     }
 }
 
+#endif // OPENSSL_IS_BORINGSSL
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
                                                          jstring cert, jstring key,
                                                          jstring password)
 {
+#ifdef OPENSSL_IS_BORINGSSL
+    tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#else
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
@@ -760,12 +782,17 @@ cleanup:
     X509_free(xcert); // this function is safe to call with NULL
     free_and_reset_pass(c, old_password, rv);
     return rv;
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong ctx,
                                                          jlong cert, jlong key,
                                                          jstring password)
 {
+#ifdef OPENSSL_IS_BORINGSSL
+    tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#else
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
@@ -844,6 +871,7 @@ cleanup:
     X509_free(xcert); // this function is safe to call with NULL
     free_and_reset_pass(c, old_password, rv);
     return rv;
+#endif // OPENSSL_IS_BORINGSSL
 }
 
 // Convert protos to wire format
@@ -1370,7 +1398,17 @@ static STACK_OF(X509)* X509_STORE_CTX_get0_untrusted(X509_STORE_CTX *ctx) {
 }
 #endif
 
-static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* sk) {
+#ifdef OPENSSL_IS_BORINGSSL
+static jbyteArray get_certs(JNIEnv *e, SSL* ssl, const STACK_OF(CRYPTO_BUFFER)* chain) {
+    CRYPTO_BUFFER *cert = NULL;
+    const int totalQueuedLength = sk_CRYPTO_BUFFER_num(chain);
+#else
+static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
+    X509 *cert = NULL;
+    unsigned char *buf = NULL;
+    const int totalQueuedLength = sk_X509_num(chain);
+#endif // OPENSSL_IS_BORINGSSL
+
     tcn_ssl_verify_config_t* verify_config = tcn_SSL_get_app_data4(ssl);
     TCN_ASSERT(verify_config != NULL);
 
@@ -1379,12 +1417,10 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* sk) {
     // the limit are ignored. Error messages are generated as if these certificates would not be present,
     // most likely a X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY will be issued.
     // https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-    const int totalQueuedLength = sk_X509_num(sk);
     int len = TCN_MIN(verify_config->verify_depth, totalQueuedLength);
     unsigned i;
-    X509 *cert = NULL;
     int length;
-    unsigned char *buf = NULL;
+
     jbyteArray array = NULL;
     jbyteArray bArray = NULL;
     jclass byteArrayClass = tcn_get_byte_array_class();
@@ -1395,29 +1431,44 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* sk) {
     }
 
     for(i = 0; i < len; i++) {
-        cert = sk_X509_value(sk, i);
 
-        if ((length = i2d_X509(cert, &buf)) <= 0 || (bArray = (*e)->NewByteArray(e, length)) == NULL ) {
+#ifdef OPENSSL_IS_BORINGSSL
+        cert = sk_CRYPTO_BUFFER_value(chain, i);
+        length = CRYPTO_BUFFER_len(cert);
+#else
+        cert = sk_X509_value(chain, i);
+        length = i2d_X509(cert, &buf);
+#endif // OPENSSL_IS_BORINGSSL
+
+        if (length <= 0 || (bArray = (*e)->NewByteArray(e, length)) == NULL ) {
             (*e)->DeleteLocalRef(e, array);
             array = NULL;
             goto complete;
         }
 
+#ifdef OPENSSL_IS_BORINGSSL
+        (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(cert));
+#else
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+
+        OPENSSL_free(buf);
+        buf = NULL;
+#endif // OPENSSL_IS_BORINGSSL
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
         (*e)->DeleteLocalRef(e, bArray);
         bArray = NULL;
-
-        OPENSSL_free(buf);
-        buf = NULL;
     }
 
 complete:
+
+#ifndef OPENSSL_IS_BORINGSSL
     // We need to delete the local references so we not leak memory as this method is called via callback.
     OPENSSL_free(buf);
+#endif // OPENSSL_IS_BORINGSSL
+
     if (bArray != NULL) {
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
@@ -1513,11 +1564,11 @@ complete:
 }
 #else // OPENSSL_IS_BORINGSSL
 
-static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert) {
+enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert) {
     enum ssl_verify_result_t ret = ssl_verify_invalid;
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
     TCN_ASSERT(c != NULL);
-    STACK_OF(X509) *sk = NULL;
+    const STACK_OF(CRYPTO_BUFFER) *chain = NULL;
     jstring authMethodString = NULL;
     jint result = X509_V_ERR_UNSPECIFIED;
     jint len = 0;
@@ -1548,24 +1599,33 @@ static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *ou
 
         // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
         // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-        if (result == X509_V_ERR_UNSPECIFIED && len < sk_X509_num(sk)) {
+        if (result == X509_V_ERR_UNSPECIFIED && len < sk_CRYPTO_BUFFER_num(chain)) {
             result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
         }
         goto complete;
     }
 
-    if ((sk = SSL_get_peer_full_cert_chain(ssl)) == NULL) {
+    if ((chain = SSL_get0_peer_certificates(ssl)) == NULL) {
         goto complete;
     }
 
     // Create the byte[][] array that holds all the certs
-    if ((array = get_certs(e, ssl, sk)) == NULL) {
+    if ((array = get_certs(e, ssl, chain)) == NULL) {
         goto complete;
     }
 
     len = (*e)->GetArrayLength(e, array);
 
     if ((authMethodString = (*e)->NewStringUTF(e, authentication_method(ssl))) == NULL) {
+        goto complete;
+    }
+
+    if (c->verifier == NULL) {
+        // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
+        // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
+        if (len < sk_CRYPTO_BUFFER_num(chain)) {
+            result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
+        }
         goto complete;
     }
 
@@ -1595,7 +1655,7 @@ static enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *ou
 
         // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
         // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-        if (result == X509_V_ERR_UNSPECIFIED && len < sk_X509_num(sk)) {
+        if (result == X509_V_ERR_UNSPECIFIED && len < sk_CRYPTO_BUFFER_num(chain)) {
             result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
         }
 
@@ -1634,15 +1694,14 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint lev
     UNREFERENCED(o);
 
     int mode = tcn_set_verify_config(&c->verify_config, level, depth);
-    // No need to set the callback for SSL_CTX_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
-    SSL_CTX_set_verify(c->ctx, mode, NULL);
-    SSL_CTX_set_verify_depth(c->ctx, c->verify_config.verify_depth);
-
 #ifdef OPENSSL_IS_BORINGSSL
     if (c->verifier != NULL) {
         SSL_CTX_set_custom_verify(c->ctx, mode, tcn_SSL_cert_custom_verify);
     }
 #else
+    // No need to set the callback for SSL_CTX_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
+    SSL_CTX_set_verify(c->ctx, mode, NULL);
+    SSL_CTX_set_verify_depth(c->ctx, c->verify_config.verify_depth);
 #endif // OPENSSL_IS_BORINGSSL
 }
 
@@ -1705,21 +1764,32 @@ static jbyteArray keyTypes(JNIEnv* e, SSL* ssl) {
  * Partly based on code from conscrypt:
  * https://android.googlesource.com/platform/external/conscrypt/+/master/src/main/native/org_conscrypt_NativeCrypto.cpp
  */
+#ifdef OPENSSL_IS_BORINGSSL
+static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(CRYPTO_BUFFER)* names) {
+    CRYPTO_BUFFER* principal = NULL;
+#else
 static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) {
-    jobjectArray array;
-    jbyteArray bArray;
+    unsigned char *buf = NULL;
+    X509_NAME* principal = NULL;
+#endif // OPENSSL_IS_BORINGSSL
+    jobjectArray array = NULL;
+    jbyteArray bArray = NULL;;
     int i;
     int count;
     int length;
-    unsigned char *buf;
-    X509_NAME* principal;
+
     jclass byteArrayClass = tcn_get_byte_array_class();
 
     if (names == NULL) {
         return NULL;
     }
 
+#ifdef OPENSSL_IS_BORINGSSL
+    count = sk_CRYPTO_BUFFER_num(names);
+#else
     count = sk_X509_NAME_num(names);
+#endif // OPENSSL_IS_BORINGSSL
+
     if (count <= 0) {
         return NULL;
     }
@@ -1730,8 +1800,11 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
     }
 
     for (i = 0; i < count; i++) {
+#ifdef OPENSSL_IS_BORINGSSL
+        principal = sk_CRYPTO_BUFFER_value(names, i);
+        length = CRYPTO_BUFFER_len(principal);
+#else
         principal = sk_X509_NAME_value(names, i);
-        buf = NULL;
         length = i2d_X509_NAME(principal, &buf);
         if (length < 0) {
             if (buf != NULL) {
@@ -1741,33 +1814,44 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
             // In case of error just return an empty byte[][]
             return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
         }
+#endif // OPENSSL_IS_BORINGSSL
+
         bArray = (*e)->NewByteArray(e, length);
+
+#ifdef OPENSSL_IS_BORINGSSL
+        (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(principal));
+#else
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+        OPENSSL_free(buf);
+        buf = NULL;
+#endif // OPENSSL_IS_BORINGSSL
+
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
         (*e)->DeleteLocalRef(e, bArray);
-        OPENSSL_free(buf);
     }
 
     return array;
 }
 
+#ifndef OPENSSL_IS_BORINGSSL
 static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 #if defined(LIBRESSL_VERSION_NUMBER)
     // Not supported with LibreSSL
     return -1;
 #else
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
-    jobjectArray issuers;
-    JNIEnv *e;
-    jbyteArray types;
+    jobjectArray issuers = NULL;
+    JNIEnv *e = NULL;
+    jbyteArray types = NULL;
 
     tcn_get_java_env(&e);
 
     types = keyTypes(e, ssl);
-    issuers = principalBytes(e,  SSL_get_client_CA_list(ssl));
+
+    issuers = principalBytes(e, SSL_get_client_CA_list(ssl));
 
     // Execute the java callback
     (*e)->CallVoidMethod(e, c->cert_requested_callback, c->cert_requested_callback_method,
@@ -1787,6 +1871,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     return 1;
 #endif /* defined(LIBRESSL_VERSION_NUMBER) */
 }
+#endif // OPENSSL_IS_BORINGSSL
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlong ctx, jobject callback)
 {
@@ -1796,6 +1881,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 
     UNREFERENCED(o);
 
+#ifdef OPENSSL_IS_BORINGSSL
+    tcn_Throw(e, "Not supported using BoringSSL");
+#else
     if (callback == NULL) {
         SSL_CTX_set_client_cert_cb(c->ctx, NULL);
     } else {
@@ -1814,8 +1902,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 
         SSL_CTX_set_client_cert_cb(c->ctx, cert_requested);
     }
+#endif
 }
-
 
 // See https://www.openssl.org/docs/man1.0.2/man3/SSL_set_cert_cb.html for return values.
 static int certificate_cb(SSL* ssl, void* arg) {
@@ -1859,7 +1947,12 @@ static int certificate_cb(SSL* ssl, void* arg) {
         issuers = NULL;
     } else {
         types = keyTypes(e, ssl);
+
+#ifdef OPENSSL_IS_BORINGSSL
+        issuers = principalBytes(e, SSL_get0_server_requested_CAs(ssl));
+#else
         issuers = principalBytes(e, SSL_get_client_CA_list(ssl));
+#endif // OPENSSL_IS_BORINGSSL
     }
 
     // Let's check if we should provide the certificate callback as task that can be run on another Thread.
