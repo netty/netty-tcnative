@@ -28,8 +28,8 @@ AC_CONFIG_HEADERS([src/config.h])
 AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
 
-${CFLAGS="-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused-variable"}
-${CXXFLAGS="-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused-variable"}
+${CFLAGS="-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value"}
+${CXXFLAGS="-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value"}
 
 ## -----------------------------------------------
 ## Application Checks

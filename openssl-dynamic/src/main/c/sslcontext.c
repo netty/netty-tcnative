@@ -1362,6 +1362,7 @@ static const char* authentication_method(const SSL* ssl) {
     }
 }
 
+#ifndef LIBRESSL_VERSION_NUMBER
 static tcn_ssl_task_t* tcn_ssl_task_new(JNIEnv* e, jobject task) {
     tcn_ssl_task_t* sslTask = (tcn_ssl_task_t*) OPENSSL_malloc(sizeof(tcn_ssl_task_t));
     if (sslTask == NULL) {
@@ -1389,7 +1390,7 @@ static void tcn_ssl_task_free(JNIEnv* e, tcn_ssl_task_t* sslTask) {
     // The task was malloc'ed before, free it and clear it from the SSL storage.
     OPENSSL_free(sslTask);
 }
-
+#endif // LIBRESSL_VERSION_NUMBER
 
 /* Android end */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL)
@@ -1742,6 +1743,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     }
 }
 
+#ifndef LIBRESSL_VERSION_NUMBER
 static jbyteArray keyTypes(JNIEnv* e, SSL* ssl) {
     jbyte* ctype_bytes;
     jbyteArray types;
@@ -1835,6 +1837,7 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
 
     return array;
 }
+#endif // LIBRESSL_VERSION_NUMBER
 
 #ifndef OPENSSL_IS_BORINGSSL
 static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
@@ -1905,12 +1908,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 #endif
 }
 
+#ifndef LIBRESSL_VERSION_NUMBER
+
 // See https://www.openssl.org/docs/man1.0.2/man3/SSL_set_cert_cb.html for return values.
 static int certificate_cb(SSL* ssl, void* arg) {
-#if defined(LIBRESSL_VERSION_NUMBER)
-    // Not supported with LibreSSL
-    return 0;
-#else
     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
     TCN_ASSERT(c != NULL);
 
@@ -1983,8 +1984,8 @@ static int certificate_cb(SSL* ssl, void* arg) {
         return 1;
     }
 
-#endif /* defined(LIBRESSL_VERSION_NUMBER) */
 }
+#endif // LIBRESSL_VERSION_NUMBER
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong ctx, jobject callback)
 {

@@ -55,6 +55,9 @@ static ENGINE *tcn_ssl_engine = NULL;
 static UI_METHOD *ui_method = NULL;
 #endif // OPENSSL_NO_ENGINE
 
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+
 /* Global reference to the pool used by the dynamic mutexes */
 static apr_pool_t *dynlockpool = NULL;
 
@@ -65,6 +68,7 @@ struct CRYPTO_dynlock_value {
     int line;
     apr_thread_mutex_t *mutex;
 };
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 
 struct TCN_bio_bytebuffer {
     // Pointer arithmetic is done on this variable. The type must correspond to a "byte" size.
@@ -554,6 +558,8 @@ static ENGINE *ssl_try_load_engine(const char *engine)
  * To ensure thread-safetyness in OpenSSL
  */
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+
 static apr_thread_mutex_t **ssl_lock_cs;
 static int                  ssl_lock_num_locks;
 
@@ -707,6 +713,7 @@ static void ssl_thread_setup(apr_pool_t *p)
      * convenience.
      */
     dynlockpool = p;
+
     CRYPTO_set_dynlock_create_callback(ssl_dyn_create_function);
     CRYPTO_set_dynlock_lock_callback(ssl_dyn_lock_function);
     CRYPTO_set_dynlock_destroy_callback(ssl_dyn_destroy_function);
@@ -714,6 +721,8 @@ static void ssl_thread_setup(apr_pool_t *p)
     apr_pool_cleanup_register(p, NULL, ssl_thread_cleanup,
                               apr_pool_cleanup_null);
 }
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+
 
 TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
 {
@@ -757,8 +766,10 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     OPENSSL_load_builtin_modules();
 #endif
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
     /* Initialize thread support */
     ssl_thread_setup(tcn_global_pool);
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 
     apr_status_t err = APR_SUCCESS;
 
