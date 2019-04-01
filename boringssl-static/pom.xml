@@ -287,7 +287,7 @@
                     <configureArg>--with-ssl=no</configureArg>
                     <configureArg>--with-apr=${aprHome}</configureArg>
                     <configureArg>--with-static-libs</configureArg>
-                    <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused-variable</configureArg>
+                    <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
                     <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
                   </configureArgs>
