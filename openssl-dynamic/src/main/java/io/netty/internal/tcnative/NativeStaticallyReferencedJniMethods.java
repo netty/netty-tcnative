@@ -22,7 +22,7 @@ package io.netty.internal.tcnative;
  * <li>JNI Calls FindClass because RegisterNatives (used to register JNI methods) requires a class</li>
  * <li>FindClass loads the class, but static members variables of that class attempt to call a JNI method which has not
  * yet been registered.</li>
- * <li>{@link java.lang.UnsatisfiedLinkError} is thrown because native method has not yet been registered.</li>
+ * <li>{@link UnsatisfiedLinkError} is thrown because native method has not yet been registered.</li>
  * </ol>
  * <strong>Static members which call JNI methods must not be declared in this class!</strong>
  */
@@ -149,4 +149,18 @@ final class NativeStaticallyReferencedJniMethods {
 
     // BoringSSL specific.
     static native int sslErrorWantCertificateVerify();
+    static native int sslErrorWantPrivateKeyOperation();
+    static native int sslSignRsaPkcsSha1();
+    static native int sslSignRsaPkcsSha256();
+    static native int sslSignRsaPkcsSha384();
+    static native int sslSignRsaPkcsSha512();
+    static native int sslSignEcdsaPkcsSha1();
+    static native int sslSignEcdsaSecp256r1Sha256();
+    static native int sslSignEcdsaSecp384r1Sha384();
+    static native int sslSignEcdsaSecp521r1Sha512();
+    static native int sslSignRsaPssRsaeSha256();
+    static native int sslSignRsaPssRsaeSha384();
+    static native int sslSignRsaPssRsaeSha512();
+    static native int sslSignEd25519();
+    static native int sslSignRsaPkcs1Md5Sha1();
 }

@@ -49,6 +49,15 @@ static jmethodID certificateCallbackTask_init;
 static jclass    certificateVerifierTask_class;
 static jmethodID certificateVerifierTask_init;
 
+static jclass    sslPrivateKeyMethodTask_class;
+static jfieldID  sslPrivateKeyMethodTask_resultBytes;
+
+static jclass    sslPrivateKeyMethodSignTask_class;
+static jmethodID sslPrivateKeyMethodSignTask_init;
+
+static jclass    sslPrivateKeyMethodDecryptTask_class;
+static jmethodID sslPrivateKeyMethodDecryptTask_init;
+
 extern apr_pool_t *tcn_global_pool;
 
 static apr_status_t ssl_context_cleanup(void *data)
@@ -59,6 +68,14 @@ static apr_status_t ssl_context_cleanup(void *data)
     if (c != NULL) {
         SSL_CTX_free(c->ctx); // this function is safe to call with NULL
         c->ctx = NULL;
+
+#ifdef OPENSSL_IS_BORINGSSL
+        if (c->ssl_private_key_method != NULL) {
+            tcn_get_java_env(&e);
+            (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
+            c->ssl_private_key_method = NULL;
+        }
+#endif // OPENSSL_IS_BORINGSSL
 
         if (c->verifier != NULL) {
             tcn_get_java_env(&e);
@@ -2037,6 +2054,223 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
 #endif // defined(LIBRESSL_VERSION_NUMBER)
 }
 
+// Support for SSL_PRIVATE_KEY_METHOD.
+#ifdef OPENSSL_IS_BORINGSSL
+
+static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t *out, size_t *out_len, size_t max_out, uint16_t signature_algorithm, const uint8_t *in, size_t in_len) {
+    enum ssl_private_key_result_t ret = ssl_private_key_failure;
+
+    tcn_ssl_task_t* sslTask = NULL;
+    tcn_ssl_ctxt_t* c = tcn_SSL_get_app_data2(ssl);
+    jbyteArray resultBytes = NULL;
+    jbyteArray inputArray = NULL;
+    jbyte* b = NULL;
+    int arrayLen = 0;
+    JNIEnv *e = NULL;
+
+    if (c->ssl_private_key_method == NULL) {
+        goto complete;
+    }
+
+    tcn_get_java_env(&e);
+
+    if ((inputArray = (*e)->NewByteArray(e, in_len)) == NULL) {
+        goto complete;
+    }
+    (*e)->SetByteArrayRegion(e, inputArray, 0, in_len, (jbyte*) in);
+
+    if (c->use_tasks) {
+        // Lets create the SSLPrivateKeyMethodSignTask and store it on the SSL object. We then later retrieve it via
+        // SSL.getTask(ssl) and run it.
+        jobject task = (*e)->NewObject(e, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init, P2J(ssl),
+                signature_algorithm, inputArray, c->ssl_private_key_method);
+        if ((sslTask = tcn_ssl_task_new(e, task)) == NULL) {
+            goto complete;
+        }
+
+        tcn_SSL_set_app_data5(ssl, sslTask);
+        ret = ssl_private_key_retry;
+    } else {
+        resultBytes = (*e)->CallObjectMethod(e, c->ssl_private_key_method, c->ssl_private_key_sign_method,
+                P2J(ssl), signature_algorithm, inputArray);
+        if ((*e)->ExceptionCheck(e) == JNI_FALSE) {
+            arrayLen = (*e)->GetArrayLength(e, resultBytes);
+            if (max_out >= arrayLen) {
+                b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
+                memcpy(out, b, arrayLen);
+                (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
+                *out_len = arrayLen;
+
+                ret = ssl_private_key_success;
+            }
+        } else {
+            (*e)->ExceptionClear(e);
+            ret = ssl_private_key_failure;
+        }
+    }
+complete:
+    // Free up any allocated memory and return.
+    if (inputArray != NULL) {
+        (*e)->DeleteLocalRef(e, inputArray);
+    }
+    return ret;
+}
+
+static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint8_t *out, size_t *out_len, size_t max_out, const uint8_t *in, size_t in_len) {
+    enum ssl_private_key_result_t ret = ssl_private_key_failure;
+    tcn_ssl_ctxt_t* c = tcn_SSL_get_app_data2(ssl);
+    tcn_ssl_task_t* sslTask = NULL;
+    jbyteArray resultBytes = NULL;
+    jbyteArray inArray = NULL;
+    jbyte* b = NULL;
+    int arrayLen = 0;
+    JNIEnv *e = NULL;
+
+    if (c->ssl_private_key_method == NULL) {
+        goto complete;
+    }
+
+    tcn_get_java_env(&e);
+
+    if ((inArray = (*e)->NewByteArray(e, in_len)) == NULL) {
+        goto complete;
+    }
+    (*e)->SetByteArrayRegion(e, inArray, 0, in_len, (jbyte*) in);
+
+    if (c->use_tasks) {
+        // Lets create the SSLPrivateKeyMethodDecryptTask and store it on the SSL object. We then later retrieve it via
+        // SSL.getTask(ssl) and run it.
+        jobject task = (*e)->NewObject(e, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_init,
+                P2J(ssl), inArray, c->ssl_private_key_method);
+
+        if ((sslTask = tcn_ssl_task_new(e, task)) == NULL) {
+            goto complete;
+        }
+
+        tcn_SSL_set_app_data5(ssl, sslTask);
+        ret = ssl_private_key_retry;
+    } else {
+        resultBytes = (*e)->CallObjectMethod(e, c->ssl_private_key_method, c->ssl_private_key_decrypt_method,
+            P2J(ssl), inArray);
+        if ((*e)->ExceptionCheck(e) == JNI_FALSE) {
+            arrayLen = (*e)->GetArrayLength(e, resultBytes);
+            if (max_out >= arrayLen) {
+                b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
+                memcpy(out, b, arrayLen);
+                (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
+                *out_len = arrayLen;
+                ret = ssl_private_key_success;
+            }
+        } else {
+            (*e)->ExceptionClear(e);
+            ret = ssl_private_key_failure;
+        }
+    }
+
+complete:
+    // Delete the local reference as this is executed by a callback.
+    if (inArray != NULL) {
+        (*e)->DeleteLocalRef(e, inArray);
+    }
+    return ret;
+}
+
+static enum ssl_private_key_result_t tcn_private_key_complete_java(SSL *ssl, uint8_t *out, size_t *out_len, size_t max_out) {
+    tcn_ssl_ctxt_t* c = tcn_SSL_get_app_data2(ssl);
+    tcn_ssl_task_t* sslTask = NULL;
+    jbyte* b = NULL;
+    int arrayLen = 0;
+    JNIEnv *e = NULL;
+
+    if (c->use_tasks == 0) {
+        // We do not use any asynchronous implementation so just report success.
+        return ssl_private_key_success;
+    }
+
+    // Let's check if we retried the operation and so have stored a sslTask that runs the sign / decrypt callback.
+    sslTask = tcn_SSL_get_app_data5(ssl);
+    if (sslTask != NULL) {
+        tcn_get_java_env(&e);
+
+        // Check if the task complete yet. If not the complete field will be still false.
+        if ((*e)->GetBooleanField(e, sslTask->task, sslTask_complete) == JNI_FALSE) {
+            // Not done yet, try again later.
+            return ssl_private_key_retry;
+        }
+
+        // The task is complete, retrieve the return value that should be signaled back.
+        jbyteArray resultBytes = (*e)->GetObjectField(e, sslTask->task, sslPrivateKeyMethodTask_resultBytes);
+
+        tcn_ssl_task_free(e, sslTask);
+        tcn_SSL_set_app_data5(ssl, NULL);
+
+        if (resultBytes == NULL) {
+            return ssl_private_key_failure;
+        }
+
+        arrayLen = (*e)->GetArrayLength(e, resultBytes);
+        if (max_out < arrayLen) {
+             // We need to fail as otherwise we would end up writing into memory which does not
+             // belong to us.
+            return ssl_private_key_failure;
+        }
+        b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
+        memcpy(out, b, arrayLen);
+        (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
+        *out_len = arrayLen;
+        return ssl_private_key_success;
+    }
+    return ssl_private_key_failure;
+}
+
+const SSL_PRIVATE_KEY_METHOD private_key_method = {
+    &tcn_private_key_sign_java,
+    &tcn_private_key_decrypt_java,
+    &tcn_private_key_complete_java
+};
+#endif // OPENSSL_IS_BORINGSSL
+
+
+TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod)(TCN_STDARGS, jlong ctx, jobject method) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+#ifdef OPENSSL_IS_BORINGSSL
+    if (method == NULL) {
+        SSL_CTX_set_private_key_method(c->ctx, NULL);
+    } else {
+        jclass method_class = (*e)->GetObjectClass(e, method);
+        if (method_class == NULL) {
+            tcn_Throw(e, "Unable to retrieve method class");
+            return;
+        }
+
+        jmethodID signMethod = (*e)->GetMethodID(e, method_class, "sign", "(JI[B)[B");
+        if (signMethod == NULL) {
+            tcn_Throw(e, "Unable to retrieve sign method");
+            return;
+        }
+
+        jmethodID decryptMethod = (*e)->GetMethodID(e, method_class, "decrypt", "(J[B)[B");
+        if (decryptMethod == NULL) {
+            tcn_Throw(e, "Unable to retrieve decrypt method");
+            return;
+        }
+
+        if (c->ssl_private_key_method != NULL) {
+            (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
+        }
+        c->ssl_private_key_method = (*e)->NewGlobalRef(e, method);
+        c->ssl_private_key_sign_method = signMethod;
+        c->ssl_private_key_decrypt_method = decryptMethod;
+
+        SSL_CTX_set_private_key_method(c->ctx, &private_key_method);
+    }
+#else
+    tcn_ThrowException(e, "Requires BoringSSL");
+#endif // OPENSSL_IS_BORINGSSL
+}
+
 static int ssl_servername_cb(SSL *ssl, int *ad, void *arg)
 {
     JNIEnv *e = NULL;
@@ -2283,6 +2517,7 @@ static const JNINativeMethod fixed_method_table[] = {
   // setCertRequestedCallback -> needs dynamic method table
   // setCertificateCallback -> needs dynamic method table
   // setSniHostnameMatcher -> needs dynamic method table
+  // setPrivateKeyMethod --> needs dynamic method table
 
   { TCN_METHOD_TABLE_ENTRY(setSessionIdContext, (J[B)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setMode, (JI)I, SSLContext) },
@@ -2296,7 +2531,7 @@ static const JNINativeMethod fixed_method_table[] = {
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
 
 static jint dynamicMethodsTableSize() {
-    return fixed_method_table_size + 4;
+    return fixed_method_table_size + 5;
 }
 
 static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
@@ -2329,6 +2564,14 @@ static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
     dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSniHostnameMatcher);
     free(dynamicTypeName);
+
+    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V");
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 4];
+    dynamicMethod->name = "setPrivateKeyMethod";
+    dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setPrivateKeyMethod);
+    free(dynamicTypeName);
+
     return dynamicMethods;
 }
 
@@ -2373,7 +2616,6 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
                    "<init>", initArguments, JNI_ERR);
     free(initArguments);
 
-
     char* certificateVerifierTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateVerifierTask");
     TCN_LOAD_CLASS(env, certificateVerifierTask_class, certificateVerifierTaskName, JNI_ERR);
     free(certificateVerifierTaskName);
@@ -2382,7 +2624,36 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     initArguments = netty_internal_tcnative_util_prepend("(J[[BLjava/lang/String;L", certificateVerifierName);
     free(certificateVerifierName);
 
-    TCN_GET_METHOD(env, certificateVerifierTask_class, certificateVerifierTask_init,
+    TCN_GET_METHOD(env, certificateVerifierTask_class, certificateVerifierTask_init, "<init>", initArguments, JNI_ERR);
+    free(initArguments);
+
+    char* sslPrivateKeyMethodTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodTask");
+    TCN_LOAD_CLASS(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTaskName, JNI_ERR);
+    free(sslPrivateKeyMethodTaskName);
+
+    TCN_GET_FIELD(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTask_resultBytes, "resultBytes", "[B", JNI_ERR);
+
+    char* sslPrivateKeyMethodSignTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodSignTask");
+    TCN_LOAD_CLASS(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTaskName, JNI_ERR);
+    free(sslPrivateKeyMethodSignTaskName);
+
+    char* callbackName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V");
+    initArguments = netty_internal_tcnative_util_prepend("(JI[BL", callbackName);
+    free(callbackName);
+
+    TCN_GET_METHOD(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init,
+                   "<init>", initArguments, JNI_ERR);
+    free(initArguments);
+
+    char* sslPrivateKeyMethodDecryptTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodDecryptTask");
+    TCN_LOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTaskName, JNI_ERR);
+    free(sslPrivateKeyMethodDecryptTaskName);
+
+    callbackName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V");
+    initArguments = netty_internal_tcnative_util_prepend("(J[BL", callbackName);
+    free(callbackName);
+
+    TCN_GET_METHOD(env, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_init,
                    "<init>", initArguments, JNI_ERR);
     free(initArguments);
 
@@ -2392,4 +2663,7 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
 void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env) {
     TCN_UNLOAD_CLASS(env, sslTask_class);
     TCN_UNLOAD_CLASS(env, certificateCallbackTask_class);
+    TCN_UNLOAD_CLASS(env, sslPrivateKeyMethodTask_class);
+    TCN_UNLOAD_CLASS(env, sslPrivateKeyMethodSignTask_class);
+    TCN_UNLOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class);
 }

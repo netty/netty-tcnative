@@ -485,6 +485,62 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslErrorWantCerti
     return SSL_ERROR_WANT_CERTIFICATE_VERIFY;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslErrorWantPrivateKeyOperation)(TCN_STDARGS) {
+    return SSL_ERROR_WANT_PRIVATE_KEY_OPERATION;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPkcsSha1)(TCN_STDARGS) {
+    return SSL_SIGN_RSA_PKCS1_SHA1;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPkcsSha256)(TCN_STDARGS) {
+    return SSL_SIGN_RSA_PKCS1_SHA256;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPkcsSha384)(TCN_STDARGS) {
+    return SSL_SIGN_RSA_PKCS1_SHA384;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPkcsSha512)(TCN_STDARGS) {
+    return SSL_SIGN_RSA_PKCS1_SHA512;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignEcdsaPkcsSha1)(TCN_STDARGS) {
+    return SSL_SIGN_ECDSA_SHA1;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignEcdsaSecp256r1Sha256)(TCN_STDARGS) {
+    return SSL_SIGN_ECDSA_SECP256R1_SHA256;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignEcdsaSecp384r1Sha384)(TCN_STDARGS) {
+    return SSL_SIGN_ECDSA_SECP384R1_SHA384;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignEcdsaSecp521r1Sha512)(TCN_STDARGS) {
+    return SSL_SIGN_ECDSA_SECP521R1_SHA512;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPssRsaeSha256)(TCN_STDARGS) {
+    return SSL_SIGN_RSA_PSS_RSAE_SHA256;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPssRsaeSha384)(TCN_STDARGS) {
+    return SSL_SIGN_RSA_PSS_RSAE_SHA384;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPssRsaeSha512)(TCN_STDARGS) {
+    return SSL_SIGN_RSA_PSS_RSAE_SHA512;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignEd25519)(TCN_STDARGS) {
+    return SSL_SIGN_ED25519;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPkcs1Md5Sha1)(TCN_STDARGS) {
+    return SSL_SIGN_RSA_PKCS1_MD5_SHA1;
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslOpCipherServerPreference, ()I, NativeStaticallyReferencedJniMethods) },
@@ -587,7 +643,21 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(x509vErrIpAddressMismatch, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(x509vErrDaneNoMatch, ()I, NativeStaticallyReferencedJniMethods) },
   // BoringSSL specific
-  { TCN_METHOD_TABLE_ENTRY(sslErrorWantCertificateVerify, ()I, NativeStaticallyReferencedJniMethods) }
+  { TCN_METHOD_TABLE_ENTRY(sslErrorWantCertificateVerify, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslErrorWantPrivateKeyOperation, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPkcsSha1, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPkcsSha256, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPkcsSha384, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPkcsSha512, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignEcdsaPkcsSha1, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignEcdsaSecp256r1Sha256, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignEcdsaSecp384r1Sha384, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignEcdsaSecp521r1Sha512, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPssRsaeSha256, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPssRsaeSha384, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPssRsaeSha512, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignEd25519, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPkcs1Md5Sha1, ()I, NativeStaticallyReferencedJniMethods) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);

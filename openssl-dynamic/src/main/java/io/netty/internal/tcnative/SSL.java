@@ -156,6 +156,8 @@ public final class SSL {
     public static final int SSL_ERROR_ZERO_RETURN      = sslErrorZeroReturn();
     public static final int SSL_ERROR_WANT_CONNECT     = sslErrorWantConnect();
     public static final int SSL_ERROR_WANT_ACCEPT      = sslErrorWantAccept();
+    // https://boringssl.googlesource.com/boringssl/+/chromium-stable/include/openssl/ssl.h#519
+    public static final int SSL_ERROR_WANT_PRIVATE_KEY_OPERATION = sslErrorWantPrivateKeyOperation();
 
     // BoringSSL specific
     public static final int SSL_ERROR_WANT_CERTIFICATE_VERIFY = sslErrorWantCertificateVerify();
