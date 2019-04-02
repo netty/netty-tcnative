@@ -2242,7 +2242,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
 #ifdef OPENSSL_IS_BORINGSSL
     STACK_OF(CRYPTO_BUFFER) *cchain = J2P(chain, STACK_OF(CRYPTO_BUFFER) *);
     int numCerts = sk_CRYPTO_BUFFER_num(cchain);
-    CRYPTO_BUFFER* certs[numCerts];
+    CRYPTO_BUFFER** certs = NULL;
 #else
     STACK_OF(X509) *cchain = J2P(chain, STACK_OF(X509) *);
     int numCerts = sk_X509_num(cchain);
@@ -2257,6 +2257,11 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
     TCN_CHECK_NULL(cchain, chain, /* void */);
 
 #ifdef OPENSSL_IS_BORINGSSL
+    if ((certs = OPENSSL_malloc(sizeof(CRYPTO_BUFFER*) * numCerts)) == NULL) {
+        tcn_Throw(e, "OPENSSL_malloc returned NULL");
+        return;
+    }
+
     for (i = 0; i < numCerts; i++) {
         certs[i] = sk_CRYPTO_BUFFER_value(cchain, i);
     }
@@ -2270,10 +2275,11 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate (%s)", err);
-        return;
     }
 
-#ifndef OPENSSL_IS_BORINGSSL
+#ifdef OPENSSL_IS_BORINGSSL
+    OPENSSL_free(certs);
+#else
     if (pkey != NULL) {
         // SSL_use_PrivateKey will increment the reference count of the key.
         if (SSL_use_PrivateKey(ssl_, pkey) <= 0) {
