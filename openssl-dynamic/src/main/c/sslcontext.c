@@ -2021,6 +2021,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
     if (!SSL_CTX_set_cert_cb) {
         UNREFERENCED(o);
         tcn_ThrowException(e, "Requires OpenSSL 1.0.2+");
+        return;
     }
 #endif // defined(__GNUC__) || defined(__GNUG__)
 
