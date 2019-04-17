@@ -878,7 +878,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getLastError)(TCN_STDARGS)
 {
     char buf[ERR_LEN];
     UNREFERENCED(o);
-    ERR_error_string(ERR_get_error(), buf);
+    ERR_error_string_n(ERR_get_error(), buf, ERR_LEN);
     return tcn_new_string(e, buf);
 }
 
@@ -1455,7 +1455,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
 {
     char buf[ERR_LEN];
     UNREFERENCED(o);
-    ERR_error_string(number, buf);
+    ERR_error_string_n(number, buf, ERR_LEN);
     return tcn_new_string(e, buf);
 }
 
@@ -1703,8 +1703,8 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
 #endif // OPENSSL_NO_TLS1_3
 
     if (rv == JNI_FALSE) {
-        char err[256];
-        ERR_error_string(ERR_get_error(), err);
+        char err[ERR_LEN];
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
     }
     TCN_FREE_CSTRING(ciphers);
@@ -1901,7 +1901,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setTlsExtHostName0)(TCN_STDARGS, jlong ssl, jstrin
 
     if (SSL_set_tlsext_host_name(ssl_, J2S(hostname)) != 1) {
         char err[ERR_LEN];
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         tcn_Throw(e, "Unable to set TLS servername extension (%s)", err);
     }
 
@@ -1945,7 +1945,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
 
     if (X509_VERIFY_PARAM_set1_host(param, hostname, hostnameLen) != 1) {
         char err[ERR_LEN];
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         tcn_Throw(e, "X509_VERIFY_PARAM_set1_host error (%s)", err);
     }
     (*e)->ReleaseStringUTFChars(e, hostnameString, hostname);
