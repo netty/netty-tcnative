@@ -284,8 +284,8 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
 #endif /* OPENSSL_IS_BORINGSSL */
 
     if (ctx == NULL) {
-        char err[256];
-        ERR_error_string(ERR_get_error(), err);
+        char err[ERR_LEN];
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         tcn_Throw(e, "Failed to initialize SSL_CTX (%s)", err);
         goto cleanup;
     }
@@ -504,8 +504,8 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
     }
 #endif // OPENSSL_NO_TLS1_3
     if (rv == JNI_FALSE) {
-        char err[256];
-        ERR_error_string(ERR_get_error(), err);
+        char err[ERR_LEN];
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
     }
     TCN_FREE_CSTRING(ciphers);
@@ -725,7 +725,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     const char *key_file, *cert_file;
     const char *p;
     char *old_password = NULL;
-    char err[256];
+    char err[ERR_LEN];
 
     UNREFERENCED(o);
 
@@ -749,7 +749,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     }
     if ((p = strrchr(cert_file, '.')) != NULL && strcmp(p, ".pkcs12") == 0) {
         if (!ssl_load_pkcs12(c, cert_file, &pkey, &xcert, 0)) {
-            ERR_error_string(ERR_get_error(), err);
+            ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
             tcn_Throw(e, "Unable to load certificate %s (%s)",
                       cert_file, err);
             rv = JNI_FALSE;
@@ -758,14 +758,14 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     }
     else {
         if ((pkey = load_pem_key(c, key_file)) == NULL) {
-            ERR_error_string(ERR_get_error(), err);
+            ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
             tcn_Throw(e, "Unable to load certificate key %s (%s)",
                       key_file, err);
             rv = JNI_FALSE;
             goto cleanup;
         }
         if ((xcert = load_pem_cert(c, cert_file)) == NULL) {
-            ERR_error_string(ERR_get_error(), err);
+            ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
             tcn_Throw(e, "Unable to load certificate %s (%s)",
                       cert_file, err);
             rv = JNI_FALSE;
@@ -773,19 +773,19 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
         }
     }
     if (SSL_CTX_use_certificate(c->ctx, xcert) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         tcn_Throw(e, "Error setting certificate (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
     if (SSL_CTX_use_PrivateKey(c->ctx, pkey) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         tcn_Throw(e, "Error setting private key (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
     if (SSL_CTX_check_private_key(c->ctx) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         tcn_Throw(e, "Private key does not match the certificate public key (%s)",
                   err);
         rv = JNI_FALSE;
@@ -822,7 +822,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(password);
     char *old_password = NULL;
-    char err[256];
+    char err[ERR_LEN];
 
     UNREFERENCED(o);
 
@@ -845,14 +845,14 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     }
 
     if ((pkey = tcn_load_pem_key_bio(c->password, key_bio)) == NULL) {
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate key (%s)",err);
         rv = JNI_FALSE;
         goto cleanup;
     }
     if ((xcert = tcn_load_pem_cert_bio(c->password, cert_bio)) == NULL) {
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Unable to load certificate (%s) ", err);
         rv = JNI_FALSE;
@@ -860,21 +860,21 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     }
 
     if (SSL_CTX_use_certificate(c->ctx, xcert) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
     if (SSL_CTX_use_PrivateKey(c->ctx, pkey) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Error setting private key (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
     if (SSL_CTX_check_private_key(c->ctx) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
 
         tcn_Throw(e, "Private key does not match the certificate public key (%s)",
