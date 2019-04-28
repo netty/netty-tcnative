@@ -2095,14 +2095,18 @@ static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t
         resultBytes = (*e)->CallObjectMethod(e, c->ssl_private_key_method, c->ssl_private_key_sign_method,
                 P2J(ssl), signature_algorithm, inputArray);
         if ((*e)->ExceptionCheck(e) == JNI_FALSE) {
-            arrayLen = (*e)->GetArrayLength(e, resultBytes);
-            if (max_out >= arrayLen) {
-                b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
-                memcpy(out, b, arrayLen);
-                (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
-                *out_len = arrayLen;
+            if (resultBytes == NULL) {
+                ret = ssl_private_key_failure;
+            } else {
+                arrayLen = (*e)->GetArrayLength(e, resultBytes);
+                if (max_out >= arrayLen) {
+                    b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
+                    memcpy(out, b, arrayLen);
+                    (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
+                    *out_len = arrayLen;
 
-                ret = ssl_private_key_success;
+                    ret = ssl_private_key_success;
+                }
             }
         } else {
             (*e)->ExceptionClear(e);
@@ -2154,13 +2158,17 @@ static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint
         resultBytes = (*e)->CallObjectMethod(e, c->ssl_private_key_method, c->ssl_private_key_decrypt_method,
             P2J(ssl), inArray);
         if ((*e)->ExceptionCheck(e) == JNI_FALSE) {
-            arrayLen = (*e)->GetArrayLength(e, resultBytes);
-            if (max_out >= arrayLen) {
-                b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
-                memcpy(out, b, arrayLen);
-                (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
-                *out_len = arrayLen;
-                ret = ssl_private_key_success;
+            if (resultBytes == NULL) {
+                ret = ssl_private_key_failure;
+            } else {
+                arrayLen = (*e)->GetArrayLength(e, resultBytes);
+                if (max_out >= arrayLen) {
+                    b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
+                    memcpy(out, b, arrayLen);
+                    (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
+                    *out_len = arrayLen;
+                    ret = ssl_private_key_success;
+                }
             }
         } else {
             (*e)->ExceptionClear(e);
