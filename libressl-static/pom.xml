@@ -136,9 +136,12 @@
               <forceConfigure>${forceConfigure}</forceConfigure>
               <windowsBuildTool>msbuild</windowsBuildTool>
               <configureArgs>
-                <configureArg>--with-ssl=${sslHome}</configureArg>
+                <configureArg>--with-ssl=no</configureArg>
                 <configureArg>--with-apr=${aprHome}</configureArg>
                 <configureArg>--with-static-libs</configureArg>
+                <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
+                <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${libresslCheckoutDir}/include</configureArg>
+                <configureArg>LDFLAGS=-L${libresslBuildDir}/ssl -L${libresslBuildDir}/crypto -L${libresslBuildDir}/tls -ltls -lssl -lcrypto</configureArg>
               </configureArgs>
             </configuration>
           </execution>
@@ -242,20 +245,22 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${sslHome}" />
+                      <available file="${libresslBuildDir}" />
                       <then>
                         <echo message="LibreSSL was already build, skipping the build step." />
                       </then>
                       <else>
                         <echo message="Building LibreSSL" />
-                        <mkdir dir="${sslHome}" />
-                        <exec executable="configure" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
-                          <arg line="--disable-shared --prefix=${sslHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
+                        <mkdir dir="${libresslBuildDir}" />
+                        <exec executable="cmake" failonerror="true" dir="${libresslBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer -fPIC" />
+                          <arg value="-GNinja" />
+                          <arg value=".." />
                         </exec>
-                        <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true" />
-                        <exec executable="make" failonerror="true" dir="${libresslCheckoutDir}" resolveexecutable="true">
-                          <arg line="install" />
-                        </exec>
+                        <exec executable="ninja" failonerror="true" dir="${libresslBuildDir}" resolveexecutable="true" />
                       </else>
                     </if>
                   </target>
