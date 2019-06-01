@@ -62,9 +62,9 @@
     -->
     <libresslSha256>9b640b13047182761a99ce3e4f000be9687566e0828b4a72709e9e6a3ef98477</libresslSha256>
     <opensslMinorVersion>1.1.1</opensslMinorVersion>
-    <opensslPatchVersion>b</opensslPatchVersion>
+    <opensslPatchVersion>c</opensslPatchVersion>
     <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
-    <opensslSha256>ae51d08bba8a83958e894946f15303ff894d75c2b8bbd44a852b64e3fe11d0d6</opensslSha256>
+    <opensslSha256>cabd5c9492825ce5bd23f3c3aeed6a97f8142f606d893df216411f07d1abab96</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprBuildDir>${project.build.directory}/apr-${aprVersion}</aprBuildDir>
     <archBits>64</archBits>
