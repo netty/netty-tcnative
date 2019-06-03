@@ -80,14 +80,17 @@ const char* TCN_UNKNOWN_AUTH_METHOD = "UNKNOWN";
 const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
 #ifdef OPENSSL_IS_BORINGSSL
 	return SSL_CIPHER_get_kx_name(cipher);
-#elif OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+#elif OPENSSL_VERSION_NUMBER >= 0x10100000L && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x2070000fL)
     switch (SSL_CIPHER_get_kx_nid(cipher)) {
         case NID_kx_rsa:
             return SSL_TXT_RSA;
         case NID_kx_dhe:
             switch (SSL_CIPHER_get_auth_nid(cipher)) {
+#ifndef LIBRESSL_VERSION_NUMBER
                 case NID_auth_dss:
                     return "DHE_" SSL_TXT_DSS;
+#endif // LIBRESSL_VERSION_NUMBER
+
                 case NID_auth_rsa:
                     return "DHE_" SSL_TXT_RSA;
                 case NID_auth_null:
@@ -111,7 +114,7 @@ const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
             // Let us just pick one as we could use whatever we want.
             // See https://www.openssl.org/docs/man1.1.1/man3/SSL_CIPHER_get_kx_nid.html
             return "ECDHE_" SSL_TXT_RSA;
-#endif
+#endif // OPENSSL_NO_TLS1_3
         default:
             return TCN_UNKNOWN_AUTH_METHOD;
     }
@@ -378,7 +381,7 @@ static DH *get_dh(int idx)
         goto error;
     } else {
 // DH_set0_pqg() was introduced to initialize the DH parameters in OpenSSL 1.1.0 and DH is opaque now.
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x20700000)
         if (DH_set0_pqg(dh, p, NULL, g) == 0) {
             goto error;
         }
@@ -581,8 +584,8 @@ int tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *ctx, BIO *bio)
 #ifndef OPENSSL_IS_BORINGSSL
 int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
 {
-#if defined(LIBRESSL_VERSION_NUMBER)
-    // Only supported on openssl 1.0.2+
+#if defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER <= 0x2090200fL
+    // Only supported on openssl 1.0.2+ and LibreSSL 2.9.2
     return -1;
 #else
     X509 *x509;
