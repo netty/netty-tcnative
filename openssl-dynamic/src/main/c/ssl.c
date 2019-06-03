@@ -56,7 +56,7 @@ static UI_METHOD *ui_method = NULL;
 #endif // OPENSSL_NO_ENGINE
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090000fL)
 
 /* Global reference to the pool used by the dynamic mutexes */
 static apr_pool_t *dynlockpool = NULL;
@@ -68,7 +68,7 @@ struct CRYPTO_dynlock_value {
     int line;
     apr_thread_mutex_t *mutex;
 };
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090000fL)
 
 struct TCN_bio_bytebuffer {
     // Pointer arithmetic is done on this variable. The type must correspond to a "byte" size.
@@ -558,7 +558,7 @@ static ENGINE *ssl_try_load_engine(const char *engine)
  * To ensure thread-safetyness in OpenSSL
  */
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090000fL)
 
 static apr_thread_mutex_t **ssl_lock_cs;
 static int                  ssl_lock_num_locks;
@@ -721,7 +721,7 @@ static void ssl_thread_setup(apr_pool_t *p)
     apr_pool_cleanup_register(p, NULL, ssl_thread_cleanup,
                               apr_pool_cleanup_null);
 }
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090000fL)
 
 
 TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
@@ -751,7 +751,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     }
 #endif
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090200fL)
     /* We must register the library in full, to ensure our configuration
      * code can successfully test the SSL environment.
      */
@@ -766,10 +766,10 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     OPENSSL_load_builtin_modules();
 #endif
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090000fL)
     /* Initialize thread support */
     ssl_thread_setup(tcn_global_pool);
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090000fL)
 
     apr_status_t err = APR_SUCCESS;
 
@@ -2230,8 +2230,8 @@ TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
 
 TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chain, jlong key)
 {
-#if defined(LIBRESSL_VERSION_NUMBER)
-    tcn_Throw(e, "Not supported with LibreSSL");
+#if (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090200fL)
+    tcn_Throw(e, "Not supported with LibreSSL < 2.9.2");
 #else
     SSL *ssl_ = J2P(ssl, SSL *);
 

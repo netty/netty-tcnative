@@ -141,7 +141,7 @@ extern const char* TCN_UNKNOWN_AUTH_METHOD;
 #endif // SSL_OP_NO_TLSv1_3
 
 /* OpenSSL 1.0.2 compatibility */
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x20700000)
 #define TLS_method SSLv23_method
 #define TLS_client_method SSLv23_client_method
 #define TLS_server_method SSLv23_server_method
@@ -402,7 +402,7 @@ const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
 enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert);
 #endif // OPENSSL_IS_BORINGSSL
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER))
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) || LIBRESSL_VERSION_NUMBER >= 0x2090200fL
 
 #ifndef OPENSSL_IS_BORINGSSL
 #define tcn_SSL_add1_chain_cert(ssl, x509) SSL_add1_chain_cert(ssl, x509)
