@@ -1508,11 +1508,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     JNIEnv *e = NULL;
     jstring authMethodString = NULL;
     int ret = 0;
-#ifdef X509_V_ERR_UNSPECIFIED
     jint result = X509_V_ERR_UNSPECIFIED;
-#else
-    jint result = X509_V_ERR_CERT_REJECTED;
-#endif // X509_V_ERR_UNSPECIFIED
     jint len;
     jbyteArray array = NULL;
 
@@ -1539,29 +1535,15 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     if ((*e)->ExceptionCheck(e)) {
          // We always need to set the error as stated in the SSL_CTX_set_cert_verify_callback manpage, so set the result
          // to the correct value.
-#ifdef X509_V_ERR_UNSPECIFIED
         result = X509_V_ERR_UNSPECIFIED;
-#else
-        result = X509_V_ERR_CERT_REJECTED;
-#endif  // X509_V_ERR_UNSPECIFIED
         goto complete;
     }
 
-#ifdef X509_V_ERR_UNSPECIFIED
     // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
     // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
     if (result == X509_V_ERR_UNSPECIFIED && len < sk_X509_num(sk)) {
         result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
     }
-#else
-    // HACK!
-    // LibreSSL 2.4.x doesn't support the X509_V_ERR_UNSPECIFIED so we introduce a work around to make sure a supported alert is used.
-    // This should be reverted when we support LibreSSL 2.5.x (which does support X509_V_ERR_UNSPECIFIED).
-    if (result == TCN_X509_V_ERR_UNSPECIFIED) {
-        result = len < sk_X509_num(sk) ? X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY : X509_V_ERR_CERT_REJECTED;
-    }
-#endif // X509_V_ERR_UNSPECIFIED
-
 
     // TODO(scott): if verify_config->verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
     // succeed for some of the "informational" error messages (e.g. X509_V_ERR_EMAIL_MISMATCH ?)
