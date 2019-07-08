@@ -136,6 +136,7 @@
                 <configureArg>--with-ssl=${sslHome}</configureArg>
                 <configureArg>--with-apr=${aprHome}</configureArg>
                 <configureArg>--with-static-libs</configureArg>
+                <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
               </configureArgs>
             </configuration>
           </execution>
