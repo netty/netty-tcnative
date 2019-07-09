@@ -56,6 +56,8 @@
         Set the classifier property based on the settings of the os-detector-plugin.
         Fedora-based systems use a different soname for OpenSSL than other linux distributions.
         Use a custom classifier ending in "-fedora" when building on fedora-based systems.
+        Systems based on SUSE or Arch Linux build their OpenSSL library a bit differently and also
+        require a custom classifier: "-suse" and "-arch".
       -->
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -77,9 +79,24 @@
                   <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
                 </copy>
                 <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
-                <!-- Adjust the classifier used for fedora-like systems -->
-                <condition property="classifier" value="${os.detected.classifier}-fedora" else="${os.detected.classifier}">
+                <!-- Adjust the classifier used for different OS distributions which provide differently-built openSSL libraries -->
+                <condition property="classifier" value="${os.detected.classifier}-fedora">
                   <isset property="os.detected.release.like.fedora" />
+                </condition>
+                <condition property="classifier" value="${os.detected.classifier}-suse">
+                  <isset property="os.detected.release.like.suse" />
+                </condition>
+                <condition property="classifier" value="${os.detected.classifier}-arch">
+                  <isset property="os.detected.release.like.arch" />
+                </condition>
+                <condition property="classifier" value="${os.detected.classifier}">
+                  <not>
+                    <or>
+                      <isset property="os.detected.release.like.fedora" />
+                      <isset property="os.detected.release.like.suse" />
+                      <isset property="os.detected.release.like.arch" />
+                    </or>
+                  </not>
                 </condition>
                 <attachartifact file="${nativeJarFile}" classifier="${classifier}" type="jar" />
               </target>
