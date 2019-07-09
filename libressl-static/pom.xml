@@ -139,6 +139,7 @@
                 <configureArg>--with-ssl=no</configureArg>
                 <configureArg>--with-apr=${aprHome}</configureArg>
                 <configureArg>--with-static-libs</configureArg>
+                <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                 <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                 <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${libresslCheckoutDir}/include</configureArg>
                 <configureArg>LDFLAGS=-L${libresslBuildDir}/ssl -L${libresslBuildDir}/crypto -L${libresslBuildDir}/tls -ltls -lssl -lcrypto</configureArg>

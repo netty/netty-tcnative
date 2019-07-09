@@ -101,6 +101,9 @@
               <libDirectory>${nativeLibOnlyDir}</libDirectory>
               <forceAutogen>${forceAutogen}</forceAutogen>
               <forceConfigure>${forceConfigure}</forceConfigure>
+              <configureArgs>
+                <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
+              </configureArgs>
               <windowsBuildTool>msbuild</windowsBuildTool>
             </configuration>
             <goals>
