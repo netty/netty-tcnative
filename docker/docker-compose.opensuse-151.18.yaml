@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-opensuse:opensuse-15.1-1.8
+    build:
+      args:
+        opensuse_version : "15.1"
+        java_version : "1.8.0"
+
+  build:
+    image: netty-tcnative-opensuse:opensuse-15.1-1.8
+
+  shell:
+    image: netty-tcnative-opensuse:opensuse-15.1-1.8

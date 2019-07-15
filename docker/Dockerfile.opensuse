@@ -1,0 +1,33 @@
+ARG opensuse_version=15.1
+FROM opensuse/leap:$opensuse_version
+# needed to do again after FROM due to docker limitation
+ARG opensuse_version
+
+ARG java_version=1.8.0
+ENV JAVA_VERSION $java_version
+
+# install dependencies
+# use openSSL 1.0.x for now, for highest compatibility
+RUN zypper install --force-resolution --no-recommends --no-confirm \
+ apr-devel \
+ autoconf \
+ automake \
+ bzip2 \
+ cmake \
+ git \
+ glibc-devel \
+ gcc \
+ gcc-c++ \
+ go \
+ gpg2 \
+ gzip \
+ java-${JAVA_VERSION}-devel \
+ libopenssl-1_0_0-devel \
+ libtool \
+ lsb-release \
+ make \
+ ninja \
+ perl \
+ tar \
+ unzip \
+ wget

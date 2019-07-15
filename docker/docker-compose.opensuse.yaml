@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-opensuse:default
+    build:
+      context: .
+      dockerfile: Dockerfile.opensuse
+
+  common: &common
+    image: netty-tcnative-opensuse:default
+    depends_on: [runtime-setup]
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ..:/code
+    working_dir: /code
+
+  build:
+    <<: *common
+    command: /bin/bash -cl "./mvnw clean package"
+
+  shell:
+    <<: *common
+    environment:
+      - SANOTYPE_USER
+      - SANOTYPE_PASSWORD
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ~/.m2:/root/.m2
+      - ~/.gitconfig:/root/.gitconfig
+      - ~/.gitignore:/root/.gitignore
+      - ..:/code
+    entrypoint: /bin/bash
