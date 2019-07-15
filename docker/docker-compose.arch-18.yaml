@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-arch:arch-1.8
+    build:
+      args:
+        java_version : "8"
+
+  build:
+    image: netty-tcnative-arch:arch-1.8
+
+  shell:
+    image: netty-tcnative-arch:arch-1.8

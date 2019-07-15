@@ -9,6 +9,12 @@ cd /path/to/netty-tcnative/
 cd /path/to/netty-tcnative/
 ```
 
+## Arch Linux with java 8
+
+```
+docker-compose -f docker/docker-compose.arch.yaml -f docker/docker-compose.arch-18.yaml run build
+```
+
 ## centos 6 with java 8
 
 ```
