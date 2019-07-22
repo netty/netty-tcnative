@@ -169,7 +169,7 @@
                   <target>
                     <!-- Add the ant tasks from ant-contrib -->
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
-
+                    <property environment="env" />
                     <if>
                       <available file="${boringsslBuildDir}" />
                       <then>
@@ -214,7 +214,17 @@
                           <arg value="-GNinja" />
                           <arg value=".." />
                         </exec>
-                        <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                        <if>
+                          <!-- may be called ninja-build or ninja -->
+                          <!-- See https://github.com/netty/netty-tcnative/issues/475 -->
+                          <available file="ninja-build" filepath="${env.PATH}" />
+                          <then>
+                            <exec executable="ninja-build" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                          </then>
+                          <else>
+                            <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                          </else>
+                        </if>
                       </else>
                     </if>
                   </target>
