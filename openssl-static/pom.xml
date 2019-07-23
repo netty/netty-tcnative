@@ -284,19 +284,9 @@
                       <else>
                         <echo message="Downloading OpenSSL" />
 
-                        <!-- Download the openssl source. -->
-                        <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
-                          <fileset dir="${project.build.directory}">
-                            <include name="**/openssl-${opensslVersion}.tar.gz" />
-                          </fileset>
-                        </ftp>
-                        <if>
-                          <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
-                          <then>
-                            <echo>Move old version of openssl to correct directory</echo>
-                            <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
-                          </then>
-                        </if>
+                        <get src="https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
+                        <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
+
                         <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                           <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
@@ -379,22 +369,13 @@
                         <echo message="Downloading OpenSSL" />
 
                         <!-- Download the openssl source. -->
-                        <ftp action="get" server="ftp.openssl.org" remotedir="source" userid="anonymous" password="anonymous" passive="yes" verbose="yes">
-                          <fileset dir="${project.build.directory}">
-                            <include name="**/openssl-${opensslVersion}.tar.gz" />
-                          </fileset>
-                        </ftp>
-                        <if>
-                          <available file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" />
-                          <then>
-                            <echo>Move old version of openssl to correct directory</echo>
-                            <move file="${project.build.directory}/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" tofile="${project.build.directory}/openssl-${opensslVersion}.tar.gz" />
-                          </then>
-                        </if>
-                        <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
-                        <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
-                          <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
-                        </exec>
+                        <get src="https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
+                          <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
+  
+                          <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
+                          <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                            <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
+                          </exec>
                       </else>
                     </if>
                   </target>
