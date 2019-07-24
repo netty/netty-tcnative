@@ -179,7 +179,7 @@
                 </goals>
                 <configuration>
                   <target>
-                    <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslWindowsZip}" dest="${project.build.directory}/${libresslWindowsZip}" verbose="on" />
+                    <get src="https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslWindowsZip}" dest="${project.build.directory}/${libresslWindowsZip}" verbose="on" />
                     <unzip src="${project.build.directory}/${libresslWindowsZip}" dest="${project.build.directory}/" />
                     <move file="${project.build.directory}/${libresslWindows}" tofile="${sslHome}" />
                   </target>
@@ -223,7 +223,7 @@
                       <else>
                         <echo message="Downloading LibreSSL" />
 
-                        <get src="http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}" dest="${project.build.directory}/${libresslArchive}" verbose="on" />
+                        <get src="https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}" dest="${project.build.directory}/${libresslArchive}" verbose="on" />
                         <checksum file="${project.build.directory}/${libresslArchive}" algorithm="SHA-256" property="${libresslSha256}" verifyProperty="isEqual" />
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                           <arg value="xfv" />
