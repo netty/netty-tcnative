@@ -12,9 +12,9 @@ services:
     image: netty-tcnative-centos:default
     depends_on: [runtime-setup]
     volumes:
-      - ~/.ssh:/root/.ssh
-      - ~/.gnupg:/root/.gnupg
-      - ..:/code
+      - ~/.ssh:/root/.ssh:delegated
+      - ~/.gnupg:/root/.gnupg:delegated
+      - ..:/code:delegated
     working_dir: /code
 
   build:
@@ -27,10 +27,10 @@ services:
       - SANOTYPE_USER
       - SANOTYPE_PASSWORD
     volumes:
-      - ~/.ssh:/root/.ssh
-      - ~/.gnupg:/root/.gnupg
-      - ~/.m2:/root/.m2
-      - ~/.gitconfig:/root/.gitconfig
-      - ~/.gitignore:/root/.gitignore
-      - ..:/code
+      - ~/.ssh:/root/.ssh:delegated
+      - ~/.gnupg:/root/.gnupg:delegated
+      - ~/.m2:/root/.m2:delegated
+      - ~/.gitconfig:/root/.gitconfig:delegated
+      - ~/.gitignore:/root/.gitignore:delegated
+      - ..:/code:delegated
     entrypoint: /bin/bash
