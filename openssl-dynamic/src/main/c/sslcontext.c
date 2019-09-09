@@ -1338,8 +1338,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     cnt = (*e)->GetArrayLength(e, keys) / SSL_SESSION_TICKET_KEY_SIZE;
     b = (*e)->GetByteArrayElements(e, keys, NULL);
 
-    ticket_keys = OPENSSL_malloc(sizeof(tcn_ssl_ticket_key_t) * cnt);
-
+    if ((ticket_keys = OPENSSL_malloc(sizeof(tcn_ssl_ticket_key_t) * cnt)) == NULL) {
+        tcn_ThrowException(e, "OPENSSL_malloc() returned null");
+        return;
+    }
+    
     for (i = 0; i < cnt; ++i) {
         key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
         memcpy(ticket_keys[i].key_name, key, 16);
@@ -2354,7 +2357,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong
 
     UNREFERENCED(o);
 
-    buf = OPENSSL_malloc(len);
+    if ((buf = OPENSSL_malloc(len)) == NULL) {
+        return JNI_FALSE;
+    }
 
     (*e)->GetByteArrayRegion(e, sidCtx, 0, len, (jbyte*) buf);
 
@@ -2543,59 +2548,100 @@ static jint dynamicMethodsTableSize() {
     return fixed_method_table_size + 5;
 }
 
+static void freeDynamicMethodsTable(JNINativeMethod* dynamicMethods) {
+    if (dynamicMethods != NULL) {
+        jint fullMethodTableSize = dynamicMethodsTableSize();
+        jint i = fixed_method_table_size;
+        for (; i < fullMethodTableSize; ++i) {
+            free(dynamicMethods[i].signature);
+        }
+        free(dynamicMethods);
+    }
+}
+
 static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
-    JNINativeMethod* dynamicMethods = malloc(sizeof(JNINativeMethod) * dynamicMethodsTableSize());
+    int len = sizeof(JNINativeMethod) * dynamicMethodsTableSize();
+    JNINativeMethod* dynamicMethods = malloc(len);
+    if (dynamicMethods == NULL) {
+        return NULL;
+    }
+    memset(dynamicMethods, 0, len);
+
     memcpy(dynamicMethods, fixed_method_table, sizeof(fixed_method_table));
     char* dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateVerifier;)V");
+    if (dynamicTypeName == NULL) {
+        goto error;
+    }
     JNINativeMethod* dynamicMethod = &dynamicMethods[fixed_method_table_size];
     dynamicMethod->name = "setCertVerifyCallback";
     dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setCertVerifyCallback);
     free(dynamicTypeName);
+    if (dynamicMethod->signature == NULL) {
+        goto error;
+    }
 
-    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateRequestedCallback;)V");
+    if ((dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateRequestedCallback;)V")) == NULL) {
+        goto error;
+    }
     dynamicMethod = &dynamicMethods[fixed_method_table_size + 1];
     dynamicMethod->name = "setCertRequestedCallback";
     dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setCertRequestedCallback);
     free(dynamicTypeName);
+    if (dynamicMethod->signature == NULL) {
+        goto error;
+    }
 
-    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateCallback;)V");
+    if ((dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateCallback;)V")) == NULL) {
+        goto error;
+    }
     dynamicMethod = &dynamicMethods[fixed_method_table_size + 2];
     dynamicMethod->name = "setCertificateCallback";
     dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setCertificateCallback);
     free(dynamicTypeName);
+    if (dynamicMethod->signature == NULL) {
+        goto error;
+    }
 
-    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SniHostNameMatcher;)V");
+    if ((dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SniHostNameMatcher;)V")) == NULL) {
+        goto error;
+    }
     dynamicMethod = &dynamicMethods[fixed_method_table_size + 3];
     dynamicMethod->name = "setSniHostnameMatcher";
     dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSniHostnameMatcher);
     free(dynamicTypeName);
+    if (dynamicMethod->signature == NULL) {
+        goto error;
+    }
 
-    dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V");
+    if ((dynamicTypeName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V")) == NULL) {
+        goto error;
+    }
     dynamicMethod = &dynamicMethods[fixed_method_table_size + 4];
     dynamicMethod->name = "setPrivateKeyMethod";
     dynamicMethod->signature = netty_internal_tcnative_util_prepend("(JL", dynamicTypeName);
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setPrivateKeyMethod);
     free(dynamicTypeName);
+    if (dynamicMethod->signature == NULL) {
+        goto error;
+    }
 
     return dynamicMethods;
+error:
+    freeDynamicMethodsTable(dynamicMethods);
+    return NULL;
 }
 
-static void freeDynamicMethodsTable(JNINativeMethod* dynamicMethods) {
-    jint fullMethodTableSize = dynamicMethodsTableSize();
-    jint i = fixed_method_table_size;
-    for (; i < fullMethodTableSize; ++i) {
-        free(dynamicMethods[i].signature);
-    }
-    free(dynamicMethods);
-}
 // JNI Method Registration Table End
 
 jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
     JNINativeMethod* dynamicMethods = createDynamicMethodsTable(packagePrefix);
+    if (dynamicMethods == NULL) {
+        return JNI_ERR;
+    }
     if (netty_internal_tcnative_util_register_natives(env,
             packagePrefix,
             "io/netty/internal/tcnative/SSLContext",
@@ -2607,6 +2653,9 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     freeDynamicMethodsTable(dynamicMethods);
 
     char* sslTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLTask");
+    if (sslTaskName == NULL) {
+        return JNI_ERR;
+    }
     TCN_LOAD_CLASS(env, sslTask_class, sslTaskName, JNI_ERR);
     free(sslTaskName);
 
@@ -2614,53 +2663,91 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     TCN_GET_FIELD(env, sslTask_class, sslTask_complete, "complete", "Z", JNI_ERR);
 
     char* certificateCallbackTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateCallbackTask");
+    if (certificateCallbackTaskName == NULL) {
+        return JNI_ERR;
+    }
     TCN_LOAD_CLASS(env, certificateCallbackTask_class, certificateCallbackTaskName, JNI_ERR);
     free(certificateCallbackTaskName);
 
     char* certificateCallbackName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateCallback;)V");
+    if (certificateCallbackName == NULL) {
+        return JNI_ERR;
+    }
     char* initArguments = netty_internal_tcnative_util_prepend("(J[B[[BL", certificateCallbackName);
     free(certificateCallbackName);
+    if (initArguments == NULL) {
+        return JNI_ERR;
+    }
 
     TCN_GET_METHOD(env, certificateCallbackTask_class, certificateCallbackTask_init,
                    "<init>", initArguments, JNI_ERR);
     free(initArguments);
 
     char* certificateVerifierTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateVerifierTask");
+    if (certificateVerifierTaskName == NULL) {
+        return JNI_ERR;
+    }
     TCN_LOAD_CLASS(env, certificateVerifierTask_class, certificateVerifierTaskName, JNI_ERR);
     free(certificateVerifierTaskName);
 
     char* certificateVerifierName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/CertificateVerifier;)V");
+    if (certificateVerifierTaskName == NULL) {
+        return JNI_ERR;
+    }
     initArguments = netty_internal_tcnative_util_prepend("(J[[BLjava/lang/String;L", certificateVerifierName);
     free(certificateVerifierName);
+    if (initArguments == NULL) {
+        return JNI_ERR;
+    }
 
     TCN_GET_METHOD(env, certificateVerifierTask_class, certificateVerifierTask_init, "<init>", initArguments, JNI_ERR);
     free(initArguments);
 
     char* sslPrivateKeyMethodTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodTask");
+    if (sslPrivateKeyMethodTaskName == NULL) {
+        return JNI_ERR;
+    }
     TCN_LOAD_CLASS(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTaskName, JNI_ERR);
     free(sslPrivateKeyMethodTaskName);
 
     TCN_GET_FIELD(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTask_resultBytes, "resultBytes", "[B", JNI_ERR);
 
     char* sslPrivateKeyMethodSignTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodSignTask");
+    if (sslPrivateKeyMethodSignTaskName == NULL) {
+        return JNI_ERR;
+    }
     TCN_LOAD_CLASS(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTaskName, JNI_ERR);
     free(sslPrivateKeyMethodSignTaskName);
 
     char* callbackName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V");
+    if (callbackName == NULL) {
+        return JNI_ERR;
+    }
     initArguments = netty_internal_tcnative_util_prepend("(JI[BL", callbackName);
     free(callbackName);
-
+    if (initArguments == NULL) {
+        return JNI_ERR;
+    }
     TCN_GET_METHOD(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init,
                    "<init>", initArguments, JNI_ERR);
     free(initArguments);
 
     char* sslPrivateKeyMethodDecryptTaskName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodDecryptTask");
+    if (sslPrivateKeyMethodDecryptTaskName == NULL) {
+        return JNI_ERR;
+    }
     TCN_LOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTaskName, JNI_ERR);
     free(sslPrivateKeyMethodDecryptTaskName);
 
     callbackName = netty_internal_tcnative_util_prepend(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V");
+    if (callbackName == NULL) {
+        return JNI_ERR;
+    }
     initArguments = netty_internal_tcnative_util_prepend("(J[BL", callbackName);
     free(callbackName);
+    if (initArguments == NULL) {
+        return JNI_ERR;
+    }
 
     TCN_GET_METHOD(env, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_init,
                    "<init>", initArguments, JNI_ERR);

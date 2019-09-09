@@ -149,10 +149,16 @@ jint tcn_get_java_env(JNIEnv **env)
 char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str) {
     if (prefix == NULL) {
         char* result = (char*) malloc(sizeof(char) * (strlen(str) + 1));
+        if (result == NULL) {
+            return NULL;
+        }
         strcpy(result, str);
         return result;
     }
     char* result = (char*) malloc(sizeof(char) * (strlen(prefix) + strlen(str) + 1));
+    if (result == NULL) {
+        return NULL;
+    }
     strcpy(result, prefix);
     strcat(result, str);
     return result;
@@ -160,6 +166,9 @@ char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str) 
 
 jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods) {
     char* nettyClassName = netty_internal_tcnative_util_prepend(packagePrefix, className);
+    if (nettyClassName == NULL) {
+        return JNI_ERR;
+    }
     jclass nativeCls = (*env)->FindClass(env, nettyClassName);
     free(nettyClassName);
     nettyClassName = NULL;
@@ -273,7 +282,9 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
     // Make sure packagePrefix is terminated with the '/' JNI package separator.
     if(*(--temp) != '/') {
         temp = packagePrefix;
-        packagePrefix = netty_internal_tcnative_util_prepend(packagePrefix, "/");
+        if ((packagePrefix = netty_internal_tcnative_util_prepend(packagePrefix, "/")) == NULL) {
+            *status = JNI_ERR;
+        } 
         free(temp);
     }
     return packagePrefix;
