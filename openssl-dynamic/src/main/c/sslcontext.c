@@ -895,7 +895,9 @@ cleanup:
 static int initProtocols(JNIEnv *e, unsigned char **proto_data,
             unsigned int *proto_len, jobjectArray protos) {
     int i;
-    unsigned char *p_data;
+    unsigned char *p_data = NULL;
+    unsigned char *p_data_tmp = NULL;
+
     // We start with allocate 128 bytes which should be good enough for most use-cases while still be pretty low.
     // We will call realloc to increase this if needed.
     size_t p_data_size = 128;
@@ -936,11 +938,19 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
             if (p_data_len > p_data_size) {
                 // double size
                 p_data_size <<= 1;
-                p_data = realloc(p_data, p_data_size);
-                if (p_data == NULL) {
+                p_data_tmp = realloc(p_data, p_data_size);
+                if (p_data_tmp == NULL) {
                     // Not enough memory?
                     (*e)->ReleaseStringUTFChars(e, proto_string, proto_chars);
+
+                    // If realloc failed we need to still free the original pointer to ensure we not leak any memory.
+                    // See https://linux.die.net/man/3/realloc
+                    OPENSSL_free(p_data);
+                    p_data = NULL;
                     break;
+                } else {
+                    p_data = p_data_tmp;
+                    p_data_tmp = NULL;
                 }
             }
             // Write the length of the protocol and then increment before memcpy the protocol itself.
