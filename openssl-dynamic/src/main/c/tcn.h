@@ -86,7 +86,10 @@
 void            tcn_Throw(JNIEnv *, const char *, ...);
 void            tcn_ThrowException(JNIEnv *, const char *);
 void            tcn_ThrowNullPointerException(JNIEnv *, const char *);
+void            tcn_ThrowIllegalArgumentException(JNIEnv *, const char *);
 void            tcn_ThrowAPRException(JNIEnv *, apr_status_t);
+void            tcn_throwOutOfMemoryError(JNIEnv *, const char *);
+
 jstring         tcn_new_string(JNIEnv *, const char *);
 jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
 
