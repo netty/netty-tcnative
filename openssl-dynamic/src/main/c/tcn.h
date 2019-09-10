@@ -133,10 +133,13 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
         jclass _##C = (*(E))->FindClass((E), N);    \
         if (_##C == NULL) {                         \
             (*(E))->ExceptionClear((E));            \
-            return R;                               \
+            goto R;                                 \
         }                                           \
         C = (*(E))->NewGlobalRef((E), _##C);        \
         (*(E))->DeleteLocalRef((E), _##C);          \
+        if (C == NULL) {                            \
+            goto R;                                 \
+        }                                           \
     TCN_END_MACRO
 
 #define TCN_UNLOAD_CLASS(E, C)                      \
@@ -146,15 +149,15 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
     TCN_BEGIN_MACRO                                 \
         M = (*(E))->GetMethodID((E), C, N, S);      \
         if (M == NULL) {                            \
-            return R;                               \
+            goto R;                                 \
         }                                           \
     TCN_END_MACRO
 
-#define TCN_GET_FIELD(E, C, F, N, S, R)            \
+#define TCN_GET_FIELD(E, C, F, N, S, R)             \
     TCN_BEGIN_MACRO                                 \
-        F = (*(E))->GetFieldID((E), C, N, S);      \
+        F = (*(E))->GetFieldID((E), C, N, S);       \
         if (F == NULL) {                            \
-            return R;                               \
+            goto R;                                 \
         }                                           \
     TCN_END_MACRO
 
@@ -163,6 +166,22 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
 #ifndef TCN_JNI_VERSION
 #define TCN_JNI_VERSION JNI_VERSION_1_6
 #endif
+
+#define TCN_REASSIGN(V1, V2)                  \
+    TCN_BEGIN_MACRO                           \
+        free(V1);                             \
+        V1 = V2;                              \
+        V2 = NULL;                            \
+    TCN_END_MACRO
+
+
+#define TCN_PREPEND(P, S, N, R)                                          \
+    TCN_BEGIN_MACRO                                                      \
+        if ((N = netty_internal_tcnative_util_prepend(P, S)) == NULL) {  \
+            goto R;                                                      \
+        }                                                                \
+    TCN_END_MACRO
+
 
 /* Return global String class
  */

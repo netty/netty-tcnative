@@ -165,18 +165,18 @@ char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str) 
 }
 
 jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods) {
-    char* nettyClassName = netty_internal_tcnative_util_prepend(packagePrefix, className);
-    if (nettyClassName == NULL) {
-        return JNI_ERR;
-    }
+    char* nettyClassName = NULL;
+    int retValue = JNI_ERR;
+    
+    TCN_PREPEND(packagePrefix, className, nettyClassName, done);
+   
     jclass nativeCls = (*env)->FindClass(env, nettyClassName);
-    free(nettyClassName);
-    nettyClassName = NULL;
-    if (nativeCls == NULL) {
-        return JNI_ERR;
+    if (nativeCls != NULL) {
+        retValue = (*env)->RegisterNatives(env, nativeCls, methods, numMethods);
     }
-
-    return (*env)->RegisterNatives(env, nativeCls, methods, numMethods);
+done:
+    free(nettyClassName);
+    return retValue;
 }
 
 #ifndef TCN_BUILD_STATIC
@@ -356,14 +356,14 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
 
 
     /* Initialize global java.lang.String class */
-    TCN_LOAD_CLASS(env, jString_class, "java/lang/String", JNI_ERR);
+    TCN_LOAD_CLASS(env, jString_class, "java/lang/String", error);
 
     TCN_GET_METHOD(env, jString_class, jString_init,
-                   "<init>", "([B)V", JNI_ERR);
+                   "<init>", "([B)V", error);
     TCN_GET_METHOD(env, jString_class, jString_getBytes,
-                   "getBytes", "()[B", JNI_ERR);
+                   "getBytes", "()[B", error);
 
-    TCN_LOAD_CLASS(env, byteArrayClass, "[B", JNI_ERR);
+    TCN_LOAD_CLASS(env, byteArrayClass, "[B", error);
 
     return TCN_JNI_VERSION;
 error:
