@@ -68,10 +68,12 @@ void tcn_ThrowAPRException(JNIEnv *e, apr_status_t err)
 
 jint netty_internal_tcnative_Error_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
 
-    TCN_LOAD_CLASS(env, exceptionClass, "java/lang/Exception", JNI_ERR);
-    TCN_LOAD_CLASS(env, nullPointerExceptionClass, "java/lang/NullPointerException", JNI_ERR);
+    TCN_LOAD_CLASS(env, exceptionClass, "java/lang/Exception", error);
+    TCN_LOAD_CLASS(env, nullPointerExceptionClass, "java/lang/NullPointerException", error);
 
     return TCN_JNI_VERSION;
+error:
+    return JNI_ERR;
 }
 
 void netty_internal_tcnative_Error_JNI_OnUnLoad(JNIEnv* env) {
