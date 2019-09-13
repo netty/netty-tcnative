@@ -34,6 +34,9 @@
 
 static jclass exceptionClass;
 static jclass nullPointerExceptionClass;
+static jclass illegalArgumentExceptionClass;
+static jclass oomeClass;
+
 
 /*
  * Convenience function to help throw an java.lang.Exception.
@@ -47,6 +50,12 @@ void tcn_ThrowNullPointerException(JNIEnv *env, const char *msg)
 {
     (*env)->ThrowNew(env, nullPointerExceptionClass, msg);
 }
+
+void tcn_ThrowIllegalArgumentException(JNIEnv *env, const char *msg)
+{
+    (*env)->ThrowNew(env, illegalArgumentExceptionClass, msg);
+}
+
 void tcn_Throw(JNIEnv *env, const char *fmt, ...)
 {
     char msg[TCN_BUFFER_SZ] = {'\0'};
@@ -66,11 +75,17 @@ void tcn_ThrowAPRException(JNIEnv *e, apr_status_t err)
     tcn_ThrowException(e, serr);
 }
 
+void tcn_throwOutOfMemoryError(JNIEnv* env, const char *msg)
+{
+    (*env)->ThrowNew(env, oomeClass, msg);
+}
+
 jint netty_internal_tcnative_Error_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
 
     TCN_LOAD_CLASS(env, exceptionClass, "java/lang/Exception", error);
     TCN_LOAD_CLASS(env, nullPointerExceptionClass, "java/lang/NullPointerException", error);
-
+    TCN_LOAD_CLASS(env, illegalArgumentExceptionClass, "java/lang/IllegalArgumentException", error);
+    TCN_LOAD_CLASS(env, oomeClass, "java/lang/OutOfMemoryError", error);
     return TCN_JNI_VERSION;
 error:
     return JNI_ERR;
@@ -79,4 +94,6 @@ error:
 void netty_internal_tcnative_Error_JNI_OnUnLoad(JNIEnv* env) {
      TCN_UNLOAD_CLASS(env, exceptionClass);
      TCN_UNLOAD_CLASS(env, nullPointerExceptionClass);
+     TCN_UNLOAD_CLASS(env, illegalArgumentExceptionClass);
+     TCN_UNLOAD_CLASS(env, oomeClass);
  }

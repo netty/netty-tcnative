@@ -1398,8 +1398,8 @@ static tcn_ssl_task_t* tcn_ssl_task_new(JNIEnv* e, jobject task) {
     if (sslTask == NULL) {
         return NULL;
     }
-    sslTask->task = (*e)->NewGlobalRef(e, task);
-    if (sslTask->task == NULL) {
+    
+    if ((sslTask->task = (*e)->NewGlobalRef(e, task)) == NULL) {
         // NewGlobalRef failed because we ran out of memory, free what we malloc'ed and fail the handshake.
         OPENSSL_free(sslTask);
         return NULL;
@@ -1744,7 +1744,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
 
     UNREFERENCED(o);
 
+    jobject oldVerifier = c->verifier;
     if (verifier == NULL) {
+        c->verifier = NULL;
+        c->verifier_method = NULL;
 #ifdef OPENSSL_IS_BORINGSSL
         SSL_CTX_set_custom_verify(c->ctx, SSL_VERIFY_NONE, NULL);
 #else
@@ -1755,13 +1758,16 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
         jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)I");
 
         if (method == NULL) {
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve verify method");
             return;
         }
-        // Delete the reference to the previous specified verifier if needed.
-        if (c->verifier != NULL) {
-            (*e)->DeleteGlobalRef(e, c->verifier);
+        jobject v = (*e)->NewGlobalRef(e, verifier);
+        if (v == NULL) {
+            tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
+            return;
         }
-        c->verifier = (*e)->NewGlobalRef(e, verifier);
+
+        c->verifier = v;
         c->verifier_method = method;
 
 #ifdef OPENSSL_IS_BORINGSSL
@@ -1770,6 +1776,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
 #else
         SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, NULL);
 #endif // OPENSSL_IS_BORINGSSL
+
+        // Delete the reference to the previous specified verifier if needed.
+        if (oldVerifier != NULL) {
+            (*e)->DeleteGlobalRef(e, oldVerifier);
+        }
     }
 }
 
@@ -1917,23 +1928,34 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 #ifdef OPENSSL_IS_BORINGSSL
     tcn_Throw(e, "Not supported using BoringSSL");
 #else
+    jobject oldCallback = c->cert_requested_callback;
     if (callback == NULL) {
+        c->cert_requested_callback = NULL;
+        c->cert_requested_callback_method = NULL;
+
         SSL_CTX_set_client_cert_cb(c->ctx, NULL);
     } else {
         jclass callback_class = (*e)->GetObjectClass(e, callback);
         jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(JJJ[B[[B)V");
 
         if (method == NULL) {
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve requested method");
             return;
         }
-        // Delete the reference to the previous specified verifier if needed.
-        if (c->cert_requested_callback != NULL) {
-            (*e)->DeleteGlobalRef(e, c->cert_requested_callback);
+        jobject cb = (*e)->NewGlobalRef(e, callback);
+        if (cb == NULL) {
+            tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
+            return;
         }
-        c->cert_requested_callback = (*e)->NewGlobalRef(e, callback);
+       
+        c->cert_requested_callback = cb;
         c->cert_requested_callback_method = method;
 
         SSL_CTX_set_client_cert_cb(c->ctx, cert_requested);
+    }
+    // Delete the reference to the previous specified verifier if needed.
+    if (oldCallback != NULL) {
+        (*e)->DeleteGlobalRef(e, oldCallback);
     }
 #endif
 }
@@ -2040,7 +2062,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
 
 // We can only support it when either use openssl version >= 1.0.2 or GCC as this way we can use weak linking
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
+    jobject oldCallback = c->certificate_callback;
     if (callback == NULL) {
+        c->certificate_callback = NULL;
+        c->certificate_callback_method = NULL;
+
         SSL_CTX_set_cert_cb(c->ctx, NULL, NULL);
     } else {
         jclass callback_class = (*e)->GetObjectClass(e, callback);
@@ -2052,17 +2078,25 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
         jmethodID method = (*e)->GetMethodID(e, callback_class, "handle", "(J[B[[B)V");
 
         if (method == NULL) {
-            tcn_Throw(e, "Unable to retrieve callback method");
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve handle method");
             return;
         }
-        if (c->certificate_callback != NULL) {
-            (*e)->DeleteGlobalRef(e, c->certificate_callback);
+        jobject cb = (*e)->NewGlobalRef(e, callback);
+        if (cb == NULL) {
+            tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
+            return;
         }
-        c->certificate_callback = (*e)->NewGlobalRef(e, callback);
+
+        c->certificate_callback = cb;
         c->certificate_callback_method = method;
 
         SSL_CTX_set_cert_cb(c->ctx, certificate_cb, NULL);
     }
+        
+    if (oldCallback != NULL) {
+        (*e)->DeleteGlobalRef(e, oldCallback);
+     }
+
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
 
 #endif // defined(LIBRESSL_VERSION_NUMBER)
@@ -2258,7 +2292,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod)(TCN_STDARGS, jlong ctx
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 #ifdef OPENSSL_IS_BORINGSSL
+    jobject oldMethod = c->ssl_private_key_method;
     if (method == NULL) {
+        c->ssl_private_key_method = NULL;
+        c->ssl_private_key_sign_method = NULL;
+        c->ssl_private_key_decrypt_method = NULL;
+
         SSL_CTX_set_private_key_method(c->ctx, NULL);
     } else {
         jclass method_class = (*e)->GetObjectClass(e, method);
@@ -2269,25 +2308,30 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod)(TCN_STDARGS, jlong ctx
 
         jmethodID signMethod = (*e)->GetMethodID(e, method_class, "sign", "(JI[B)[B");
         if (signMethod == NULL) {
-            tcn_Throw(e, "Unable to retrieve sign method");
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve sign method");
             return;
         }
 
         jmethodID decryptMethod = (*e)->GetMethodID(e, method_class, "decrypt", "(J[B)[B");
         if (decryptMethod == NULL) {
-            tcn_Throw(e, "Unable to retrieve decrypt method");
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve decrypt method");
             return;
         }
 
-        if (c->ssl_private_key_method != NULL) {
-            (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
+        jobject m = (*e)->NewGlobalRef(e, method);
+        if (m == NULL) {
+            tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
+            return;
         }
-        c->ssl_private_key_method = (*e)->NewGlobalRef(e, method);
+        c->ssl_private_key_method = m;
         c->ssl_private_key_sign_method = signMethod;
         c->ssl_private_key_decrypt_method = decryptMethod;
 
         SSL_CTX_set_private_key_method(c->ctx, &private_key_method);
     }
+    if (oldMethod != NULL) {
+        (*e)->DeleteGlobalRef(e, oldMethod);
+    } 
 #else
     tcn_ThrowException(e, "Requires BoringSSL");
 #endif // OPENSSL_IS_BORINGSSL
@@ -2328,13 +2372,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
 
     UNREFERENCED(o);
 
-    // Delete the reference to the previous specified matcher if needed.
-    if (c->sni_hostname_matcher != NULL) {
-        (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
-        c->sni_hostname_matcher = NULL;
-    }
-
+    jobject oldMatcher = c->sni_hostname_matcher;
     if (matcher == NULL) {
+        c->sni_hostname_matcher = NULL;
         c->sni_hostname_matcher_method = NULL;
 
         SSL_CTX_set_tlsext_servername_callback(c->ctx, NULL);
@@ -2343,15 +2383,26 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
         jclass matcher_class = (*e)->GetObjectClass(e, matcher);
         jmethodID method = (*e)->GetMethodID(e, matcher_class, "match", "(JLjava/lang/String;)Z");
         if (method == NULL) {
-            c->sni_hostname_matcher_method = NULL;
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve match method");
             return;
         }
 
-        c->sni_hostname_matcher = (*e)->NewGlobalRef(e, matcher);
+        jobject m = (*e)->NewGlobalRef(e, matcher);
+        if (m == NULL) {
+            tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
+            return;
+        }
+
+        c->sni_hostname_matcher = m;
         c->sni_hostname_matcher_method = method;
 
         SSL_CTX_set_tlsext_servername_callback(c->ctx, ssl_servername_cb);
         SSL_CTX_set_tlsext_servername_arg(c->ctx, c);
+    }
+
+     // Delete the reference to the previous specified matcher if needed.
+     if (oldMatcher != NULL) {
+        (*e)->DeleteGlobalRef(e, oldMatcher);
     }
 }
 
