@@ -138,11 +138,7 @@ jclass tcn_get_byte_array_class()
 
 jint tcn_get_java_env(JNIEnv **env)
 {
-    if ((*tcn_global_vm)->GetEnv(tcn_global_vm, (void **)env,
-                                 TCN_JNI_VERSION)) {
-        return JNI_ERR;
-    }
-    return JNI_OK;
+    return (*tcn_global_vm)->GetEnv(tcn_global_vm, (void **)env, TCN_JNI_VERSION);
 }
 
 // TODO: Share code with netty natives utilities.
