@@ -1360,8 +1360,11 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     }
 
     // Create the byte[][] array that holds all the certs
-    array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
-
+    if ((array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL)) == NULL) {
+        // Out of memory
+        return NULL;
+    }
+     
     for(i = 0; i < len; i++) {
 
 #ifdef OPENSSL_IS_BORINGSSL
@@ -1381,9 +1384,17 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
         bArray = (*e)->NewByteArray(e, length);
 
 #ifdef OPENSSL_IS_BORINGSSL
+        if (bArray == NULL) {
+            return NULL;
+        }
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(cert));
 #else
+        if (bArray == NULL) {
+            OPENSSL_free(buf);
+            return NULL;
+        }
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+
         OPENSSL_free(buf);
         buf = NULL;
 
@@ -1434,12 +1445,13 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
     length = i2d_X509(cert, &buf);
 #endif // OPENSSL_IS_BORINGSSL
 
-    bArray = (*e)->NewByteArray(e, length);
-
+    if ((bArray = (*e)->NewByteArray(e, length)) != NULL) {
 #ifdef OPENSSL_IS_BORINGSSL
-    (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(leafCert));
+        (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(leafCert));
+    }
 #else
-    (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+        (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+    }
 
     // We need to free the cert as the reference count is incremented by one and it is not destroyed when the
     // session is freed.
@@ -1650,13 +1662,19 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     }
 
     // Create the byte[][] array that holds all the certs
-    array = (*e)->NewObjectArray(e, len, tcn_get_string_class(), NULL);
+    if ((array = (*e)->NewObjectArray(e, len, tcn_get_string_class(), NULL)) == NULL) {
+        // Out of memory
+        return NULL;
+    }
 
     for (i = 0; i < len; i++) {
         cipher = sk_SSL_CIPHER_value(sk, i);
         name = SSL_CIPHER_get_name(cipher);
 
-        c_name = (*e)->NewStringUTF(e, name);
+        if ((c_name = (*e)->NewStringUTF(e, name)) == NULL) {
+            // Out of memory
+            return NULL;
+        }
         (*e)->SetObjectArrayElement(e, array, i, c_name);
     }
     return array;
@@ -1778,6 +1796,11 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getClientRandom)(TCN_STDARGS, jlong ssl)
     TCN_ASSERT(bytesMoved == keyLength);
 
     jbyteArray jKey = (*e)->NewByteArray(e, (jsize) bytesMoved);
+    if (jKey == NULL) {
+        // Out of memory
+        OPENSSL_free(key);
+        return NULL;
+    }
     (*e)->SetByteArrayRegion(e, jKey, 0, bytesMoved, (jbyte*) key);
 
     OPENSSL_free(key);
@@ -1804,6 +1827,10 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getServerRandom)(TCN_STDARGS, jlong ssl)
     TCN_ASSERT(bytesMoved == keyLength);
 
     jbyteArray jKey = (*e)->NewByteArray(e, (jsize) bytesMoved);
+    if (jKey == NULL) {
+        OPENSSL_free(key);
+        return NULL;
+    }
     (*e)->SetByteArrayRegion(e, jKey, 0, bytesMoved, (jbyte*) key);
 
     OPENSSL_free(key);
@@ -1835,6 +1862,10 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getMasterKey)(TCN_STDARGS, jlong ssl)
     TCN_ASSERT(bytesMoved == keyLength);
 
     jbyteArray jKey = (*e)->NewByteArray(e, (jsize) bytesMoved);
+    if (jKey == NULL) {
+        OPENSSL_free(key);
+        return NULL;
+    }
     (*e)->SetByteArrayRegion(e, jKey, 0, bytesMoved, (jbyte*) key);
 
     OPENSSL_free(key);
@@ -1846,9 +1877,9 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
 {
 
     unsigned int len;
-    const unsigned char *session_id;
-    SSL_SESSION *session;
-    jbyteArray bArray;
+    const unsigned char *session_id = NULL;
+    SSL_SESSION *session = NULL;
+    jbyteArray bArray = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, NULL);
@@ -1865,7 +1896,10 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
         return NULL;
     }
 
-    bArray = (*e)->NewByteArray(e, len);
+    
+    if ((bArray = (*e)->NewByteArray(e, len)) == NULL) {
+        return NULL;
+    }
     (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*) session_id);
     return bArray;
 }
@@ -1961,7 +1995,8 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
     const STACK_OF(SSL_CIPHER) *ciphers = NULL;
     int len;
     int i;
-    jobjectArray array;
+    jobjectArray array = NULL;
+    jstring methodString = NULL;
 
     TCN_CHECK_NULL(ssl_, ssl, NULL);
 
@@ -1970,11 +2005,16 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
     ciphers = SSL_get_ciphers(ssl_);
     len = sk_SSL_CIPHER_num(ciphers);
 
-    array = (*e)->NewObjectArray(e, len, tcn_get_string_class(), NULL);
+    if ((array = (*e)->NewObjectArray(e, len, tcn_get_string_class(), NULL)) == NULL) {
+        return NULL;
+    }
 
     for (i = 0; i < len; i++) {
-        (*e)->SetObjectArrayElement(e, array, i,
-        (*e)->NewStringUTF(e, tcn_SSL_cipher_authentication_method(sk_SSL_CIPHER_value(ciphers, i))));
+        if ((methodString = (*e)->NewStringUTF(e, tcn_SSL_cipher_authentication_method(sk_SSL_CIPHER_value(ciphers, i)))) == NULL) {
+            // Out of memory
+            return NULL;
+        }
+        (*e)->SetObjectArrayElement(e, array, i, methodString);
     }
     return array;
 }
@@ -2492,6 +2532,9 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getOcspResponse)(TCN_STDARGS, jlong ssl) {
     }
 
     jbyteArray value = (*e)->NewByteArray(e, length);
+    if (value == NULL) {
+        return NULL;
+    }
     (*e)->SetByteArrayRegion(e, value, 0, length, (jbyte*)response);
     return value;
 
@@ -2503,6 +2546,10 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getOcspResponse)(TCN_STDARGS, jlong ssl) {
     }
 
     jbyteArray value = (*e)->NewByteArray(e, length);
+    if (value == NULL) {
+        // Out of memory
+        return NULL;
+    }
     (*e)->SetByteArrayRegion(e, value, 0, length, (jbyte*)response);
     return value;
 #endif
@@ -2618,16 +2665,14 @@ complete:
     if (nsig <= 0) {
         return NULL;
     }
-    array = (*e)->NewObjectArray(e, nsig, tcn_get_string_class(), NULL);
 
-    if (array == NULL) {
+    if ((array = (*e)->NewObjectArray(e, nsig, tcn_get_string_class(), NULL)) == NULL) {
         return NULL;
     }
 
     for (i = 0; i < nsig; i++) {
         SSL_get_sigalgs(ssl_, i, NULL, NULL, &psignhash, NULL, NULL);
-        algString = (*e)->NewStringUTF(e, OBJ_nid2ln(psignhash));
-        if (algString == NULL) {
+        if ((algString = (*e)->NewStringUTF(e, OBJ_nid2ln(psignhash))) == NULL) {
             // something is wrong we should better just return here
             return NULL;
         }
