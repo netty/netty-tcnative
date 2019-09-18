@@ -353,6 +353,9 @@ struct tcn_ssl_task_t {
     jobject task;
 };
 
+tcn_ssl_task_t* tcn_ssl_task_new(JNIEnv*, jobject);
+void tcn_ssl_task_free(JNIEnv*, tcn_ssl_task_t*);
+
 /*
  *  Additional Functions
  */
