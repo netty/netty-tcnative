@@ -1399,8 +1399,7 @@ static const char* authentication_method(const SSL* ssl) {
     }
 }
 
-#ifndef LIBRESSL_VERSION_NUMBER
-static tcn_ssl_task_t* tcn_ssl_task_new(JNIEnv* e, jobject task) {
+tcn_ssl_task_t* tcn_ssl_task_new(JNIEnv* e, jobject task) {
     if (task == NULL) {
         // task was NULL which most likely means we did run out of memory when calling NewObject(...). Signal a failure back by returning NULL.
         return NULL;
@@ -1419,19 +1418,20 @@ static tcn_ssl_task_t* tcn_ssl_task_new(JNIEnv* e, jobject task) {
     return sslTask;
 }
 
-static void tcn_ssl_task_free(JNIEnv* e, tcn_ssl_task_t* sslTask) {
+void tcn_ssl_task_free(JNIEnv* e, tcn_ssl_task_t* sslTask) {
     if (sslTask == NULL) {
         return;
     }
 
-    // As we created a Global reference before we need to delete the reference as otherwise we will leak memory.
-    (*e)->DeleteGlobalRef(e, sslTask->task);
-    sslTask->task = NULL;
+    if (sslTask->task != NULL) {
+        // As we created a Global reference before we need to delete the reference as otherwise we will leak memory.
+        (*e)->DeleteGlobalRef(e, sslTask->task);
+        sslTask->task = NULL;
+    }
 
     // The task was malloc'ed before, free it and clear it from the SSL storage.
     OPENSSL_free(sslTask);
 }
-#endif // LIBRESSL_VERSION_NUMBER
 
 /* Android end */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL)

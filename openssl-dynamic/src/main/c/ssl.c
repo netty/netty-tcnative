@@ -909,8 +909,7 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
 
     UNREFERENCED_STDARGS;
 
-    ssl = SSL_new(c->ctx);
-    if (ssl == NULL) {
+    if ((ssl = SSL_new(c->ctx)) == NULL) {
         tcn_ThrowException(e, "cannot create new ssl");
         return 0;
     }
@@ -924,8 +923,7 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
     tcn_SSL_set_app_data4(ssl, &c->verify_config);
 
     // Store the handshakeCount in the SSL instance.
-    handshakeCount = (int*) OPENSSL_malloc(sizeof(int));
-    if (handshakeCount == NULL) {
+    if ((handshakeCount = (int*) OPENSSL_malloc(sizeof(int))) == NULL) {
         SSL_free(ssl);
         tcn_ThrowException(e, "cannot create handshakeCount user data");
         return 0;
@@ -1130,15 +1128,8 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
         tcn_SSL_set_app_data4(ssl_, &c->verify_config);
     }
 
-    if (ssl_task != NULL) {
-        if (ssl_task->task != NULL) {
-            // Delete the global reference to ensure we not leak any memory.
-            (*e)->DeleteGlobalRef(e, ssl_task->task);
-            ssl_task->task = NULL;
-        }
-        OPENSSL_free(ssl_task);
-        tcn_SSL_set_app_data5(ssl_, NULL);
-    }
+    tcn_ssl_task_free(e, ssl_task);
+    tcn_SSL_set_app_data5(ssl_, NULL);
 
     SSL_free(ssl_);
 }
