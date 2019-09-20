@@ -186,7 +186,8 @@
                             <!-- On Windows, build with /MT for static linking -->
                             <property name="cmakeAsmFlags" value="" />
                             <property name="cmakeCFlags" value="/MT" />
-                            <property name="cmakeCxxFlags" value="/MT" />
+                            <!-- Disable one warning to be able to build on windows -->
+                            <property name="cmakeCxxFlags" value="/MT /wd4091" />
                           </then>
                           <elseif>
                             <equals arg1="${os.detected.name}" arg2="linux" />
