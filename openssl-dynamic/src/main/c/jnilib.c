@@ -265,7 +265,10 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
     // packagePrefix length is > 0
     // Make a copy so we can modify the value without impacting libraryPathName.
     size_t packagePrefixLen = packageNameEnd - packagePrefix;
-    packagePrefix = netty_internal_tcnative_util_strndup(packagePrefix, packagePrefixLen);
+    if (packagePrefix = netty_internal_tcnative_util_strndup(packagePrefix, packagePrefixLen)) == NULL) {
+        *status = JNI_ERR;
+        return NULL;
+    }
     // Make sure the packagePrefix is in the correct format for the JNI functions it will be used with.
     char* temp = packagePrefix;
     packageNameEnd = packagePrefix + packagePrefixLen;
