@@ -2662,7 +2662,7 @@ static void freeDynamicMethodsTable(JNINativeMethod* dynamicMethods) {
 
 static void freeDynamicTypeName(char** dynamicTypeName) {
     free(*dynamicTypeName);
-    dynamicTypeName = NULL;
+    *dynamicTypeName = NULL;
 }
 
 static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
