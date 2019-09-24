@@ -356,23 +356,31 @@ struct tcn_ssl_task_t {
 tcn_ssl_task_t* tcn_ssl_task_new(JNIEnv*, jobject);
 void tcn_ssl_task_free(JNIEnv*, tcn_ssl_task_t*);
 
+typedef struct tcn_ssl_state_t tcn_ssl_state_t;
+struct tcn_ssl_state_t {
+    int handshakeCount;
+    tcn_ssl_ctxt_t *ctx;
+    tcn_ssl_task_t* ssl_task;
+    tcn_ssl_verify_config_t* verify_config;
+};
+
+#define TCN_GET_SSL_CTX(ssl, C)                             \
+    TCN_BEGIN_MACRO                                         \
+        tcn_ssl_state_t* _S = tcn_SSL_get_app_state(ssl);   \
+        if (_S == NULL) {                                   \
+            C = NULL;                                       \
+        } else {                                            \
+            C = _S->ctx;                                    \
+        }                                                   \
+    TCN_END_MACRO
+
 /*
  *  Additional Functions
  */
-void        tcn_SSL_init_app_data_idx(void);
+void        tcn_SSL_init_app_state_idx(void);
 // The app_data2 is used to store the tcn_ssl_ctxt_t pointer for the SSL instance.
-void       *tcn_SSL_get_app_data2(SSL *);
-void        tcn_SSL_set_app_data2(SSL *, void *);
-// The app_data3 is used to store the handshakeCount pointer for the SSL instance.
-void       *tcn_SSL_get_app_data3(SSL *);
-void        tcn_SSL_set_app_data3(SSL *, void *);
-// The app_data4 is used to store the tcn_ssl_verify_config_t pointer for the SSL instance.
-// This will initially point back to the tcn_ssl_ctxt_t in tcn_ssl_ctxt_t.
-void       *tcn_SSL_get_app_data4(SSL *);
-void        tcn_SSL_set_app_data4(SSL *, void *);
-// The app_data5 is used to store ssl_task.
-void       *tcn_SSL_get_app_data5(SSL *);
-void        tcn_SSL_set_app_data5(SSL *, void *);
+void       *tcn_SSL_get_app_state(const SSL *);
+void        tcn_SSL_set_app_state(SSL *, void *);
 
 int         tcn_SSL_password_callback(char *, int, int, void *);
 DH         *tcn_SSL_dh_get_tmp_param(int);

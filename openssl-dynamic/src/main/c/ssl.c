@@ -829,8 +829,8 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     }
 #endif
 
-    // For tcn_SSL_get_app_data*() at request time
-    tcn_SSL_init_app_data_idx();
+    // For tcn_SSL_get_app_state() at request time
+    tcn_SSL_init_app_state_idx();
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
     init_bio_methods();
@@ -889,21 +889,55 @@ TCN_IMPLEMENT_CALL(jint, SSL, getLastErrorNumber)(TCN_STDARGS) {
 }
 
 static void ssl_info_callback(const SSL *ssl, int where, int ret) {
-    int *handshakeCount = NULL;
+    tcn_ssl_state_t* state = NULL;
     if (0 != (where & SSL_CB_HANDSHAKE_START)) {
-        handshakeCount = (int*) tcn_SSL_get_app_data3((SSL*) ssl);
-        if (handshakeCount != NULL) {
-            ++(*handshakeCount);
+        if ((state = tcn_SSL_get_app_state(ssl)) != NULL) {
+            state->handshakeCount++;
         }
     }
+}
+
+static tcn_ssl_state_t* new_ssl_state(tcn_ssl_ctxt_t* ctx) {
+    if (ctx == NULL) {
+        return NULL;
+    }
+
+    tcn_ssl_state_t* state = OPENSSL_malloc(sizeof(tcn_ssl_state_t));
+    if (state == NULL) {
+        return NULL;
+    }
+    memset(state, 0, sizeof(tcn_ssl_state_t));
+    state->ctx = ctx;
+
+     // Initially we will share the configuration from the SSLContext.
+    state->verify_config = &ctx->verify_config;
+    return state;
+}
+
+static void free_ssl_state(tcn_ssl_state_t* state) {
+    JNIEnv* e = NULL;
+    if (state == NULL) {
+        return;
+    }
+
+    // Only free the verify_config if it is not shared with the SSLContext.
+    if (state->verify_config != NULL && state->verify_config != &state->ctx->verify_config) {
+        OPENSSL_free(state->verify_config);
+        state->verify_config = NULL;
+    }
+
+
+    tcn_get_java_env(&e);
+    tcn_ssl_task_free(e, state->ssl_task);
+    state->ssl_task = NULL;
 }
 
 TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
                                                    jlong ctx /* tcn_ssl_ctxt_t * */,
                                                    jboolean server) {
     SSL *ssl = NULL;
-    int *handshakeCount = NULL;
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    tcn_ssl_state_t *state = NULL;
 
     TCN_CHECK_NULL(c, ctx, 0);
 
@@ -914,23 +948,14 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
         return 0;
     }
 
-    // Set the app_data2 before all the others because it may be used in SSL_free.
-    tcn_SSL_set_app_data2(ssl, c);
-
-    // Initially we will share the configuration from the SSLContext.
-    // Set this before other app_data because there is no chance of failure, and if other app_data initialization fails
-    // SSL_free maybe called and the state of this variable is assumed to be initalized.
-    tcn_SSL_set_app_data4(ssl, &c->verify_config);
-
-    // Store the handshakeCount in the SSL instance.
-    if ((handshakeCount = (int*) OPENSSL_malloc(sizeof(int))) == NULL) {
+    if ((state = new_ssl_state(c)) == NULL) {
         SSL_free(ssl);
-        tcn_ThrowException(e, "cannot create handshakeCount user data");
+        tcn_ThrowException(e, "cannot create new ssl state struct");
         return 0;
     }
-
-    *handshakeCount = 0;
-    tcn_SSL_set_app_data3(ssl, handshakeCount);
+    
+    // Set the app_data2 before all the others because it may be used in SSL_free.
+    tcn_SSL_set_app_state(ssl, state);
 
     // Add callback to keep track of handshakes.
     SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
@@ -1080,56 +1105,33 @@ TCN_IMPLEMENT_CALL(void, SSL, setShutdown)(TCN_STDARGS,
 TCN_IMPLEMENT_CALL(jobject /* task */, SSL, getTask)(TCN_STDARGS,
                                                         jlong ssl /* SSL * */) {
 
-    tcn_ssl_task_t* ssl_task = NULL;
+    tcn_ssl_state_t* state = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED_STDARGS;
 
-    ssl_task = tcn_SSL_get_app_data5(ssl_);
-    if (ssl_task == NULL || ssl_task->consumed == JNI_TRUE) {
+    if ((state = tcn_SSL_get_app_state(ssl_)) == NULL) {
+        return NULL;
+    }
+    if (state->ssl_task == NULL || state->ssl_task->consumed == JNI_TRUE) {
         // Either no task was produced or it was already consumed by SSL.getTask(...).
         return NULL;
     }
-    ssl_task->consumed = JNI_TRUE;
-    return ssl_task->task;
+    state->ssl_task->consumed = JNI_TRUE;
+    return state->ssl_task->task;
 }
 
 
 // Free the SSL * and its associated internal BIO
 TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
                                        jlong ssl /* SSL * */) {
-    int *handshakeCount = NULL;
-    tcn_ssl_ctxt_t* c = NULL;
-    tcn_ssl_verify_config_t* verify_config = NULL;
-    tcn_ssl_task_t* ssl_task = NULL;
-
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    c = tcn_SSL_get_app_data2(ssl_);
-    handshakeCount = tcn_SSL_get_app_data3(ssl_);
-    verify_config = tcn_SSL_get_app_data4(ssl_);
-    ssl_task = tcn_SSL_get_app_data5(ssl_);
-
-    UNREFERENCED_STDARGS;
-    TCN_ASSERT(c != NULL);
-
-    if (handshakeCount != NULL) {
-        OPENSSL_free(handshakeCount);
-        tcn_SSL_set_app_data3(ssl_, NULL);
-    }
-
-    // Only free the verify_config if it is not shared with the SSLContext.
-    if (verify_config != NULL && verify_config != &c->verify_config) {
-        OPENSSL_free(verify_config);
-        tcn_SSL_set_app_data4(ssl_, &c->verify_config);
-    }
-
-    tcn_ssl_task_free(e, ssl_task);
-    tcn_SSL_set_app_data5(ssl_, NULL);
+    free_ssl_state(tcn_SSL_get_app_state(ssl_));
 
     SSL_free(ssl_);
 }
@@ -1325,7 +1327,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
 
     // Get a stack of all certs in the chain.
 #ifdef OPENSSL_IS_BORINGSSL
-    c = tcn_SSL_get_app_data2(ssl_);
+    TCN_GET_SSL_CTX(ssl_, c);
 
     TCN_ASSERT(c != NULL);
 
@@ -1524,37 +1526,33 @@ TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds
 
 TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jint depth)
 {
-    tcn_ssl_verify_config_t* verify_config = NULL;
-    tcn_ssl_ctxt_t* c = NULL;
+    tcn_ssl_state_t* state = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    c = tcn_SSL_get_app_data2(ssl_);
-    verify_config = tcn_SSL_get_app_data4(ssl_);
-
+    state = tcn_SSL_get_app_state(ssl_);
     UNREFERENCED(o);
-    TCN_ASSERT(c != NULL);
-    TCN_ASSERT(verify_config != NULL);
+    TCN_ASSERT(state != NULL);
+    TCN_ASSERT(state->ctx != NULL);
+    TCN_ASSERT(state->verify_config != NULL);
 
     // If we are sharing the configuration from the SSLContext we now need to create a new configuration just for this SSL.
-    if (verify_config == &c->verify_config) {
-       verify_config = (tcn_ssl_verify_config_t*) OPENSSL_malloc(sizeof(tcn_ssl_verify_config_t));
-       if (verify_config == NULL) {
+    if (state->verify_config == &state->ctx->verify_config) {
+       if ((state->verify_config = (tcn_ssl_verify_config_t*) OPENSSL_malloc(sizeof(tcn_ssl_verify_config_t))) == NULL) {
            tcn_ThrowException(e, "failed to allocate tcn_ssl_verify_config_t");
            return;
        }
        // Copy the verify depth form the context in case depth is <0.
-       verify_config->verify_depth = c->verify_config.verify_depth;
-       tcn_SSL_set_app_data4(ssl_, verify_config);
+       state->verify_config->verify_depth = state->ctx->verify_config.verify_depth;
     }
 
 #ifdef OPENSSL_IS_BORINGSSL
-    SSL_set_custom_verify(ssl_, tcn_set_verify_config(verify_config, level, depth), tcn_SSL_cert_custom_verify);
+    SSL_set_custom_verify(ssl_, tcn_set_verify_config(state->verify_config, level, depth), tcn_SSL_cert_custom_verify);
 #else
     // No need to specify a callback for SSL_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
-    SSL_set_verify(ssl_, tcn_set_verify_config(verify_config, level, depth), NULL);
-    SSL_set_verify_depth(ssl_, verify_config->verify_depth);
+    SSL_set_verify(ssl_, tcn_set_verify_config(state->verify_config, level, depth), NULL);
+    SSL_set_verify_depth(ssl_, state->verify_config->verify_depth);
 #endif // OPENSSL_IS_BORINGSSL
 }
 
@@ -1897,15 +1895,17 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
 
 TCN_IMPLEMENT_CALL(jint, SSL, getHandshakeCount)(TCN_STDARGS, jlong ssl)
 {
-    int *handshakeCount = NULL;
+    tcn_ssl_state_t *state = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
     UNREFERENCED(o);
 
-    handshakeCount = tcn_SSL_get_app_data3(ssl_);
-    return handshakeCount != NULL ? *handshakeCount : 0;
+    if ((state = tcn_SSL_get_app_state(ssl_)) != NULL) {
+        return state->handshakeCount;
+    }
+    return 0;
 }
 
 
