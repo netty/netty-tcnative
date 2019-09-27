@@ -289,7 +289,7 @@ static int bio_java_bytebuffer_create(BIO* bio) {
 }
 
 static int bio_java_bytebuffer_destroy(BIO* bio) {
-    struct TCN_bio_bytebuffer* bioUserData;
+    struct TCN_bio_bytebuffer* bioUserData = NULL;
 
     if (bio == NULL) {
         return 0;
@@ -357,7 +357,7 @@ static long bio_java_bytebuffer_ctrl(BIO* bio, int cmd, long num, void* ptr) {
  */
 static int ssl_ui_reader(UI *ui, UI_STRING *uis)
 {
-    const char *password;
+    const char *password = NULL;
     switch (UI_get_string_type(uis)) {
     case UIT_PROMPT:
     case UIT_VERIFY:
@@ -392,7 +392,7 @@ static int ssl_ui_writer(UI *ui, UI_STRING *uis)
 
 TCN_IMPLEMENT_CALL(jint, SSL, bioLengthByteBuffer)(TCN_STDARGS, jlong bioAddress) {
     BIO* bio = J2P(bioAddress, BIO*);
-    struct TCN_bio_bytebuffer* bioUserData;
+    struct TCN_bio_bytebuffer* bioUserData = NULL;
 
     TCN_CHECK_NULL(bio, bioAddress, 0);
 
@@ -402,7 +402,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, bioLengthByteBuffer)(TCN_STDARGS, jlong bioAddress
 
 TCN_IMPLEMENT_CALL(jint, SSL, bioLengthNonApplication)(TCN_STDARGS, jlong bioAddress) {
     BIO* bio = J2P(bioAddress, BIO*);
-    struct TCN_bio_bytebuffer* bioUserData;
+    struct TCN_bio_bytebuffer* bioUserData = NULL;
 
     TCN_CHECK_NULL(bio, bioAddress, 0);
 
@@ -560,7 +560,7 @@ static ENGINE *ssl_try_load_engine(const char *engine)
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090000fL)
 
-static apr_thread_mutex_t **ssl_lock_cs;
+static apr_thread_mutex_t **ssl_lock_cs = NULL;
 static int                  ssl_lock_num_locks;
 
 static void ssl_thread_lock(int mode, int type,
@@ -625,8 +625,8 @@ static apr_status_t ssl_thread_cleanup(void *data)
 static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
                                                      int line)
 {
-    struct CRYPTO_dynlock_value *value;
-    apr_pool_t *p;
+    struct CRYPTO_dynlock_value *value = NULL;
+    apr_pool_t *p = NULL;
     apr_status_t rv;
 
     /*
@@ -1006,7 +1006,7 @@ TCN_IMPLEMENT_CALL(void, SSL, bioClearByteBuffer)(TCN_STDARGS, jlong bioAddress)
 
 TCN_IMPLEMENT_CALL(jint, SSL, bioFlushByteBuffer)(TCN_STDARGS, jlong bioAddress) {
     BIO* bio = J2P(bioAddress, BIO*);
-    struct TCN_bio_bytebuffer* bioUserData;
+    struct TCN_bio_bytebuffer* bioUserData = NULL;
 
     return (bio == NULL ||
            (bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio)) == NULL ||
@@ -1138,7 +1138,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, bioNewByteBuffer)(TCN_STDARGS,
                                                  jlong ssl /* SSL* */,
                                                  jint nonApplicationBufferSize) {
     SSL* ssl_ = J2P(ssl, SSL*);
-    BIO* bio;
+    BIO* bio = NULL;
     struct TCN_bio_bytebuffer* bioUserData;
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
@@ -1524,8 +1524,8 @@ TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds
 
 TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jint depth)
 {
-    tcn_ssl_verify_config_t* verify_config;
-    tcn_ssl_ctxt_t* c;
+    tcn_ssl_verify_config_t* verify_config = NULL;
+    tcn_ssl_ctxt_t* c = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
@@ -1631,13 +1631,13 @@ TCN_IMPLEMENT_CALL(jint, SSL, getMaxWrapOverhead)(TCN_STDARGS, jlong ssl)
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 {
-    STACK_OF(SSL_CIPHER) *sk;
+    STACK_OF(SSL_CIPHER) *sk = NULL;
     int len;
-    jobjectArray array;
-    const SSL_CIPHER *cipher;
-    const char *name;
+    jobjectArray array = NULL;
+    const SSL_CIPHER *cipher = NULL;
+    const char *name = NULL;
     int i;
-    jstring c_name;
+    jstring c_name = NULL;
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, NULL);
@@ -2647,8 +2647,8 @@ complete:
     int i;
     int nsig;
     int psignhash;
-    jobjectArray array;
-    jstring algString;
+    jobjectArray array = NULL;
+    jstring algString = NULL;
 
     UNREFERENCED(o);
 

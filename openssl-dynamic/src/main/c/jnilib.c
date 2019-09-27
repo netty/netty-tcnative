@@ -61,7 +61,7 @@ static jclass    byteArrayClass;
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 {
-    jstring result;
+    jstring result = NULL;
     jbyteArray bytes = 0;
 
     if (!str)
@@ -400,7 +400,7 @@ static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
 }
 
 static jint JNI_OnLoad_netty_tcnative0(JavaVM* vm, void* reserved) {
-    JNIEnv* env;
+    JNIEnv* env = NULL;
     if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
         return JNI_ERR;
     }
@@ -460,7 +460,7 @@ static jint JNI_OnLoad_netty_tcnative0(JavaVM* vm, void* reserved) {
 }
 
 static void JNI_OnUnload_netty_tcnative0(JavaVM* vm, void* reserved) {
-    JNIEnv* env;
+    JNIEnv* env = NULL;
     if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
         // Something is wrong but nothing we can do about this :(
         return;

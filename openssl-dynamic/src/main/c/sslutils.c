@@ -401,7 +401,7 @@ error:
 
 DH *tcn_SSL_dh_get_tmp_param(int key_len)
 {
-    DH *dh;
+    DH *dh = NULL;
 
     if (key_len == 512)
         dh = get_dh(SSL_TMP_KEY_DH_512);
@@ -467,7 +467,7 @@ DH *tcn_SSL_callback_tmp_DH_4096(SSL *ssl, int export, int keylen)
  */
 int tcn_SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipfirst)
 {
-    BIO *bio;
+    BIO *bio = NULL;
     int n;
 
     if ((bio = BIO_new(BIO_s_file())) == NULL)
@@ -588,7 +588,7 @@ int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
     // Only supported on openssl 1.0.2+ and LibreSSL 2.9.2
     return -1;
 #else
-    X509 *x509;
+    X509 *x509 = NULL;
     unsigned long err;
     int n;
 
@@ -710,9 +710,9 @@ int select_next_proto(SSL *ssl, const unsigned char **out, unsigned char *outlen
 
     unsigned int i = 0;
     unsigned char target_proto_len;
-    unsigned char *p;
-    const unsigned char *end;
-    unsigned char *proto;
+    unsigned char *p = NULL;
+    const unsigned char *end = NULL;
+    unsigned char *proto = NULL;
     unsigned char proto_len;
 
     while (i < supported_protos_len) {
