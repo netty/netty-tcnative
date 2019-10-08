@@ -655,11 +655,11 @@ static X509 *load_pem_cert(tcn_ssl_ctxt_t *c, const char *file)
 static int ssl_load_pkcs12(tcn_ssl_ctxt_t *c, const char *file,
                            EVP_PKEY **pkey, X509 **cert, STACK_OF(X509) **ca)
 {
-    const char *pass;
+    const char *pass = NULL;
     char        buff[PEM_BUFSIZE];
     int         len, rc = 0;
-    PKCS12     *p12;
-    BIO        *in;
+    PKCS12     *p12 = NULL;
+    BIO        *in = NULL;
 
     if ((in = BIO_new(BIO_s_file())) == 0)
         return 0;
@@ -729,8 +729,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     TCN_ALLOC_CSTRING(password);
     EVP_PKEY *pkey = NULL;
     X509 *xcert = NULL;
-    const char *key_file, *cert_file;
-    const char *p;
+    const char *key_file = NULL;
+    const char *cert_file = NULL;
+    const char *p = NULL;
     char *old_password = NULL;
     char err[ERR_LEN];
 
@@ -909,8 +910,8 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
     // We will call realloc to increase this if needed.
     size_t p_data_size = 128;
     size_t p_data_len = 0;
-    jstring proto_string;
-    const char *proto_chars;
+    jstring proto_string = NULL;
+    const char *proto_chars = NULL;
     size_t proto_chars_len;
     int cnt;
 
@@ -1346,9 +1347,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    jbyte* b;
-    jbyte* key;
-    tcn_ssl_ticket_key_t* ticket_keys;
+    jbyte* b = NULL;
+    jbyte* key = NULL;
+    tcn_ssl_ticket_key_t* ticket_keys = NULL;
     int i;
     int cnt;
 
@@ -1803,8 +1804,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
 
 #ifndef LIBRESSL_VERSION_NUMBER
 static jbyteArray keyTypes(JNIEnv* e, SSL* ssl) {
-    jbyte* ctype_bytes;
-    jbyteArray types;
+    jbyte* ctype_bytes = NULL;
+    jbyteArray types = NULL;
     int ctype_num = tcn_SSL_get0_certificate_types(ssl, (const uint8_t **) &ctype_bytes);
     if (ctype_num <= 0) {
         // No idea what we should use... Let the caller handle it.
@@ -2453,7 +2454,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
 
     int len = (*e)->GetArrayLength(e, sidCtx);
-    unsigned char *buf;
+    unsigned char *buf = NULL;
     int res;
 
     UNREFERENCED(o);
