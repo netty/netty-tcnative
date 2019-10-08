@@ -1302,10 +1302,14 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
 }
 
 static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned char *iv, EVP_CIPHER_CTX *ctx, HMAC_CTX *hctx, int enc) {
-     tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(s);
+     tcn_ssl_ctxt_t *c = NULL;
      tcn_ssl_ticket_key_t key;
      int is_current_key;
 
+     TCN_GET_SSL_CTX(s, c);
+     if (c == NULL) {
+         return 0;
+     }
      if (enc) { /* create new session */
          if (current_session_key(c, &key)) {
              if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) <= 0) {
@@ -1452,15 +1456,16 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
     const int totalQueuedLength = sk_X509_num(chain);
 #endif // OPENSSL_IS_BORINGSSL
 
-    tcn_ssl_verify_config_t* verify_config = tcn_SSL_get_app_data4(ssl);
-    TCN_ASSERT(verify_config != NULL);
+    tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl);
+    TCN_ASSERT(state != NULL);
+    TCN_ASSERT(state->verify_config != NULL);
 
     // SSL_CTX_set_verify_depth() and SSL_set_verify_depth() set the limit up to which depth certificates in a chain are
     // used during the verification procedure. If the certificate chain is longer than allowed, the certificates above
     // the limit are ignored. Error messages are generated as if these certificates would not be present,
     // most likely a X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY will be issued.
     // https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-    int len = TCN_MIN(verify_config->verify_depth, totalQueuedLength);
+    int len = TCN_MIN(state->verify_config->verify_depth, totalQueuedLength);
     unsigned i;
     int length;
 
@@ -1526,7 +1531,8 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     TCN_ASSERT(ssl != NULL);
-    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
+    tcn_ssl_ctxt_t *c = NULL;
+    TCN_GET_SSL_CTX(ssl, c);
     TCN_ASSERT(c != NULL);
 
     STACK_OF(X509) *sk = NULL;
@@ -1611,16 +1617,15 @@ complete:
 
 enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert) {
     enum ssl_verify_result_t ret = ssl_verify_invalid;
-    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
+    tcn_ssl_state_t *state = tcn_SSL_get_app_state(ssl);
     const STACK_OF(CRYPTO_BUFFER) *chain = NULL;
     jstring authMethodString = NULL;
     jint result = X509_V_ERR_UNSPECIFIED;
     jint len = 0;
     jbyteArray array = NULL;
-    tcn_ssl_task_t* sslTask = NULL;
     JNIEnv *e = NULL;
 
-    if (c == NULL) {
+    if (state == NULL || state->ctx == NULL) {
         goto complete;
     }
 
@@ -1629,20 +1634,19 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     }
 
     // Let's check if we retried the operation and so have stored a sslTask that runs the certificiate callback.
-    if ((sslTask  = tcn_SSL_get_app_data5(ssl)) != NULL) {
+    if (state->ssl_task  != NULL) {
         // Check if the task complete yet. If not the complete field will be still false.
-        if ((*e)->GetBooleanField(e, sslTask->task, sslTask_complete) == JNI_FALSE) {
+        if ((*e)->GetBooleanField(e, state->ssl_task->task, sslTask_complete) == JNI_FALSE) {
             // Not done yet, try again later.
             ret = ssl_verify_retry;
             goto complete;
         }
 
         // The task is complete, retrieve the return value that should be signaled back.
-        result = (*e)->GetIntField(e, sslTask->task, sslTask_returnValue);
+        result = (*e)->GetIntField(e, state->ssl_task->task, sslTask_returnValue);
 
-        tcn_ssl_task_free(e, sslTask);
-
-        tcn_SSL_set_app_data5(ssl, NULL);
+        tcn_ssl_task_free(e, state->ssl_task);
+        state->ssl_task = NULL;
 
         TCN_ASSERT(result >= 0);
 
@@ -1669,7 +1673,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
         goto complete;
     }
 
-    if (c->verifier == NULL) {
+    if (state->ctx->verifier == NULL) {
         // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
         // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
         if (len < sk_CRYPTO_BUFFER_num(chain)) {
@@ -1679,23 +1683,21 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     }
 
     // Let's check if we should provide the certificate callback as task that can be run on another Thread.
-    if (c->use_tasks != 0) {
+    if (state->ctx->use_tasks != 0) {
         // Lets create the CertificateCallbackTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
-        jobject task = (*e)->NewObject(e, certificateVerifierTask_class, certificateVerifierTask_init, P2J(ssl), array, authMethodString, c->verifier);
+        jobject task = (*e)->NewObject(e, certificateVerifierTask_class, certificateVerifierTask_init, P2J(ssl), array, authMethodString, state->ctx->verifier);
 
-        if ((sslTask = tcn_ssl_task_new(e, task)) == NULL) {
+        if ((state->ssl_task = tcn_ssl_task_new(e, task)) == NULL) {
             goto complete;
         }
-
-        tcn_SSL_set_app_data5(ssl, sslTask);
 
          // Signal back that we want to suspend the handshake.
         ret = ssl_verify_retry;
         goto complete;
     } else {
         // Execute the java callback
-        result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
+        result = (*e)->CallIntMethod(e, state->ctx->verifier, state->ctx->verifier_method, P2J(ssl), array, authMethodString);
 
         if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
             result = X509_V_ERR_UNSPECIFIED;
@@ -1909,12 +1911,14 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     // Not supported with LibreSSL
     return -1;
 #else
-    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
+    tcn_ssl_ctxt_t *c = NULL;
     jobjectArray issuers = NULL;
     JNIEnv *e = NULL;
     jbyteArray types = NULL;
 
-    if (tcn_get_java_env(&e) != JNI_OK) {
+    TCN_GET_SSL_CTX(ssl, c);
+
+    if (c == NULL || tcn_get_java_env(&e) != JNI_OK) {
         return -1;
     }
 
@@ -1989,8 +1993,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 
 // See https://www.openssl.org/docs/man1.0.2/man3/SSL_set_cert_cb.html for return values.
 static int certificate_cb(SSL* ssl, void* arg) {
-    tcn_ssl_ctxt_t *c = tcn_SSL_get_app_data2(ssl);
-    if (c == NULL) {
+    tcn_ssl_state_t *state = tcn_SSL_get_app_state(ssl);
+    if (state == NULL || state->ctx == NULL) {
         // Signal back that we want to fail the handshake
         return 0;
     }
@@ -1998,32 +2002,31 @@ static int certificate_cb(SSL* ssl, void* arg) {
     jobjectArray issuers = NULL;
     JNIEnv *e = NULL;
     jbyteArray types = NULL;
-    tcn_ssl_task_t* sslTask = NULL;
 
     if (tcn_get_java_env(&e) != JNI_OK) {
         return 0;
     }
 
     // Let's check if we retried the operation and so have stored a sslTask that runs the certificiate callback.
-    if ((sslTask = tcn_SSL_get_app_data5(ssl)) != NULL) {
+    if (state->ssl_task != NULL) {
         // Check if the task complete yet. If not the complete field will be still false.
-        if ((*e)->GetBooleanField(e, sslTask->task, sslTask_complete) == JNI_FALSE) {
+        if ((*e)->GetBooleanField(e, state->ssl_task->task, sslTask_complete) == JNI_FALSE) {
             // Not done yet, try again later.
             return -1;
         }
 
         // The task is complete, retrieve the return value that should be signaled back.
-        jint ret = (*e)->GetIntField(e, sslTask->task, sslTask_returnValue);
+        jint ret = (*e)->GetIntField(e, state->ssl_task->task, sslTask_returnValue);
 
-        tcn_ssl_task_free(e, sslTask);
-        tcn_SSL_set_app_data5(ssl, NULL);
+        tcn_ssl_task_free(e, state->ssl_task);
+        state->ssl_task = NULL;
 
         TCN_ASSERT(ret >= 0);
 
         return ret;
     }
 
-    if (c->mode == SSL_MODE_SERVER) {
+    if (state->ctx->mode == SSL_MODE_SERVER) {
         // TODO: Consider filling these somehow.
         types = NULL;
         issuers = NULL;
@@ -2038,22 +2041,20 @@ static int certificate_cb(SSL* ssl, void* arg) {
     }
 
     // Let's check if we should provide the certificate callback as task that can be run on another Thread.
-    if (c->use_tasks != 0) {
+    if (state->ctx->use_tasks != 0) {
         // Lets create the CertificateCallbackTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
-        jobject task = (*e)->NewObject(e, certificateCallbackTask_class, certificateCallbackTask_init, P2J(ssl), types, issuers, c->certificate_callback);
+        jobject task = (*e)->NewObject(e, certificateCallbackTask_class, certificateCallbackTask_init, P2J(ssl), types, issuers, state->ctx->certificate_callback);
 
-        if ((sslTask = tcn_ssl_task_new(e, task)) == NULL) {
+        if ((state->ssl_task = tcn_ssl_task_new(e, task)) == NULL) {
             return 0;
         }
-
-        tcn_SSL_set_app_data5(ssl, sslTask);
 
         // Signal back that we want to suspend the handshake.
         return -1;
     } else {
         // Execute the java callback
-        (*e)->CallVoidMethod(e, c->certificate_callback, c->certificate_callback_method,
+        (*e)->CallVoidMethod(e, state->ctx->certificate_callback, state->ctx->certificate_callback_method,
                  P2J(ssl), types, issuers);
 
         // Check if java threw an exception and if so signal back that we should not continue with the handshake.
@@ -2137,15 +2138,14 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
 static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t *out, size_t *out_len, size_t max_out, uint16_t signature_algorithm, const uint8_t *in, size_t in_len) {
     enum ssl_private_key_result_t ret = ssl_private_key_failure;
 
-    tcn_ssl_task_t* sslTask = NULL;
-    tcn_ssl_ctxt_t* c = tcn_SSL_get_app_data2(ssl);
+    tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl);
     jbyteArray resultBytes = NULL;
     jbyteArray inputArray = NULL;
     jbyte* b = NULL;
     int arrayLen = 0;
     JNIEnv *e = NULL;
 
-    if (c == NULL || c->ssl_private_key_method == NULL) {
+    if (state == NULL || state->ctx->ssl_private_key_method == NULL) {
         goto complete;
     }
 
@@ -2158,19 +2158,18 @@ static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t
     }
     (*e)->SetByteArrayRegion(e, inputArray, 0, in_len, (jbyte*) in);
 
-    if (c->use_tasks) {
+    if (state->ctx->use_tasks) {
         // Lets create the SSLPrivateKeyMethodSignTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
         jobject task = (*e)->NewObject(e, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init, P2J(ssl),
-                signature_algorithm, inputArray, c->ssl_private_key_method);
-        if ((sslTask = tcn_ssl_task_new(e, task)) == NULL) {
+                signature_algorithm, inputArray, state->ctx->ssl_private_key_method);
+        if ((state->ssl_task = tcn_ssl_task_new(e, task)) == NULL) {
             goto complete;
         }
 
-        tcn_SSL_set_app_data5(ssl, sslTask);
         ret = ssl_private_key_retry;
     } else {
-        resultBytes = (*e)->CallObjectMethod(e, c->ssl_private_key_method, c->ssl_private_key_sign_method,
+        resultBytes = (*e)->CallObjectMethod(e, state->ctx->ssl_private_key_method, state->ctx->ssl_private_key_sign_method,
                 P2J(ssl), signature_algorithm, inputArray);
         if ((*e)->ExceptionCheck(e) == JNI_FALSE) {
             if (resultBytes == NULL) {
@@ -2201,15 +2200,14 @@ complete:
 
 static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint8_t *out, size_t *out_len, size_t max_out, const uint8_t *in, size_t in_len) {
     enum ssl_private_key_result_t ret = ssl_private_key_failure;
-    tcn_ssl_ctxt_t* c = tcn_SSL_get_app_data2(ssl);
-    tcn_ssl_task_t* sslTask = NULL;
+    tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl);
     jbyteArray resultBytes = NULL;
     jbyteArray inArray = NULL;
     jbyte* b = NULL;
     int arrayLen = 0;
     JNIEnv *e = NULL;
 
-    if (c == NULL || c->ssl_private_key_method == NULL) {
+    if (state == NULL || state->ctx->ssl_private_key_method == NULL) {
         goto complete;
     }
 
@@ -2222,20 +2220,19 @@ static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint
     }
     (*e)->SetByteArrayRegion(e, inArray, 0, in_len, (jbyte*) in);
 
-    if (c->use_tasks) {
+    if (state->ctx->use_tasks) {
         // Lets create the SSLPrivateKeyMethodDecryptTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
         jobject task = (*e)->NewObject(e, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_init,
-                P2J(ssl), inArray, c->ssl_private_key_method);
+                P2J(ssl), inArray, state->ctx->ssl_private_key_method);
 
-        if ((sslTask = tcn_ssl_task_new(e, task)) == NULL) {
+        if ((state->ssl_task = tcn_ssl_task_new(e, task)) == NULL) {
             goto complete;
         }
 
-        tcn_SSL_set_app_data5(ssl, sslTask);
         ret = ssl_private_key_retry;
     } else {
-        resultBytes = (*e)->CallObjectMethod(e, c->ssl_private_key_method, c->ssl_private_key_decrypt_method,
+        resultBytes = (*e)->CallObjectMethod(e, state->ctx->ssl_private_key_method, state->ctx->ssl_private_key_decrypt_method,
             P2J(ssl), inArray);
         if ((*e)->ExceptionCheck(e) == JNI_FALSE) {
             if (resultBytes == NULL) {
@@ -2265,37 +2262,36 @@ complete:
 }
 
 static enum ssl_private_key_result_t tcn_private_key_complete_java(SSL *ssl, uint8_t *out, size_t *out_len, size_t max_out) {
-    tcn_ssl_ctxt_t* c = tcn_SSL_get_app_data2(ssl);
-    tcn_ssl_task_t* sslTask = NULL;
+    tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl);
     jbyte* b = NULL;
     int arrayLen = 0;
     JNIEnv *e = NULL;
 
-    if (c == NULL) {
+    if (state == NULL || state->ctx == NULL) {
         return ssl_private_key_failure;
     }
-    if (c->use_tasks == 0) {
+    if (state->ctx->use_tasks == 0) {
         // We do not use any asynchronous implementation so just report success.
         return ssl_private_key_success;
     }
 
     // Let's check if we retried the operation and so have stored a sslTask that runs the sign / decrypt callback.
-    if ((sslTask = tcn_SSL_get_app_data5(ssl)) != NULL) {
+    if (state->ssl_task != NULL) {
         if (tcn_get_java_env(&e) != JNI_OK) {
             return ssl_private_key_failure;
         }
 
         // Check if the task complete yet. If not the complete field will be still false.
-        if ((*e)->GetBooleanField(e, sslTask->task, sslTask_complete) == JNI_FALSE) {
+        if ((*e)->GetBooleanField(e, state->ssl_task->task, sslTask_complete) == JNI_FALSE) {
             // Not done yet, try again later.
             return ssl_private_key_retry;
         }
 
         // The task is complete, retrieve the return value that should be signaled back.
-        jbyteArray resultBytes = (*e)->GetObjectField(e, sslTask->task, sslPrivateKeyMethodTask_resultBytes);
+        jbyteArray resultBytes = (*e)->GetObjectField(e, state->ssl_task->task, sslPrivateKeyMethodTask_resultBytes);
 
-        tcn_ssl_task_free(e, sslTask);
-        tcn_SSL_set_app_data5(ssl, NULL);
+        tcn_ssl_task_free(e, state->ssl_task);
+        state->ssl_task = NULL;
 
         if (resultBytes == NULL) {
             return ssl_private_key_failure;

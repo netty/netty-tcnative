@@ -167,74 +167,29 @@ const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
  * also note that OpenSSL increments at static variable when
  * SSL_get_ex_new_index() is called, so we _must_ do this at startup.
  */
-static int tcn_SSL_app_data2_idx = -1;
-static int tcn_SSL_app_data3_idx = -1;
-static int tcn_SSL_app_data4_idx = -1;
-static int tcn_SSL_app_data5_idx = -1;
+static int tcn_SSL_app_state_idx = -1;
 
-void tcn_SSL_init_app_data_idx()
+void tcn_SSL_init_app_state_idx()
 {
     int i;
 
-    if (tcn_SSL_app_data2_idx == -1) {
+    if (tcn_SSL_app_state_idx == -1) {
         /* we _do_ need to call this two times */
         for (i = 0; i <= 1; i++) {
-            tcn_SSL_app_data2_idx = SSL_get_ex_new_index(0, "tcn_ssl_ctxt_t*", NULL, NULL, NULL);
+            tcn_SSL_app_state_idx = SSL_get_ex_new_index(0, "tcn_ssl_state_t*", NULL, NULL, NULL);
         }
     }
-
-    if (tcn_SSL_app_data3_idx == -1) {
-        tcn_SSL_app_data3_idx = SSL_get_ex_new_index(0, "int* handshakeCount", NULL, NULL, NULL);
-    }
-
-    if (tcn_SSL_app_data4_idx == -1) {
-        tcn_SSL_app_data4_idx = SSL_get_ex_new_index(0, "tcn_ssl_verify_config_t*", NULL, NULL, NULL);
-    }
-
-    if (tcn_SSL_app_data5_idx == -1) {
-        tcn_SSL_app_data5_idx = SSL_get_ex_new_index(0, "tcn_ssl_task*", NULL, NULL, NULL);
-    }
 }
 
-void *tcn_SSL_get_app_data2(SSL *ssl)
+void *tcn_SSL_get_app_state(const SSL *ssl)
 {
-    return (void *)SSL_get_ex_data(ssl, tcn_SSL_app_data2_idx);
+    return (void *)SSL_get_ex_data(ssl, tcn_SSL_app_state_idx);
 }
 
-void tcn_SSL_set_app_data2(SSL *ssl, void *arg)
+void tcn_SSL_set_app_state(SSL *ssl, void *arg)
 {
-    SSL_set_ex_data(ssl, tcn_SSL_app_data2_idx, (char *)arg);
+    SSL_set_ex_data(ssl, tcn_SSL_app_state_idx, (char *)arg);
     return;
-}
-
-void *tcn_SSL_get_app_data3(SSL *ssl)
-{
-    return SSL_get_ex_data(ssl, tcn_SSL_app_data3_idx);
-}
-
-void tcn_SSL_set_app_data3(SSL *ssl, void *arg)
-{
-    SSL_set_ex_data(ssl, tcn_SSL_app_data3_idx, arg);
-}
-
-void *tcn_SSL_get_app_data4(SSL *ssl)
-{
-    return SSL_get_ex_data(ssl, tcn_SSL_app_data4_idx);
-}
-
-void tcn_SSL_set_app_data4(SSL *ssl, void *arg)
-{
-    SSL_set_ex_data(ssl, tcn_SSL_app_data4_idx, arg);
-}
-
-void *tcn_SSL_get_app_data5(SSL *ssl)
-{
-    return SSL_get_ex_data(ssl, tcn_SSL_app_data5_idx);
-}
-
-void tcn_SSL_set_app_data5(SSL *ssl, void *arg)
-{
-    SSL_set_ex_data(ssl, tcn_SSL_app_data5_idx, arg);
 }
 
 int tcn_SSL_password_callback(char *buf, int bufsiz, int verify,
