@@ -148,8 +148,6 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     tcn_ssl_ctxt_t *c = NULL;
     SSL_CTX *ctx = NULL;
 
-    UNREFERENCED(o);
-
 #ifdef OPENSSL_IS_BORINGSSL
     // When using BoringSSL we want to use CRYPTO_BUFFER to reduce memory usage and minimize overhead as we do not need
     // X509* at all and just need the raw bytes of the certificates to construct our Java X509Certificate.
@@ -410,7 +408,6 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, free)(TCN_STDARGS, jlong ctx)
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    UNREFERENCED_STDARGS;
     /* Run and destroy the cleanup callback */
     int result = apr_pool_cleanup_run(c->pool, c, ssl_context_cleanup);
     apr_pool_destroy(c->pool);
@@ -425,8 +422,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setContextId)(TCN_STDARGS, jlong ctx,
     TCN_CHECK_NULL(c, ctx, /* void */);
 
     TCN_ALLOC_CSTRING(id);
-
-    UNREFERENCED(o);
     if (J2S(id)) {
         EVP_Digest((const unsigned char *)J2S(id),
                    (unsigned long)strlen(J2S(id)),
@@ -442,8 +437,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setOptions)(TCN_STDARGS, jlong ctx,
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    UNREFERENCED_STDARGS;
-
     SSL_CTX_set_options(c->ctx, opt);
 }
 
@@ -452,8 +445,6 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, getOptions)(TCN_STDARGS, jlong ctx)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, 0);
-
-    UNREFERENCED_STDARGS;
 
     return SSL_CTX_get_options(c->ctx);
 }
@@ -465,7 +456,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, clearOptions)(TCN_STDARGS, jlong ctx,
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    UNREFERENCED_STDARGS;
     SSL_CTX_clear_options(c->ctx, opt);
 }
 
@@ -489,7 +479,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
     }
 
     TCN_ALLOC_CSTRING(ciphers);
-    UNREFERENCED(o);
     if (!J2S(ciphers)) {
         return JNI_FALSE;
     }
@@ -535,7 +524,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
 
     TCN_ALLOC_CSTRING(file);
 
-    UNREFERENCED(o);
     if (!J2S(file))
         return JNI_FALSE;
     if (tcn_SSL_CTX_use_certificate_chain(c->ctx, J2S(file), skipfirst) > 0)
@@ -558,7 +546,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jl
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
 
-    UNREFERENCED(o);
     if (b == NULL)
         return JNI_FALSE;
     if (tcn_SSL_CTX_use_certificate_chain_bio(c->ctx, b, skipfirst) > 0)  {
@@ -576,8 +563,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS, jlong
 
     BIO *b = J2P(certs, BIO *);
 
-    UNREFERENCED(o);
-
     return b != NULL && c->mode != SSL_MODE_CLIENT && tcn_SSL_CTX_use_client_CA_bio(c->ctx, b) > 0 ? JNI_TRUE : JNI_FALSE;
 }
 
@@ -587,7 +572,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    UNREFERENCED(o);
     switch (length) {
         case 512:
             SSL_CTX_set_tmp_dh_callback(c->ctx, tcn_SSL_callback_tmp_DH_512);
@@ -735,8 +719,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     char *old_password = NULL;
     char err[ERR_LEN];
 
-    UNREFERENCED(o);
-
     if (J2S(password)) {
         old_password = c->password;
 
@@ -831,8 +813,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     TCN_ALLOC_CSTRING(password);
     char *old_password = NULL;
     char err[ERR_LEN];
-
-    UNREFERENCED(o);
 
     if (J2S(password)) {
         old_password = c->password;
@@ -996,8 +976,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobje
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    UNREFERENCED(o);
-
     if (initProtocols(e, &c->next_proto_data, &c->next_proto_len, next_protos) == 0) {
         c->next_selector_failure_behavior = selectorFailureBehavior;
 
@@ -1016,9 +994,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobj
     // Only supported with GCC
     #if defined(__GNUC__) || defined(__GNUG__)
         if (!SSL_CTX_set_alpn_protos || !SSL_CTX_set_alpn_select_cb) {
-            UNREFERENCED_STDARGS;
-            UNREFERENCED(ctx);
-            UNREFERENCED(alpn_protos);
             return;
         }
     #endif
@@ -1028,8 +1003,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobj
         tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
         TCN_CHECK_NULL(c, ctx, /* void */);
-
-        UNREFERENCED(o);
 
         if (initProtocols(e, &c->alpn_proto_data, &c->alpn_proto_len, alpn_protos) == 0) {
             c->alpn_selector_failure_behavior = selectorFailureBehavior;
@@ -1042,10 +1015,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobj
 
             }
         }
-    #else
-        UNREFERENCED_STDARGS;
-        UNREFERENCED(ctx);
-        UNREFERENCED(alpn_protos);
     #endif
 }
 
@@ -1742,8 +1711,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint lev
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    UNREFERENCED(o);
-
     int mode = tcn_set_verify_config(&c->verify_config, level, depth);
 #ifdef OPENSSL_IS_BORINGSSL
     if (c->verifier != NULL) {
@@ -1761,8 +1728,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, /* void */);
-
-    UNREFERENCED(o);
 
     jobject oldVerifier = c->verifier;
     if (verifier == NULL) {
@@ -1952,8 +1917,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    UNREFERENCED(o);
-
 #ifdef OPENSSL_IS_BORINGSSL
     tcn_Throw(e, "Not supported using BoringSSL");
 #else
@@ -2078,13 +2041,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
 #if defined(LIBRESSL_VERSION_NUMBER)
     tcn_Throw(e, "Not supported with LibreSSL");
 #else
-    UNREFERENCED(o);
 
 // Use weak linking with GCC as this will alow us to run the same packaged version with multiple
 // version of openssl.
 #if defined(__GNUC__) || defined(__GNUG__)
     if (!SSL_CTX_set_cert_cb) {
-        UNREFERENCED(o);
         tcn_ThrowException(e, "Requires OpenSSL 1.0.2+");
         return;
     }
@@ -2407,8 +2368,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    UNREFERENCED(o);
-
     jobject oldMatcher = c->sni_hostname_matcher;
     if (matcher == NULL) {
         c->sni_hostname_matcher = NULL;
@@ -2453,8 +2412,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong
     unsigned char *buf = NULL;
     int res;
 
-    UNREFERENCED(o);
-
     if ((buf = OPENSSL_malloc(len)) == NULL) {
         return JNI_FALSE;
     }
@@ -2476,8 +2433,6 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, setMode)(TCN_STDARGS, jlong ctx, jint mode)
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    UNREFERENCED(o);
-
     return (jint) SSL_CTX_set_mode(c->ctx, mode);
 }
 
@@ -2487,8 +2442,6 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, getMode)(TCN_STDARGS, jlong ctx)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, 0);
-
-    UNREFERENCED(o);
 
     return (jint) SSL_CTX_get_mode(c->ctx);
 }

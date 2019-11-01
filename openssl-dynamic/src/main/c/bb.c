@@ -34,13 +34,11 @@
 
 TCN_IMPLEMENT_CALL(jlong, Buffer, address)(TCN_STDARGS, jobject bb)
 {
-    UNREFERENCED(o);
     return P2J((*e)->GetDirectBufferAddress(e, bb));
 }
 
 TCN_IMPLEMENT_CALL(jlong, Buffer, size)(TCN_STDARGS, jobject bb)
 {
-    UNREFERENCED(o);
     return (*e)->GetDirectBufferCapacity(e, bb);
 }
 
