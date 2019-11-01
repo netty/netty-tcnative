@@ -90,7 +90,6 @@ jstring tcn_new_string(JNIEnv *env, const char *str)
 TCN_IMPLEMENT_CALL(jboolean, Library, initialize0)(TCN_STDARGS)
 {
 
-    UNREFERENCED_STDARGS;
     if (!tcn_global_pool) {
         apr_initialize();
         if (apr_pool_create(&tcn_global_pool, NULL) != APR_SUCCESS) {
@@ -105,20 +104,17 @@ TCN_IMPLEMENT_CALL(jint, Library, aprMajorVersion)(TCN_STDARGS)
 {
     apr_version_t apv;
 
-    UNREFERENCED_STDARGS;
     apr_version(&apv);
     return apv.major;
 }
 
 TCN_IMPLEMENT_CALL(jstring, Library, aprVersionString)(TCN_STDARGS)
 {
-    UNREFERENCED(o);
     return AJP_TO_JSTRING(apr_version_string());
 }
 
 TCN_IMPLEMENT_CALL(jboolean, Library, aprHasThreads)(TCN_STDARGS)
 {
-    UNREFERENCED_STDARGS;
 #if APR_HAS_THREADS
     return JNI_TRUE;
 #else

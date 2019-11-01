@@ -58,8 +58,6 @@
 #endif
 // End includes
 
-#define UNREFERENCED(P)      (P) = (P)
-#define UNREFERENCED_STDARGS e = e; o = o
 #ifdef _WIN32
 #define LLT(X) (X)
 #else
