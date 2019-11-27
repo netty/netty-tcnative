@@ -1,0 +1,30 @@
+FROM archlinux/base
+
+ARG java_version=8
+ENV JAVA_VERSION $java_version
+
+# install dependencies
+# use openSSL 1.0.x for now, for highest compatibility
+RUN pacman -Sy --noconfirm --needed \
+ apr \
+ autoconf \
+ automake \
+ bzip2 \
+ cmake \
+ git \
+ glibc \
+ gcc \
+ gnupg \
+ go \
+ gzip \
+ jdk${JAVA_VERSION}-openjdk \
+ openssl-1.0 \
+ libtool \
+ lsb-release \
+ make \
+ ninja \
+ perl \
+ tar \
+ unzip \
+ wget \
+ which
