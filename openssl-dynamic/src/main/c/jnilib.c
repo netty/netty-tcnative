@@ -395,6 +395,79 @@ static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
     netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
 }
 
+/* Fix missing Dl_info & dladdr in AIX.
+ * The code is actually borrowed from below OpenJDK Changeset
+ * http://hg.openjdk.java.net/jdk9/jdk9/jdk/rev/c709e74ffcf6
+ */
+#ifdef _AIX
+
+#include <sys/ldr.h>
+
+typedef struct {
+  const char *dli_fname; /* file path of loaded library */
+} Dl_info;
+
+static unsigned char dladdr_buffer[0x4000];
+
+static int fill_dll_info(void) {
+    return loadquery(L_GETINFO, dladdr_buffer, sizeof(dladdr_buffer));
+}
+
+static int dladdr_dont_reload(void *addr, Dl_info *info) {
+    const struct ld_info *p = (struct ld_info *)dladdr_buffer;
+    memset((void *)info, 0, sizeof(Dl_info));
+    for (;;) {
+        if (addr >= p->ldinfo_textorg &&
+            (char*)addr < (((char*)p->ldinfo_textorg) + p->ldinfo_textsize))
+        {
+            info->dli_fname = p->ldinfo_filename;
+            return 1;
+        }
+        if (!p->ldinfo_next) {
+            break;
+        }
+        p = (struct ld_info *)(((char *)p) + p->ldinfo_next);
+    }
+    return 0;
+}
+
+int dladdr(void *addr, Dl_info *info) {
+    static int loaded = 0;
+    int rc = 0;
+    void *addr0;
+    if (!addr) {
+       return rc;
+    }
+    if (!loaded) {
+        if (fill_dll_info() == -1)
+            return rc;
+        loaded = 1;
+    }
+
+    // first try with addr on cached data
+    rc = dladdr_dont_reload(addr, info);
+
+    // addr could be an AIX function descriptor, so try dereferenced version
+    if (rc == 0) {
+        addr0 = *((void **)addr);
+        rc = dladdr_dont_reload(addr0, info);
+    }
+
+    // if we had no success until now, maybe loadquery info is outdated.
+    // refresh and retry
+    if (rc == 0) {
+        if (fill_dll_info() == -1)
+            return rc;
+        rc = dladdr_dont_reload(addr, info);
+        if (rc == 0) {
+            rc = dladdr_dont_reload(addr0, info);
+        }
+    }
+    return rc;
+}
+
+#endif  /* AIX */
+
 static jint JNI_OnLoad_netty_tcnative0(JavaVM* vm, void* reserved) {
     JNIEnv* env = NULL;
     if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
