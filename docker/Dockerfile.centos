@@ -9,6 +9,9 @@ ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
 ENV NINJA_VERSION 1.7.2
 ENV GO_VERSION 1.9.3
 
+# We want to have git 2.x for the maven scm plugin
+RUN yum install -y http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
+
 # install dependencies
 RUN yum install -y \
  apr-devel \

@@ -103,7 +103,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-scm-plugin</artifactId>
-          <version>1.9.4</version>
+          <version>1.11.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
