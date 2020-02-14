@@ -220,12 +220,18 @@
                           <!-- See https://github.com/netty/netty-tcnative/issues/475 -->
                           <available file="ninja-build" filepath="${env.PATH}" />
                           <then>
-                            <exec executable="ninja-build" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                            <property name="ninjaExecutable" value="ninja-build" />
                           </then>
                           <else>
-                            <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                            <property name="ninjaExecutable" value="ninja" />
                           </else>
                         </if>
+                        <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                          <arg value="crypto/libcrypto.a" />
+                          <arg value="crypto/fipsmodule/fipsmodule" />
+                          <arg value="ssl/libssl.a" />
+                          <arg value="decrepit/libdecrepit.a" />
+                        </exec>
                       </else>
                     </if>
                   </target>
