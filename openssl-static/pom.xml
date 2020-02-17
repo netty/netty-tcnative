@@ -133,6 +133,7 @@
               <forceConfigure>${forceConfigure}</forceConfigure>
               <windowsBuildTool>msbuild</windowsBuildTool>
               <configureArgs>
+                <configureArg>${macOsxDeploymentTarget}</configureArg>
                 <configureArg>--with-ssl=${sslHome}</configureArg>
                 <configureArg>--with-apr=${aprHome}</configureArg>
                 <configureArg>--with-static-libs</configureArg>
@@ -390,7 +391,7 @@
                         <echo message="Building OpenSSL" />
                         <mkdir dir="${sslHome}" />
                         <exec executable="Configure" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg line="darwin64-x86_64-cc -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
+                          <arg line="darwin64-x86_64-cc -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome} ${macOsxDeploymentTarget}" />
                         </exec>
                         <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
                           <arg value="depend" />

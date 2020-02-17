@@ -75,6 +75,8 @@
     <msvcSslLibs>libssl.lib;libcrypto.lib</msvcSslLibs>
     <strip.skip>false</strip.skip>
     <generatedSourcesDir>${project.build.directory}/generated-sources</generatedSourcesDir>
+    <macOsxDeploymentTarget>MACOSX_DEPLOYMENT_TARGET=10.9</macOsxDeploymentTarget>
+    <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9</cmakeOsxDeploymentTarget>
   </properties>
 
   <build>
@@ -499,7 +501,7 @@
                         <echo message="Building APR" />
                         <mkdir dir="${aprHome}" />
                         <exec executable="configure" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
-                          <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC'" />
+                          <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget}" />
                         </exec>
                         <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
                         <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
