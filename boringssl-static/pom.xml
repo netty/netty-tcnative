@@ -212,6 +212,7 @@
                           <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
                           <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
+                          <arg value="${cmakeOsxDeploymentTarget}" />
                           <arg value="-GNinja" />
                           <arg value=".." />
                         </exec>
