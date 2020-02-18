@@ -227,12 +227,20 @@
                             <property name="ninjaExecutable" value="ninja" />
                           </else>
                         </if>
-                        <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
-                          <arg value="crypto/libcrypto.a" />
-                          <arg value="crypto/fipsmodule/fipsmodule" />
-                          <arg value="ssl/libssl.a" />
-                          <arg value="decrepit/libdecrepit.a" />
-                        </exec>
+                        <if>
+                          <equals arg1="${os.detected.name}" arg2="linux" />
+                          <then>
+                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                              <arg value="crypto/libcrypto.a" />
+                              <arg value="crypto/fipsmodule/fipsmodule" />
+                              <arg value="ssl/libssl.a" />
+                              <arg value="decrepit/libdecrepit.a" />
+                            </exec>
+                          </then>
+                          <else>
+                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                          </else>
+                        </if>
                       </else>
                     </if>
                   </target>
