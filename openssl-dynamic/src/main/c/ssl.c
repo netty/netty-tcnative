@@ -918,6 +918,11 @@ static void free_ssl_state(tcn_ssl_state_t* state) {
     tcn_get_java_env(&e);
     tcn_ssl_task_free(e, state->ssl_task);
     state->ssl_task = NULL;
+
+    // Free the tcn_ssl_state_t itself as it was allocated via OPENSSL_malloc(...) before
+    //
+    // https://github.com/netty/netty-tcnative/issues/532
+    OPENSSL_free(state);
 }
 
 TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
