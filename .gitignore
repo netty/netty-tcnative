@@ -41,3 +41,5 @@ cmake-*
 # exclude docker-sync stuff
 .docker-sync
 */.docker-sync
+
+.vscode
