@@ -47,6 +47,17 @@
     </pluginManagement>
   </build>
 
+  <properties>
+    <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslCheckoutDir>
+    <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
+    <linkStatic>true</linkStatic>
+    <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
+    <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
+    <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
+    <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
+    <cppflags>-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</cppflags>
+    <ldflags>-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</ldflags>
+  </properties>
   <profiles>
     <!-- Default profile that builds a platform-specific jar -->
     <profile>
@@ -54,15 +65,6 @@
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
-
-      <properties>
-        <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslCheckoutDir>
-        <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
-        <linkStatic>true</linkStatic>
-        <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
-        <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
-      </properties>
 
       <build>
         <plugins>
@@ -315,9 +317,9 @@
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
-                    <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
-                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                    <configureArg>CFLAGS=${cflags}</configureArg>
+                    <configureArg>CPPFLAGS=${cppflags}</configureArg>
+                    <configureArg>LDFLAGS=${ldflags}</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
@@ -584,6 +586,15 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>boringssl-static-asan</id>
+      <properties>
+        <!-- We do not use an -O flag to ensure we have all functions in the stack when a leak is reported later on -->
+        <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -fsanitize=address</cflags>
+        <cppflags>-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include -fsanitize=address</cppflags>
+        <ldflags>-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto -fsanitize=address</ldflags>
+      </properties>
     </profile>
   </profiles>
 </project>
