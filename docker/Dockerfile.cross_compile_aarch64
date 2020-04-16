@@ -41,7 +41,7 @@ RUN set -x && \
 
 # Cross compile Apache Apr for aarch64 - share
 RUN set -x && \
-  wget https://www-us.apache.org/dist//apr/apr-$APR_VERSION.tar.gz && \
+  wget https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
   tar xvf apr-$APR_VERSION.tar.gz && \
   pushd apr-$APR_VERSION && \
   CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ./configure --prefix=/opt/apr-$APR_VERSION-share --host=aarch64-linux-gnu ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8 && \
@@ -64,4 +64,3 @@ RUN set -x && \
 # Get Netty-tcnative source
 RUN set -x && \
   git clone https://github.com/netty/netty-tcnative
-
