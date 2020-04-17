@@ -60,7 +60,3 @@ RUN set -x && \
   ./Configure linux-aarch64 --cross-compile-prefix=aarch64-linux-gnu- --prefix=/opt/openssl-$OPENSSL_VERSION-share shared && \
   make && make install && \
   popd
-
-# Get Netty-tcnative source
-RUN set -x && \
-  git clone https://github.com/netty/netty-tcnative
