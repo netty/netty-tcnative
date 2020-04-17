@@ -48,4 +48,11 @@ services:
   cross-compile-aarch64:
     image: netty-tcnative-centos:cross_compile_aarch64
     depends_on: [cross-compile-aarch64-runtime-setup]
+    volumes:
+      - ~/.ssh:/root/.ssh:delegated
+      - ~/.gnupg:/root/.gnupg:delegated
+      - ~/.m2:/root/.m2:delegated
+      - ~/.gitconfig:/root/.gitconfig:delegated
+      - ~/.gitignore:/root/.gitignore:delegated
+      - ..:/code:delegated
     command: /bin/bash -cl "pushd netty-tcnative/openssl-dynamic && ../mvnw clean install -Plinux-aarch64 -DaprArmHome=/opt/apr-$APR_VERSION-share -DopensslArmHome=/opt/openssl-$OPENSSL_VERSION-share -DskipTests && popd && pushd netty-tcnative/boringssl-static && ../mvnw clean install -Plinux-aarch64 -DaprArmHome=/opt/apr-$APR_VERSION-static -DskipTests && popd"
