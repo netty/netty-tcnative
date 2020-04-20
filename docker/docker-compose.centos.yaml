@@ -55,5 +55,5 @@ services:
       - ~/.gitconfig:/root/.gitconfig:delegated
       - ~/.gitignore:/root/.gitignore:delegated
       - ..:/code:delegated
-    command: /bin/bash -cl "pushd ./openssl-dynamic && ../mvnw clean install -Plinux-aarch64 -DaprArmHome=/opt/apr-$APR_VERSION-share -DopensslArmHome=/opt/openssl-$OPENSSL_VERSION-share -DskipTests && popd && pushd ./boringssl-static && ../mvnw clean install -Plinux-aarch64 -DaprArmHome=/opt/apr-$APR_VERSION-static -DskipTests && popd"
+    command: /bin/bash -cl "pushd ./openssl-dynamic && ../mvnw clean install -Plinux-aarch64 -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share -DskipTests && popd && pushd ./boringssl-static && ../mvnw clean install -Plinux-aarch64 -DaprArmHome=/opt/apr-$$APR_VERSION-static -DskipTests && popd"
     working_dir: /code
