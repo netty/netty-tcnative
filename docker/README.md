@@ -33,5 +33,11 @@ docker-compose -f docker/docker-compose.debian.yaml -f docker/docker-compose.deb
 docker-compose -f docker/docker-compose.opensuse.yaml -f docker/docker-compose.opensuse-151.18.yaml run build
 ```
 
+## centos7 with java8 for aarch64 cross compile
+
+```
+docker-compose -f docker/docker-compose.centos.yaml run cross-compile-aarch64
+```
+
 etc, etc
 

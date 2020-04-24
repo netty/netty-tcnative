@@ -329,6 +329,322 @@
       </build>
     </profile>
 
+    <profile>
+      <id>linux-aarch64</id>
+
+      <properties>
+        <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslCheckoutDir>
+        <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
+        <linkStatic>true</linkStatic>
+        <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
+        <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
+        <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
+        <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch64.jar</nativeJarFile>
+      </properties>
+
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-enforcer-plugin</artifactId>
+              <version>1.4.1</version>
+              <dependencies>
+                <!-- Provides the 'requireFilesContent' enforcer rule. -->
+                <dependency>
+                  <groupId>com.ceilfors.maven.plugin</groupId>
+                  <artifactId>enforcer-rules</artifactId>
+                  <version>1.2.0</version>
+                </dependency>
+              </dependencies>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+        <plugins>
+          <plugin>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-release-environment</id>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireProperty>
+                      <regexMessage>
+                        Cross compile and Release process must be performed on linux-x86_64.
+                      </regexMessage>
+                      <property>os.detected.classifier</property>
+                      <regex>^linux-x86_64.*</regex>
+                    </requireProperty>
+                    <requireFilesContent>
+                      <message>
+                        Cross compile and Release process must be performed on RHEL 7.6 or its derivatives.
+                      </message>
+                      <files>
+                        <file>/etc/redhat-release</file>
+                      </files>
+                      <content>release 7.6</content>
+                    </requireFilesContent>
+                    <requireProperty>
+                      <property>aprArmHome</property>
+                      <message>The folder of APR for aarch64 must be specified by hand. Please try -DaprArmHome=</message>
+                    </requireProperty>
+                  </rules>
+                  <ignoreCache>true</ignoreCache>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <!-- Download the BoringSSL source -->
+          <plugin>
+            <artifactId>maven-scm-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>get-boringssl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <checkoutDirectory>${boringsslCheckoutDir}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:git:https://boringssl.googlesource.com/boringssl</developerConnectionUrl>
+                  <scmVersion>${boringsslBranch}</scmVersion>
+                  <scmVersionType>branch</scmVersionType>
+                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Determine the commit ID of the source code. -->
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>buildnumber-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>create</goal>
+                </goals>
+                <configuration>
+                  <scmDirectory>${boringsslCheckoutDir}</scmDirectory>
+                  <buildNumberPropertyName>boringsslBuildNumber</buildNumberPropertyName>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>${generatedSourcesDir}/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Add the commit ID and branch to the manifest. -->
+          <plugin>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>maven-bundle-plugin</artifactId>
+            <configuration>
+              <instructions>
+                <Apr-Version>${aprVersion}</Apr-Version>
+                <BoringSSL-Revision>${boringsslBuildNumber}</BoringSSL-Revision>
+                <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
+              </instructions>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+
+              <!-- Only deploy to Maven Central if on centos (fedora). -->
+              <execution>
+                <id>skip-deploy</id>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <exportAntProperties>true</exportAntProperties>
+                  <target>
+                    <condition property="maven.deploy.skip" value="false" else="true">
+                      <isset property="os.detected.release.like.fedora" />
+                    </condition>
+                  </target>
+                </configuration>
+              </execution>
+
+              <!-- Build the BoringSSL static libs -->
+              <execution>
+                <id>build-boringssl</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                    <property environment="env" />
+                    <if>
+                      <available file="${boringsslBuildDir}" />
+                      <then>
+                        <echo message="BoringSSL was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building BoringSSL" />
+
+                        <mkdir dir="${boringsslBuildDir}" />
+
+                        <if>
+                          <equals arg1="${os.detected.name}" arg2="windows" />
+                          <then>
+                            <!-- On Windows, build with /MT for static linking -->
+                            <property name="cmakeAsmFlags" value="" />
+                            <property name="cmakeCFlags" value="/MT" />
+                            <!-- Disable one warning to be able to build on windows -->
+                            <property name="cmakeCxxFlags" value="/MT /wd4091" />
+                          </then>
+                          <elseif>
+                            <equals arg1="${os.detected.name}" arg2="linux" />
+                            <then>
+                              <!-- On *nix, add ASM flags to disable executable stack -->
+                              <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
+                              <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                              <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
+                              <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
+                            </then>
+                          </elseif>
+                          <else>
+                            <!-- On *nix, add ASM flags to disable executable stack -->
+                            <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
+                            <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                            <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
+                          </else>
+                        </if>
+                        <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
+                          <arg value="-DCMAKE_SYSTEM_NAME=Linux" />
+                          <arg value="-DCMAKE_SYSTEM_PROCESSOR=aarch64" />
+                          <arg value="-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc" />
+                          <arg value="-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++" />
+                          <arg value="-GNinja" />
+                          <arg value=".." />
+                        </exec>
+                        <if>
+                          <!-- may be called ninja-build or ninja -->
+                          <!-- See https://github.com/netty/netty-tcnative/issues/475 -->
+                          <available file="ninja-build" filepath="${env.PATH}" />
+                          <then>
+                            <exec executable="ninja-build" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                          </then>
+                          <else>
+                            <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                          </else>
+                        </if>
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+
+              <!-- Build the additional JAR that contains the native library. -->
+              <execution>
+                <id>native-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <!-- Strip on linux. See https://github.com/netty/netty-tcnative/issues/129 -->
+                    <if>
+                      <and>
+                        <equals arg1="${os.detected.name}" arg2="linux" />
+                        <equals arg1="${strip.skip}" arg2="false" />
+                      </and>
+                      <then>
+                        <exec executable="aarch64-linux-gnu-strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
+                          <arg value="--strip-debug" />
+                          <arg value="libnetty_tcnative.so" />
+                        </exec>
+                      </then>
+                    </if>
+
+                    <copy todir="${nativeJarWorkdir}">
+                      <zipfileset src="${defaultJarFile}" />
+                    </copy>
+                    <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                      <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                      <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
+                    </copy>
+                    <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                    <attachartifact file="${nativeJarFile}" classifier="${os.detected.name}-aarch64" type="jar" />
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Configure the distribution statically linked against OpenSSL and APR -->
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>maven-hawtjni-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <name>netty_tcnative</name>
+                  <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
+                  <customPackageDirectory>${generatedSourcesDir}/native-package</customPackageDirectory>
+                  <libDirectory>${nativeLibOnlyDir}</libDirectory>
+                  <forceAutogen>${forceAutogen}</forceAutogen>
+                  <forceConfigure>${forceConfigure}</forceConfigure>
+                  <windowsBuildTool>msbuild</windowsBuildTool>
+                  <!-- <verbose>true</verbose> -->
+                  <configureArgs>
+                    <configureArg>--with-ssl=no</configureArg>
+                    <configureArg>--with-apr=${aprArmHome}</configureArg>
+                    <configureArg>--with-static-libs</configureArg>
+                    <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
+                    <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
+                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                    <configureArg>--host=aarch64-linux-gnu</configureArg>
+                  </configureArgs>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <!--
       Profile that builds the uber-jar containing native libraries for all platforms. When this
       is active, it will automatically disable the default profile. This should only be used
@@ -395,6 +711,14 @@
                       <groupId>io.netty</groupId>
                       <artifactId>netty-tcnative-boringssl-static</artifactId>
                       <version>${project.version}</version>
+                      <classifier>linux-aarch_64</classifier>
+                      <type>jar</type>
+                      <outputDirectory>${unpackDir}/linux-aarch_64</outputDirectory>
+                    </artifactItem>
+                    <artifactItem>
+                      <groupId>io.netty</groupId>
+                      <artifactId>netty-tcnative-boringssl-static</artifactId>
+                      <version>${project.version}</version>
                       <classifier>windows-${uberArch}</classifier>
                       <type>jar</type>
                       <outputDirectory>${unpackDir}/windows-${uberArch}</outputDirectory>
@@ -436,6 +760,10 @@
                       <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
+                      <fileset dir="${unpackDir}/linux-aarch_64/META-INF/native" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_aarch_64.*" />
+                    </copy>
+                    <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/windows-${uberArch}/META-INF/native" />
                       <globmapper from="netty_tcnative.*" to="netty_tcnative_windows_${uberArch}.*" />
                     </copy>
@@ -464,6 +792,7 @@
                     <Bundle-NativeCode>
                       META-INF/native/libnetty_tcnative_osx_${uberArch}.jnilib;osname=macos;osname=macosx;processor=${uberArch},
                       META-INF/native/libnetty_tcnative_linux_${uberArch}.so;osname=linux;processor=${uberArch},
+                      META-INF/native/libnetty_tcnative_linux_aarch_64.so;osname=linux;processor=aarch_64,
                       META-INF/native/netty_tcnative_windows_${uberArch}.dll;osname=win32;processor=${uberArch}
                     </Bundle-NativeCode>
                   </instructions>
