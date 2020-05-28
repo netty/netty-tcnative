@@ -81,6 +81,9 @@ public final class SSL {
 
     public static final long SSL_SESS_CACHE_OFF = sslSessCacheOff();
     public static final long SSL_SESS_CACHE_SERVER = sslSessCacheServer();
+    public static final long SSL_SESS_CACHE_CLIENT = sslSessCacheClient();
+    public static final long SSL_SESS_CACHE_NO_INTERNAL_LOOKUP = sslSessCacheNoInternalLookup();
+    public static final long SSL_SESS_CACHE_NO_INTERNAL_STORE = sslSessCacheNoInternalStore();
 
     public static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
     public static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
@@ -839,4 +842,31 @@ public final class SSL {
      * @return the task to run.
      */
     public static native Runnable getTask(long ssl);
+
+    /**
+     * Return {@code true} if the SSL_SESSION was reused. 
+     * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_session_reused.html">SSL_session_reused</a>.
+     * 
+     * @param ssl the SSL instance (SSL *)
+     * @return {@code true} if the SSL_SESSION was reused, {@code false} otherwise.
+     */
+    public static native boolean isSessionReused(long ssl);
+
+    /**
+     * Sets the {@code SSL_SESSION} that should be used for {@code SSL}.
+     * @param ssl the SSL instance (SSL *)
+     * @param session the SSL_SESSION instance (SSL_SESSION *)
+     * @return {@code true} if successful, {@code false} otherwise. 
+     */
+    public static native boolean setSession(long ssl, long session);
+
+
+    /**
+     * Returns the {@code SSL_SESSION} that is used for {@code SSL}.
+     * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_get_session.html">SSL_get_session</a>.
+     * 
+     * @param ssl the SSL instance (SSL *)
+     * @return the SSL_SESSION instance (SSL_SESSION *) used
+     */
+    public static native long getSession(long ssl);
 }
