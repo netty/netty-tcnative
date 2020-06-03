@@ -45,5 +45,5 @@ public interface SSLSessionCache {
      * @param sslSession {@code SSL_SESSION*}
      * @return the {@link SSL_SESSION} or {@code -1} if none was found in the cache.
      */
-    long getSession(long ssl, byte[] sessionId);
+    long getSession(long sslCtx, byte[] sessionId);
 }
