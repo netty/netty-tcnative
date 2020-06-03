@@ -66,12 +66,12 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSLSession, getSessionId)(TCN_STDARGS, jlong sess
     return bArray;
 }
 
-TCN_IMPLEMENT_CALL(void, SSLSession, upRef)(TCN_STDARGS, jlong session) {
+TCN_IMPLEMENT_CALL(jboolean, SSLSession, upRef)(TCN_STDARGS, jlong session) {
     SSL_SESSION *session_ = J2P(session, SSL_SESSION *);
 
-    TCN_CHECK_NULL(session_, session, /* void */);
+    TCN_CHECK_NULL(session_, session, JNI_FALSE);
 
-    SSL_SESSION_up_ref(session_);
+    return SSL_SESSION_up_ref(session_) == 1 ? JNI_TRUE : JNI_FALSE;
 }
 
 TCN_IMPLEMENT_CALL(void, SSLSession, free)(TCN_STDARGS, jlong session) {
@@ -100,7 +100,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setTimeout, (JJ)J, SSLSession) },
   { TCN_METHOD_TABLE_ENTRY(getSessionId, (J)[B, SSLSession) },
   { TCN_METHOD_TABLE_ENTRY(free, (J)V, SSLSession) },
-  { TCN_METHOD_TABLE_ENTRY(upRef, (J)V, SSLSession) },
+  { TCN_METHOD_TABLE_ENTRY(upRef, (J)Z, SSLSession) },
   { TCN_METHOD_TABLE_ENTRY(shouldBeSingleUse, (J)Z, SSLSession) }
 };
 

@@ -59,8 +59,9 @@ public final class SSLSession {
      * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_SESSION_up_ref.html">SSL_SESSION_up_ref</a>.
      *
      * @param session the SSL_SESSION instance (SSL_SESSION *)
+     * @return {@code true} if successful, {@code false} otherwise. 
      */
-    public static native void upRef(long session);
+    public static native boolean upRef(long session);
 
      /**
      * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_SESSION_free.html">SSL_SESSION_free</a>.
