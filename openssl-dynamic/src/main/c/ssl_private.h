@@ -309,6 +309,10 @@ struct tcn_ssl_ctxt_t {
     jobject                  sni_hostname_matcher;
     jmethodID                sni_hostname_matcher_method;
 
+    jobject                  ssl_session_cache;
+    jmethodID                ssl_session_cache_creation_method;
+    jmethodID                ssl_session_cache_get_method;
+
 #ifdef OPENSSL_IS_BORINGSSL
     jobject                  ssl_private_key_method;
     jmethodID                ssl_private_key_sign_method;
@@ -377,10 +381,12 @@ struct tcn_ssl_state_t {
 /*
  *  Additional Functions
  */
-void        tcn_SSL_init_app_state_idx(void);
-// The app_data2 is used to store the tcn_ssl_ctxt_t pointer for the SSL instance.
+void        tcn_init_app_state_idx(void);
+// The app_data is used to store the tcn_ssl_ctxt_t pointer for the SSL instance.
 void       *tcn_SSL_get_app_state(const SSL *);
 void        tcn_SSL_set_app_state(SSL *, void *);
+void       *tcn_SSL_CTX_get_app_state(const SSL_CTX *);
+void        tcn_SSL_CTX_set_app_state(SSL_CTX *, void *);
 
 int         tcn_SSL_password_callback(char *, int, int, void *);
 DH         *tcn_SSL_dh_get_tmp_param(int);

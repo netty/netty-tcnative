@@ -623,4 +623,12 @@ public final class SSLContext {
      * @param method method to use for the given context.
      */
     public static native void setPrivateKeyMethod(long ctx, SSLPrivateKeyMethod method);
+
+    /**
+     * Set the {@link SSLSessionCache} that will be used if session caching is enabled.
+     * 
+     * @param ctx context to use.
+     * @param cache cache to use for the given context.
+     */
+    public static native void setSSLSessionCache(long ctx, SSLSessionCache cache);
 }

@@ -821,8 +821,8 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     }
 #endif
 
-    // For tcn_SSL_get_app_state() at request time
-    tcn_SSL_init_app_state_idx();
+    // For tcn_SSL_get_app_state() / tcn_SSL_CTX_get_app_state at request time
+    tcn_init_app_state_idx();
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
     init_bio_methods();
@@ -1416,6 +1416,23 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getErrorString)(TCN_STDARGS, jlong number)
     return tcn_new_string(e, buf);
 }
 
+TCN_IMPLEMENT_CALL(jlong, SSL, getSession)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+    SSL_SESSION *session = NULL;
+
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+
+    session = SSL_get_session(ssl_);
+    if (session == NULL) {
+        // BoringSSL does not protect against a NULL session. OpenSSL
+        // returns 0 if the session is NULL, so do that here.
+        return -1;
+    }
+
+    return P2J(session);
+}
+
 TCN_IMPLEMENT_CALL(jlong, SSL, getTime)(TCN_STDARGS, jlong ssl)
 {
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -1469,6 +1486,16 @@ TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds
     return SSL_set_timeout(session, seconds);
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSL, setSession)(TCN_STDARGS, jlong ssl, jlong session)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+    SSL_SESSION *session_ = J2P(session, SSL_SESSION *);
+
+    TCN_CHECK_NULL(ssl_, ssl, JNI_FALSE);
+    TCN_CHECK_NULL(session_, session, JNI_FALSE);
+
+    return SSL_set_session(ssl_, session_) == 0 ? JNI_FALSE : JNI_TRUE;
+}
 
 TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jint depth)
 {
@@ -2488,6 +2515,16 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getSniHostname)(TCN_STDARGS, jlong ssl)
     return tcn_new_string(e, servername);
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSL, isSessionReused)(TCN_STDARGS, jlong ssl)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+    if (SSL_session_reused(ssl_) == 1) {
+        return JNI_TRUE;
+    }
+    return JNI_FALSE;
+}
+
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, NULL);
@@ -2623,6 +2660,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getTime, (J)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getTimeout, (J)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setTimeout, (JJ)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setSession, (JJ)Z, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setVerify, (JII)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setOptions, (JI)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(clearOptions, (JI)V, SSL) },
@@ -2656,7 +2694,9 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getMasterKey, (J)[B, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getClientRandom, (J)[B, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getServerRandom, (J)[B, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(getTask, (J)Ljava/lang/Runnable;, SSL) }
+  { TCN_METHOD_TABLE_ENTRY(getTask, (J)Ljava/lang/Runnable;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getSession, (J)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(isSessionReused, (J)Z, SSL) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);

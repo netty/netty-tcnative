@@ -45,6 +45,7 @@
 #include "native_constants.h"
 #include "ssl.h"
 #include "sslcontext.h"
+#include "sslsession.h"
 #include "error.h"
 
 #ifndef TCN_JNI_VERSION
@@ -302,6 +303,7 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
     int errorOnLoadCalled = 0;
     int bufferOnLoadCalled = 0;
     int jniMethodsOnLoadCalled = 0;
+    int sessionOnLoadCalled = 0;
     int sslOnLoadCalled = 0;
     int contextOnLoadCalled = 0;
 
@@ -334,6 +336,11 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
         goto error;
     }
     contextOnLoadCalled = 1;
+
+    if (netty_internal_tcnative_SSLSession_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
+        goto error;
+    }
+    sessionOnLoadCalled = 1;
 
     apr_version_t apv;
     int apvn;
@@ -378,6 +385,9 @@ error:
     if (contextOnLoadCalled == 1) {
         netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
     }
+    if (sessionOnLoadCalled == 1) {
+        netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env);
+    }
     return JNI_ERR;
 }
 
@@ -393,6 +403,7 @@ static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
     netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env);
     netty_internal_tcnative_SSL_JNI_OnUnLoad(env);
     netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
+    netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env);
 }
 
 /* Fix missing Dl_info & dladdr in AIX

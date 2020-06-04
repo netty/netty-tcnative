@@ -62,6 +62,18 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSessCacheServe
     return SSL_SESS_CACHE_SERVER;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSessCacheClient)(TCN_STDARGS) {
+    return SSL_SESS_CACHE_CLIENT;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSessCacheNoInternalLookup)(TCN_STDARGS) {
+    return SSL_SESS_CACHE_NO_INTERNAL_LOOKUP;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSessCacheNoInternalStore)(TCN_STDARGS) {
+    return SSL_SESS_CACHE_NO_INTERNAL_STORE;
+}
+
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslStConnect)(TCN_STDARGS) {
     return SSL_ST_CONNECT;
 }
@@ -554,6 +566,9 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslOpNoCompression, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSessCacheOff, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSessCacheServer, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSessCacheClient, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSessCacheNoInternalLookup, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslSessCacheNoInternalStore, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslStConnect, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslStAccept, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslModeEnablePartialWrite, ()I, NativeStaticallyReferencedJniMethods) },

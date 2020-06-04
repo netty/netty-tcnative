@@ -80,6 +80,15 @@ static apr_status_t ssl_context_cleanup(void *data)
         }
 #endif // OPENSSL_IS_BORINGSSL
 
+        if (c->ssl_session_cache != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_session_cache);
+            }
+            c->ssl_session_cache = NULL;
+        }
+        c->ssl_session_cache_creation_method = NULL;
+        c->ssl_session_cache_get_method = NULL;
+
         if (c->verifier != NULL) {
             if (e != NULL) {
                 (*e)->DeleteGlobalRef(e, c->verifier);
@@ -393,6 +402,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
                               ssl_context_cleanup,
                               apr_pool_cleanup_null);
 
+    tcn_SSL_CTX_set_app_state(c->ctx, c);
     return P2J(c);
 cleanup:
     if (p != NULL) {
@@ -2331,6 +2341,125 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod)(TCN_STDARGS, jlong ctx
 #endif // OPENSSL_IS_BORINGSSL
 }
 
+static int tcn_new_session_cb(SSL *ssl, SSL_SESSION *session) {
+    JNIEnv *e = NULL;
+    jboolean result = JNI_FALSE;
+    tcn_ssl_ctxt_t *c = NULL;
+
+    TCN_GET_SSL_CTX(ssl, c);
+    TCN_ASSERT(c != NULL);
+
+    if (tcn_get_java_env(&e) != JNI_OK) {
+        return 0;
+    }
+    if (c->ssl_session_cache == NULL) {
+        return 0;
+    }
+
+    result = (*e)->CallBooleanMethod(e, c->ssl_session_cache, c->ssl_session_cache_creation_method, P2J(ssl), P2J(session));
+
+    if ((*e)->ExceptionCheck(e)) {
+        return 0;
+    }
+
+    if (result == JNI_TRUE) {
+        return 1;
+    }
+    return 0;
+}
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+static SSL_SESSION* tcn_get_session_cb(SSL *ssl, const unsigned char *session_id, int len, int *copy) {
+#else
+// Older versions of OpenSSL expect another signature then newer versions
+// See https://github.com/openssl/openssl/blob/OpenSSL_1_0_2/ssl/ssl.h
+static SSL_SESSION* tcn_get_session_cb(SSL *ssl, unsigned char *session_id, int len, int *copy) {
+#endif // OPENSSL_VERSION_NUMBER >= 0x10100000L
+    JNIEnv *e = NULL;
+    jlong result = JNI_FALSE;
+    tcn_ssl_ctxt_t *c = NULL;
+    jbyteArray bArray = NULL;
+
+    TCN_GET_SSL_CTX(ssl, c);
+    TCN_ASSERT(c != NULL);
+
+    if (tcn_get_java_env(&e) != JNI_OK) {
+        return NULL;
+    }
+    if (c->ssl_session_cache == NULL) {
+        return NULL;
+    }
+
+    if ((bArray = (*e)->NewByteArray(e, len)) == NULL) {
+        return NULL;
+    }
+
+    (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*) session_id);
+
+    result = (*e)->CallLongMethod(e, c->ssl_session_cache, c->ssl_session_cache_get_method, P2J(ssl), bArray);
+
+    if ((*e)->ExceptionCheck(e)) {
+        return NULL;
+    }
+    if (result == -1) {
+        return NULL;
+    }
+    // Set copy to 0 and require the callback to explict call SSL_SESSION_up_ref to avoid issues in multi-threaded enviroments.
+    // See https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CTX_sess_set_get_cb
+    *copy = 0;
+    return (SSL_SESSION*) result;
+}
+
+TCN_IMPLEMENT_CALL(void, SSLContext, setSSLSessionCache)(TCN_STDARGS, jlong ctx, jobject cache) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+    
+    jobject oldCache = c->ssl_session_cache;
+    if (cache == NULL) {
+        c->ssl_session_cache = NULL;
+        c->ssl_session_cache_creation_method = NULL;
+        c->ssl_session_cache_get_method = NULL;
+
+        SSL_CTX_sess_set_new_cb(c->ctx, NULL);
+        SSL_CTX_sess_set_remove_cb(c->ctx, NULL);
+        SSL_CTX_sess_set_get_cb(c->ctx, NULL);
+    } else {
+        jclass cache_class = (*e)->GetObjectClass(e, cache);
+        if (cache_class == NULL) {
+            tcn_Throw(e, "Unable to retrieve cache class");
+            return;
+        }
+
+        jmethodID creationMethod = (*e)->GetMethodID(e, cache_class, "sessionCreated", "(JJ)Z");
+        if (creationMethod == NULL) {
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve sessionCreated method");
+            return;
+        }
+
+        jmethodID getMethod = (*e)->GetMethodID(e, cache_class, "getSession", "(J[B)J");
+        if (getMethod == NULL) {
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve getSession method");
+            return;
+        }
+
+        jobject ref = (*e)->NewGlobalRef(e, cache);
+        if (ref == NULL) {
+            tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
+            return;
+        }
+        c->ssl_session_cache = ref;
+        c->ssl_session_cache_creation_method = creationMethod;
+        c->ssl_session_cache_get_method = getMethod;
+
+        SSL_CTX_sess_set_new_cb(c->ctx, &tcn_new_session_cb);
+        SSL_CTX_sess_set_get_cb(c->ctx, &tcn_get_session_cb);
+    }
+    if (oldCache != NULL) {
+        (*e)->DeleteGlobalRef(e, oldCache);
+    } 
+}
+
 static int ssl_servername_cb(SSL *ssl, int *ad, void *arg)
 {
     JNIEnv *e = NULL;
@@ -2583,6 +2712,7 @@ static const JNINativeMethod fixed_method_table[] = {
   // setCertificateCallback -> needs dynamic method table
   // setSniHostnameMatcher -> needs dynamic method table
   // setPrivateKeyMethod --> needs dynamic method table
+  // setSSLSessionCache --> needs dynamic method table
 
   { TCN_METHOD_TABLE_ENTRY(setSessionIdContext, (J[B)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setMode, (JI)I, SSLContext) },
@@ -2596,7 +2726,7 @@ static const JNINativeMethod fixed_method_table[] = {
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
 
 static jint dynamicMethodsTableSize() {
-    return fixed_method_table_size + 5;
+    return fixed_method_table_size + 6;
 }
 
 static void freeDynamicMethodsTable(JNINativeMethod* dynamicMethods) {
@@ -2659,6 +2789,13 @@ static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
     freeDynamicTypeName(&dynamicTypeName);
     dynamicMethod->name = "setPrivateKeyMethod";
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setPrivateKeyMethod);
+
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 5];
+    TCN_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLSessionCache;)V", dynamicTypeName, error); 
+    TCN_PREPEND("(JL", dynamicTypeName,  dynamicMethod->signature, error);
+    freeDynamicTypeName(&dynamicTypeName);
+    dynamicMethod->name = "setSSLSessionCache";
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSSLSessionCache);
 
     return dynamicMethods;
 error:

@@ -48,10 +48,12 @@ final class NativeStaticallyReferencedJniMethods {
      */
     static native int sslOpNoCompression();
 
-    /* Only support OFF and SERVER for now */
     static native int sslSessCacheOff();
     static native int sslSessCacheServer();
-
+    static native int sslSessCacheClient();
+    static native int sslSessCacheNoInternalLookup();
+    static native int sslSessCacheNoInternalStore();
+    
     static native int sslStConnect();
     static native int sslStAccept();
 

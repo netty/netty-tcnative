@@ -168,8 +168,9 @@ const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
  * SSL_get_ex_new_index() is called, so we _must_ do this at startup.
  */
 static int tcn_SSL_app_state_idx = -1;
+static int tcn_SSL_CTX_app_state_idx = -1;
 
-void tcn_SSL_init_app_state_idx()
+void tcn_init_app_state_idx()
 {
     int i;
 
@@ -177,6 +178,13 @@ void tcn_SSL_init_app_state_idx()
         /* we _do_ need to call this two times */
         for (i = 0; i <= 1; i++) {
             tcn_SSL_app_state_idx = SSL_get_ex_new_index(0, "tcn_ssl_state_t*", NULL, NULL, NULL);
+        }
+    }
+
+    if (tcn_SSL_CTX_app_state_idx == -1) {
+        /* we _do_ need to call this two times */
+        for (i = 0; i <= 1; i++) {
+            tcn_SSL_CTX_app_state_idx = SSL_CTX_get_ex_new_index(0, "tcn_ssl_ctxt_t*", NULL, NULL, NULL);
         }
     }
 }
@@ -191,6 +199,18 @@ void tcn_SSL_set_app_state(SSL *ssl, void *arg)
     SSL_set_ex_data(ssl, tcn_SSL_app_state_idx, (char *)arg);
     return;
 }
+
+void *tcn_SSL_CTX_get_app_state(const SSL_CTX *ctx)
+{
+    return (void *)SSL_CTX_get_ex_data(ctx, tcn_SSL_CTX_app_state_idx);
+}
+
+void tcn_SSL_CTX_set_app_state(SSL_CTX *ctx, void *arg)
+{
+    SSL_CTX_set_ex_data(ctx, tcn_SSL_CTX_app_state_idx, (char *)arg);
+    return;
+}
+
 
 int tcn_SSL_password_callback(char *buf, int bufsiz, int verify,
                           void *cb)
