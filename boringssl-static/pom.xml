@@ -711,7 +711,7 @@
                       <groupId>io.netty</groupId>
                       <artifactId>netty-tcnative-boringssl-static</artifactId>
                       <version>${project.version}</version>
-                      <classifier>linux-aarch_64</classifier>
+                      <classifier>linux-aarch64</classifier>
                       <type>jar</type>
                       <outputDirectory>${unpackDir}/linux-aarch_64</outputDirectory>
                     </artifactItem>
