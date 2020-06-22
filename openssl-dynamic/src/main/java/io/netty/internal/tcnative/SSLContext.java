@@ -631,4 +631,14 @@ public final class SSLContext {
      * @param cache cache to use for the given context.
      */
     public static native void setSSLSessionCache(long ctx, SSLSessionCache cache);
+
+    /**
+     * Set the number of TLSv1.3 session tickets that will be sent to the client after a full handshake.
+     * 
+     * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_num_tickets.html">SSL_CTX_set_num_tickets</a> for more details.
+     * @param ctx context to use
+     * @param tickets the number of tickets
+     * @return {@code true} if successful, {@code false} otherwise.
+     */
+    public static native boolean setNumTickets(long ctx, int tickets);
 }

@@ -860,7 +860,6 @@ public final class SSL {
      */
     public static native boolean setSession(long ssl, long session);
 
-
     /**
      * Returns the {@code SSL_SESSION} that is used for {@code SSL}.
      * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_get_session.html">SSL_get_session</a>.
