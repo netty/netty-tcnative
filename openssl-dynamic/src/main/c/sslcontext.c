@@ -315,6 +315,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     c->mode     = mode;
     c->ctx      = ctx;
     c->pool     = p;
+
     if (!(protocol & SSL_PROTOCOL_SSLV2))
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv2);
     if (!(protocol & SSL_PROTOCOL_SSLV3))
@@ -574,6 +575,33 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS, jlong
     BIO *b = J2P(certs, BIO *);
 
     return b != NULL && c->mode != SSL_MODE_CLIENT && tcn_SSL_CTX_use_client_CA_bio(c->ctx, b) > 0 ? JNI_TRUE : JNI_FALSE;
+}
+
+
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setNumTickets)(TCN_STDARGS, jlong ctx, jint num)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
+#ifdef OPENSSL_IS_BORINGSSL
+    // Not supported by BoringSSL 
+    return JNI_FALSE;
+#else
+    // Only supported with GCC
+    #if defined(__GNUC__) || defined(__GNUG__)
+        if (!SSL_CTX_set_num_tickets) {
+            return JNI_FALSE;
+        }
+    #endif
+
+    // We can only support it when either use openssl version >= 1.1.1 or GCC as this way we can use weak linking
+    #if OPENSSL_VERSION_NUMBER >= 0x10101000L  || defined(__GNUC__) || defined(__GNUG__)
+        return SSL_CTX_set_num_tickets(c->ctx, num) > 0 ? JNI_TRUE : JNI_FALSE;
+    #else
+        return JNI_FALSE;
+    #endif
+#endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jint length)
@@ -2720,7 +2748,8 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(enableOcsp, (JZ)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(disableOcsp, (J)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(getSslCtx, (J)J, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) }
+  { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) }
 };
 
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
