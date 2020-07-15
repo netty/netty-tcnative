@@ -94,6 +94,10 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslModeReleaseBuf
     return SSL_MODE_RELEASE_BUFFERS;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslModeEnableFalseStart)(TCN_STDARGS) {
+    return SSL_MODE_ENABLE_FALSE_START;
+}
+
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSendShutdown)(TCN_STDARGS) {
     return SSL_SENT_SHUTDOWN;
 }
@@ -573,6 +577,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslStAccept, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslModeEnablePartialWrite, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslModeAcceptMovingWriteBuffer, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslModeEnableFalseStart, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslModeReleaseBuffers, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSendShutdown, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslReceivedShutdown, ()I, NativeStaticallyReferencedJniMethods) },

@@ -189,6 +189,10 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define SSL_ERROR_WANT_PRIVATE_KEY_OPERATION -1
 #endif // SSL_ERROR_WANT_PRIVATE_KEY_OPERATION
 
+#ifndef SSL_MODE_ENABLE_FALSE_START
+#define SSL_MODE_ENABLE_FALSE_START 0
+#endif // SSL_MODE_ENABLE_FALSE_START
+
 // SSL_SIGN_* are signature algorithm values as defined in TLS 1.3.
 #ifndef SSL_SIGN_RSA_PKCS1_SHA1
 #define SSL_SIGN_RSA_PKCS1_SHA1 0x0201
