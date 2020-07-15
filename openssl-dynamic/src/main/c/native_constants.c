@@ -98,7 +98,6 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslModeEnableFals
     return SSL_MODE_ENABLE_FALSE_START;
 }
 
-
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSendShutdown)(TCN_STDARGS) {
     return SSL_SENT_SHUTDOWN;
 }
