@@ -60,6 +60,7 @@ final class NativeStaticallyReferencedJniMethods {
     static native int sslModeEnablePartialWrite();
     static native int sslModeAcceptMovingWriteBuffer();
     static native int sslModeReleaseBuffers();
+    static native int sslModeEnableFalseStart();
 
     static native int sslSendShutdown();
     static native int sslReceivedShutdown();
