@@ -23,7 +23,7 @@ under the License.
 This product contains a forked and modified version of Tomcat Native
 
   * LICENSE:
-    * ASL2
+    * license/LICENSE.tomcat-native.txt (Apache License 2.0)
   * HOMEPAGE:
     * http://tomcat.apache.org/native-doc/
     * https://svn.apache.org/repos/asf/tomcat/native/
@@ -41,3 +41,11 @@ This product contains small piece of code to support AIX, taken from netbsd.
     * license/LICENSE.aix-netbsd.txt (OpenSSL License)
   * HOMEPAGE:
     * https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/src/crypto/external/bsd/openssl/dist
+
+
+This product contains code from boringssl.
+
+  * LICENSE (Combination ISC and OpenSSL license)
+    * license/LICENSE.boringssl.txt (Combination ISC and OpenSSL license)
+  * HOMEPAGE:
+    * https://boringssl.googlesource.com/boringssl/
