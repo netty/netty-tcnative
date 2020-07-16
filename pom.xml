@@ -195,6 +195,40 @@
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>
+          <!-- Generate the native lib name used by hawtjni -->
+          <execution>
+            <id>generate_name</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <exportAntProperties>true</exportAntProperties>
+              <target>
+                <!-- Adjust the classifier used for different OS distributions which provide differently-built openSSL libraries -->
+                <condition property="nativeLibName" value="netty_tcnative_${os.detected.name}_${os.detected.arch}_fedora">
+                  <isset property="os.detected.release.like.fedora" />
+                </condition>
+                <condition property="nativeLibName" value="netty_tcnative_${os.detected.name}_${os.detected.arch}_suse">
+                  <isset property="os.detected.release.like.suse" />
+                </condition>
+                <condition property="nativeLibName" value="netty_tcnative_${os.detected.name}_${os.detected.arch}_arch">
+                  <isset property="os.detected.release.like.arch" />
+                </condition>
+                <condition property="nativeLibName" value="netty_tcnative_${os.detected.name}_${os.detected.arch}">
+                  <not>
+                    <or>
+                      <isset property="os.detected.release.like.fedora" />
+                      <isset property="os.detected.release.like.suse" />
+                      <isset property="os.detected.release.like.arch" />
+                    </or>
+                  </not>
+                </condition>
+                <echo message = "HERE ${nativeLibName}" />
+              </target>
+            </configuration>
+          </execution>
+
           <!-- Generate the source for a statically-linked modules by copying from the template -->
           <execution>
             <id>copy-src</id>
@@ -251,15 +285,15 @@
             <configuration>
               <exportAntProperties>true</exportAntProperties>
               <target>
-                <condition property="tcnative.snippet" value="libnetty_tcnative.so;osname=linux">
+                <condition property="tcnative.snippet" value="lib${nativeLibName}.so;osname=linux">
                   <equals arg1="${os.detected.name}" arg2="linux" />
                 </condition>
                 <!-- In OSGi specification, the alias of Windows family is win32, case insensitive -->
-                <condition property="tcnative.snippet" value="netty_tcnative.dll;osname=win32">
+                <condition property="tcnative.snippet" value="${nativeLibName}.dll;osname=win32">
                   <equals arg1="${os.detected.name}" arg2="windows" />
                 </condition>
                 <!-- In OSGi specification, the alias of OSX family is macos or macosx, case insensitive -->
-                <condition property="tcnative.snippet" value="libnetty_tcnative.jnilib;osname=macosx;">
+                <condition property="tcnative.snippet" value="lib${nativeLibName}.jnilib;osname=macosx;">
                   <equals arg1="${os.detected.name}" arg2="osx" />
                 </condition>
                 <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=${os.detected.arch}" />

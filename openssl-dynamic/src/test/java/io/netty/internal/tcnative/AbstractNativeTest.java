@@ -33,9 +33,8 @@ public abstract class AbstractNativeTest {
         if (directories == null || directories.length != 1) {
             throw new IllegalStateException("Could not find platform specific native directory");
         }
-        String libName = System.mapLibraryName("netty_tcnative")
-                // Fix the filename (this is needed for macOS).
-                .replace(".dylib", ".jnilib");
+    
+        String libName = directories[0].getAbsoluteFile().list()[0];
         String libPath = directories[0].getAbsoluteFile() + File.separator + libName;
         System.load(libPath);
         Library.initialize();
