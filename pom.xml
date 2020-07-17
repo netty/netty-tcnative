@@ -224,7 +224,6 @@
                     </or>
                   </not>
                 </condition>
-                <echo message = "HERE ${nativeLibName}" />
               </target>
             </configuration>
           </execution>
