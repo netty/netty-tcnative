@@ -78,18 +78,29 @@
                   <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
                   <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
                 </copy>
+                <!-- linux / osx -->
+                <move todir="${nativeJarWorkdir}/META-INF/native/" flatten="true">
+                  <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
+                  <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_${os.detected.name}_${jniArch}.*" />
+                </move>
+                <!-- windows-->
+                <move todir="${nativeJarWorkdir}/META-INF/native/" flatten="true">
+                  <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
+                  <globmapper from="netty_tcnative.*" to="netty_tcnative_${os.detected.name}_${jniArch}.*" />
+                </move>
+                 
                 <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
                 <!-- Adjust the classifier used for different OS distributions which provide differently-built openSSL libraries -->
-                <condition property="classifier" value="${os.detected.classifier}-fedora">
+                <condition property="classifier" value="${jniClassifier}-fedora">
                   <isset property="os.detected.release.like.fedora" />
                 </condition>
-                <condition property="classifier" value="${os.detected.classifier}-suse">
+                <condition property="classifier" value="${jniClassifier}-suse">
                   <isset property="os.detected.release.like.suse" />
                 </condition>
-                <condition property="classifier" value="${os.detected.classifier}-arch">
+                <condition property="classifier" value="${jniClassifier}-arch">
                   <isset property="os.detected.release.like.arch" />
                 </condition>
-                <condition property="classifier" value="${os.detected.classifier}">
+                <condition property="classifier" value="${jniClassifier}">
                   <not>
                     <or>
                       <isset property="os.detected.release.like.fedora" />
@@ -225,6 +236,8 @@
 
       <properties>
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch64.jar</nativeJarFile>
+        <jniClassifier>${os.detected.name}-aarch64</jniClassifier>
+        <jniArch>aarch64</jniArch>
       </properties>
 
       <build>
@@ -292,51 +305,6 @@
                     </requireProperty>
                   </rules>
                   <ignoreCache>true</ignoreCache>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-antrun-plugin</artifactId>
-            <executions>
-              <!-- Build the additional JAR that contains the native library. -->
-              <execution>
-                <id>native-jar</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>run</goal>
-                </goals>
-                <configuration>
-                  <target>
-                    <copy todir="${nativeJarWorkdir}">
-                      <zipfileset src="${defaultJarFile}" />
-                    </copy>
-                    <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
-                      <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
-                      <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
-                    </copy>
-                    <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
-                    <!-- Adjust the classifier used for different OS distributions which provide differently-built openSSL libraries -->
-                    <condition property="classifier" value="${os.detected.name}-aarch64-fedora">
-                      <isset property="os.detected.release.like.fedora" />
-                    </condition>
-                    <condition property="classifier" value="${os.detected.name}-aarch64-suse">
-                      <isset property="os.detected.release.like.suse" />
-                    </condition>
-                    <condition property="classifier" value="${os.detected.name}-aarch64-arch">
-                      <isset property="os.detected.release.like.arch" />
-                    </condition>
-                    <condition property="classifier" value="${os.detected.name}-aarch64">
-                      <not>
-                        <or>
-                          <isset property="os.detected.release.like.fedora" />
-                          <isset property="os.detected.release.like.suse" />
-                          <isset property="os.detected.release.like.arch" />
-                        </or>
-                      </not>
-                    </condition>
-                    <attachartifact file="${nativeJarFile}" classifier="${classifier}" type="jar" />
-                  </target>
                 </configuration>
               </execution>
             </executions>

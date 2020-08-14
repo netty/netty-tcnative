@@ -77,6 +77,8 @@
     <generatedSourcesDir>${project.build.directory}/generated-sources</generatedSourcesDir>
     <macOsxDeploymentTarget>MACOSX_DEPLOYMENT_TARGET=10.9</macOsxDeploymentTarget>
     <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9</cmakeOsxDeploymentTarget>
+    <jniArch>${os.detected.arch}</jniArch>
+    <jniClassifier>${os.detected.name}_${os.detected.arch}</jniClassifier>
   </properties>
 
   <build>
@@ -251,15 +253,15 @@
             <configuration>
               <exportAntProperties>true</exportAntProperties>
               <target>
-                <condition property="tcnative.snippet" value="libnetty_tcnative.so;osname=linux">
+                <condition property="tcnative.snippet" value="libnetty_tcnative_${os.detected.name}_${os.detected.arch}.so;osname=linux">
                   <equals arg1="${os.detected.name}" arg2="linux" />
                 </condition>
                 <!-- In OSGi specification, the alias of Windows family is win32, case insensitive -->
-                <condition property="tcnative.snippet" value="netty_tcnative.dll;osname=win32">
+                <condition property="tcnative.snippet" value="netty_tcnative_${os.detected.name}_${os.detected.arch}.dll;osname=win32">
                   <equals arg1="${os.detected.name}" arg2="windows" />
                 </condition>
                 <!-- In OSGi specification, the alias of OSX family is macos or macosx, case insensitive -->
-                <condition property="tcnative.snippet" value="libnetty_tcnative.jnilib;osname=macosx;">
+                <condition property="tcnative.snippet" value="libnetty_tcnative_${os.detected.name}_${os.detected.arch}.jnilib;osname=macosx;">
                   <equals arg1="${os.detected.name}" arg2="osx" />
                 </condition>
                 <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=${os.detected.arch}" />

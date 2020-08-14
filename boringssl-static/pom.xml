@@ -282,6 +282,17 @@
                       <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
                       <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
                     </copy>
+                    
+                    <!-- linux / osx -->
+                    <move todir="${nativeJarWorkdir}/META-INF/native/" flatten="true">
+                      <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_${os.detected.name}_${jniArch}.*" />
+                    </move>
+                    <!-- windows-->
+                    <move todir="${nativeJarWorkdir}/META-INF/native/" flatten="true">
+                      <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
+                      <globmapper from="netty_tcnative.*" to="netty_tcnative_${os.detected.name}_${jniArch}.*" />
+                    </move>
 
                     <!-- Copy license material for attribution-->
                     <copy file="../NOTICE.txt" todir="${nativeJarWorkdir}/META-INF/"/>
@@ -348,6 +359,8 @@
         <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
         <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch64.jar</nativeJarFile>
+        <jniClassifier>${os.detected.name}-aarch64</jniClassifier>
+        <jniArch>aarch64</jniArch>
       </properties>
 
       <build>
@@ -608,6 +621,17 @@
                       <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
                     </copy>
 
+                    <!-- linux / osx -->
+                    <move todir="${nativeJarWorkdir}/META-INF/native/" flatten="true">
+                      <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_${os.detected.name}_${jniArch}.*" />
+                    </move>
+                    <!-- windows-->
+                    <move todir="${nativeJarWorkdir}/META-INF/native/" flatten="true">
+                      <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
+                      <globmapper from="netty_tcnative.*" to="netty_tcnative_${os.detected.name}_${jniArch}.*" />
+                    </move>
+
                     <!-- Copy license material for attribution-->
                     <copy file="../NOTICE.txt" todir="${nativeJarWorkdir}/META-INF/"/>
                     <copy file="../LICENSE.txt" todir="${nativeJarWorkdir}/META-INF/"/>
@@ -769,19 +793,15 @@
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/osx-${uberArch}/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-${uberArch}/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-aarch_64/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_aarch_64.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/windows-${uberArch}/META-INF/native" />
-                      <globmapper from="netty_tcnative.*" to="netty_tcnative_windows_${uberArch}.*" />
                     </copy>
                   </target>
                 </configuration>
@@ -891,11 +911,9 @@
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/osx-${uberArch}/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-${uberArch}/META-INF/native" />
-                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_${uberArch}.*" />
                     </copy>
                   </target>
                 </configuration>
