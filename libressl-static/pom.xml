@@ -128,7 +128,7 @@
             </goals>
             <phase>compile</phase>
             <configuration>
-              <name>${nativeLibName}</name>
+              <name>netty_tcnative</name>
               <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
               <customPackageDirectory>${generatedSourcesDir}/native-package</customPackageDirectory>
               <libDirectory>${nativeLibOnlyDir}</libDirectory>
