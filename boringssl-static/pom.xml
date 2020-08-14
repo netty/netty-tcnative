@@ -270,7 +270,7 @@
                       <then>
                         <exec executable="strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
                           <arg value="--strip-debug" />
-                          <arg value="lib${nativeLibName}.so" />
+                          <arg value="libnetty_tcnative.so" />
                         </exec>
                       </then>
                     </if>
@@ -311,7 +311,7 @@
                 </goals>
                 <phase>compile</phase>
                 <configuration>
-                  <name>${nativeLibName}</name>
+                  <name>netty_tcnative</name>
                   <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
                   <customPackageDirectory>${generatedSourcesDir}/native-package</customPackageDirectory>
                   <libDirectory>${nativeLibOnlyDir}</libDirectory>
@@ -595,7 +595,7 @@
                       <then>
                         <exec executable="aarch64-linux-gnu-strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
                           <arg value="--strip-debug" />
-                          <arg value="lib${nativeLibName}.so" />
+                          <arg value="libnetty_tcnative.so" />
                         </exec>
                       </then>
                     </if>
@@ -636,7 +636,7 @@
                 </goals>
                 <phase>compile</phase>
                 <configuration>
-                  <name>${nativeLibName}</name>
+                  <name>netty_tcnative</name>
                   <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
                   <customPackageDirectory>${generatedSourcesDir}/native-package</customPackageDirectory>
                   <libDirectory>${nativeLibOnlyDir}</libDirectory>
@@ -769,19 +769,19 @@
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/osx-${uberArch}/META-INF/native" />
-                      <globmapper from="libnetty_tcnative_*" to="libnetty_tcnative_osx_${uberArch}.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-${uberArch}/META-INF/native" />
-                      <globmapper from="libnetty_tcnative_*" to="libnetty_tcnative_linux_${uberArch}.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-aarch_64/META-INF/native" />
-                      <globmapper from="libnetty_tcnative_*" to="libnetty_tcnative_linux_aarch_64.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_aarch_64.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/windows-${uberArch}/META-INF/native" />
-                      <globmapper from="netty_tcnative_*" to="netty_tcnative_windows_${uberArch}.*" />
+                      <globmapper from="netty_tcnative.*" to="netty_tcnative_windows_${uberArch}.*" />
                     </copy>
                   </target>
                 </configuration>
@@ -891,11 +891,11 @@
                     <mkdir dir="${nativeDir}" />
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/osx-${uberArch}/META-INF/native" />
-                      <globmapper from="libnetty_tcnative_*" to="libnetty_tcnative_osx_${uberArch}.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_osx_${uberArch}.*" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-${uberArch}/META-INF/native" />
-                      <globmapper from="libnetty_tcnative_*" to="libnetty_tcnative_linux_${uberArch}.*" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_linux_${uberArch}.*" />
                     </copy>
                   </target>
                 </configuration>
