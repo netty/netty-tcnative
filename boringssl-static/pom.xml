@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.32.Final-SNAPSHOT</version>
+    <version>2.0.32.Final</version>
   </parent>
   <artifactId>netty-tcnative-boringssl-static</artifactId>
   <packaging>jar</packaging>
@@ -295,10 +295,10 @@
                     </move>
 
                     <!-- Copy license material for attribution-->
-                    <copy file="../NOTICE.txt" todir="${nativeJarWorkdir}/META-INF/"/>
-                    <copy file="../LICENSE.txt" todir="${nativeJarWorkdir}/META-INF/"/>
+                    <copy file="../NOTICE.txt" todir="${nativeJarWorkdir}/META-INF/" />
+                    <copy file="../LICENSE.txt" todir="${nativeJarWorkdir}/META-INF/" />
                     <copy todir="${nativeJarWorkdir}/META-INF/license">
-                      <fileset dir="../license"/>
+                      <fileset dir="../license" />
                     </copy>
 
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
@@ -633,10 +633,10 @@
                     </move>
 
                     <!-- Copy license material for attribution-->
-                    <copy file="../NOTICE.txt" todir="${nativeJarWorkdir}/META-INF/"/>
-                    <copy file="../LICENSE.txt" todir="${nativeJarWorkdir}/META-INF/"/>
+                    <copy file="../NOTICE.txt" todir="${nativeJarWorkdir}/META-INF/" />
+                    <copy file="../LICENSE.txt" todir="${nativeJarWorkdir}/META-INF/" />
                     <copy todir="${nativeJarWorkdir}/META-INF/license">
-                      <fileset dir="../license"/>
+                      <fileset dir="../license" />
                     </copy>
 
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
