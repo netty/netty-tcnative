@@ -803,6 +803,14 @@
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/windows-${uberArch}/META-INF/native" />
                     </copy>
+
+                     <!-- Copy license material for attribution-->
+                    <copy file="../NOTICE.txt" todir="${project.build.outputDirectory}/META-INF/" />
+                    <copy file="../LICENSE.txt" todir="${project.build.outputDirectory}/META-INF/" />
+                    <copy todir="${project.build.outputDirectory}/META-INF/license">
+                      <fileset dir="../license" />
+                    </copy>
+
                   </target>
                 </configuration>
               </execution>
@@ -915,6 +923,14 @@
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/linux-${uberArch}/META-INF/native" />
                     </copy>
+
+                     <!-- Copy license material for attribution-->
+                    <copy file="../NOTICE.txt" todir="${project.build.outputDirectory}/META-INF/" />
+                    <copy file="../LICENSE.txt" todir="${project.build.outputDirectory}/META-INF/" />
+                    <copy todir="${project.build.outputDirectory}/META-INF/license">
+                      <fileset dir="../license" />
+                    </copy>
+
                   </target>
                 </configuration>
               </execution>
