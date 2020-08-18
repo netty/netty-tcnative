@@ -78,7 +78,7 @@
     <macOsxDeploymentTarget>MACOSX_DEPLOYMENT_TARGET=10.9</macOsxDeploymentTarget>
     <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9</cmakeOsxDeploymentTarget>
     <jniArch>${os.detected.arch}</jniArch>
-    <jniClassifier>${os.detected.name}_${os.detected.arch}</jniClassifier>
+    <jniClassifier>${os.detected.name}-${os.detected.arch}</jniClassifier>
   </properties>
 
   <build>
