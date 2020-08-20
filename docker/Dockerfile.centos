@@ -45,6 +45,13 @@ RUN wget -q http://linuxsoft.cern.ch/cern/scl/slc6-scl.repo && mv slc6-scl.repo 
 RUN yum install -y devtoolset-3-gcc-c++
 RUN echo 'source /opt/rh/devtoolset-3/enable' >> ~/.bashrc
 
+# This is workaround to be able to compile boringssl with -DOPENSSL_C11_ATOMIC as while we use a recent gcc installation it still needs some
+# help to define static_assert(...) as otherwise the compilation will fail due the system installed assert.h which missed this definition. 
+run mkdir ~/.include
+run echo '#include "/usr/include/assert.h"' >>  ~/.include/assert.h
+run echo '#define static_assert _Static_assert'  >>  ~/.include/assert.h
+run echo 'export C_INCLUDE_PATH="$HOME/.include/"' >>  ~/.bashrc
+
 RUN rm -rf $SOURCE_DIR
 
 ARG java_version=1.8

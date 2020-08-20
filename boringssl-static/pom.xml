@@ -196,7 +196,8 @@
                             <then>
                               <!-- On *nix, add ASM flags to disable executable stack -->
                               <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                              <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                              <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
+                              <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -DOPENSSL_C11_ATOMIC" />
                               <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
                               <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
                             </then>
@@ -204,7 +205,8 @@
                           <else>
                             <!-- On *nix, add ASM flags to disable executable stack -->
                             <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                            <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                            <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
+                            <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -DOPENSSL_C11_ATOMIC" />
                             <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
                           </else>
                         </if>
@@ -545,7 +547,7 @@
                             <then>
                               <!-- On *nix, add ASM flags to disable executable stack -->
                               <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                              <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                              <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer" />
                               <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
                               <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -Wno-error=shadow -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
                             </then>
@@ -553,7 +555,7 @@
                           <else>
                             <!-- On *nix, add ASM flags to disable executable stack -->
                             <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                            <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                            <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer" />
                             <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
                           </else>
                         </if>
