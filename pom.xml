@@ -56,11 +56,11 @@
     <aprVersion>1.6.5</aprVersion>
     <aprSha256>70dcf9102066a2ff2ffc47e93c289c8e54c95d8dda23b503f9e61bb0cbd2d105</aprSha256>
     <boringsslBranch>chromium-stable</boringsslBranch>
-    <libresslVersion>3.1.1</libresslVersion>
+    <libresslVersion>3.1.4</libresslVersion>
     <!--
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
     -->
-    <libresslSha256>bdc6ce5ebb3a2eafc4c475f7eeaa5f0a8e60d9bead01efb76e2e254242b6db00</libresslSha256>
+    <libresslSha256>414c149c9963983f805a081db5bd3aec146b5f82d529bb63875ac941b25dcbb6</libresslSha256>
     <opensslMinorVersion>1.1.1</opensslMinorVersion>
     <opensslPatchVersion>g</opensslPatchVersion>
     <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
