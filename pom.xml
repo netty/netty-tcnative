@@ -79,6 +79,7 @@
     <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9</cmakeOsxDeploymentTarget>
     <jniArch>${os.detected.arch}</jniArch>
     <jniClassifier>${os.detected.name}-${os.detected.arch}</jniClassifier>
+    <skipJapicmp>false</skipJapicmp>
   </properties>
 
   <build>
@@ -192,6 +193,29 @@
           <!-- Ensure the whole stacktrace is preserved when an exception is thrown. See https://issues.apache.org/jira/browse/SUREFIRE-1457 -->
           <trimStackTrace>false</trimStackTrace>
         </configuration>
+      </plugin>
+
+     <plugin>
+        <groupId>com.github.siom79.japicmp</groupId>
+        <artifactId>japicmp-maven-plugin</artifactId>
+        <version>0.14.3</version>
+        <configuration>
+          <parameter>
+            <ignoreMissingOldVersion>true</ignoreMissingOldVersion>
+            <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+            <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
+            <oldVersionPattern>\d+\.\d+\.\d+\.Final</oldVersionPattern>
+          </parameter>
+          <skip>${skipJapicmp}</skip>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>cmp</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
