@@ -755,7 +755,7 @@
                       <version>${project.version}</version>
                       <classifier>linux-aarch64</classifier>
                       <type>jar</type>
-                      <outputDirectory>${unpackDir}/linux-aarch_64</outputDirectory>
+                      <outputDirectory>${unpackDir}/linux-aarch64</outputDirectory>
                     </artifactItem>
                     <artifactItem>
                       <groupId>io.netty</groupId>
@@ -800,7 +800,7 @@
                       <fileset dir="${unpackDir}/linux-${uberArch}/META-INF/native" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
-                      <fileset dir="${unpackDir}/linux-aarch_64/META-INF/native" />
+                      <fileset dir="${unpackDir}/linux-aarch64/META-INF/native" />
                     </copy>
                     <copy todir="${nativeDir}" flatten="true">
                       <fileset dir="${unpackDir}/windows-${uberArch}/META-INF/native" />
@@ -838,7 +838,7 @@
                     <Bundle-NativeCode>
                       META-INF/native/libnetty_tcnative_osx_${uberArch}.jnilib;osname=macos;osname=macosx;processor=${uberArch},
                       META-INF/native/libnetty_tcnative_linux_${uberArch}.so;osname=linux;processor=${uberArch},
-                      META-INF/native/libnetty_tcnative_linux_aarch_64.so;osname=linux;processor=aarch_64,
+                      META-INF/native/libnetty_tcnative_linux_aarch64.so;osname=linux;processor=aarch64,
                       META-INF/native/netty_tcnative_windows_${uberArch}.dll;osname=win32;processor=${uberArch}
                     </Bundle-NativeCode>
                   </instructions>
