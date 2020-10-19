@@ -54,7 +54,11 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
 
-    - run: ./mvnw clean package -DskipTests=true
+    - name: Install tools / libraries 
+      run: sudo apt-get -y install autoconf automake libtool make tar libapr1-dev libssl-dev cmake perl ninja-build golang
+
+    - name: Build project
+      run: ./mvnw clean package -DskipTests=true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
