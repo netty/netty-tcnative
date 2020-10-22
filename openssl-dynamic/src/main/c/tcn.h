@@ -206,4 +206,6 @@ char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str);
  */
 jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods);
 
+jint netty_internal_tcnative_util_unregister_natives(JNIEnv* env, const char* packagePrefix, const char* className);
+
 #endif /* TCN_H */

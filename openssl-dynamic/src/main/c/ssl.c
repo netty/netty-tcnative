@@ -2713,4 +2713,6 @@ jint netty_internal_tcnative_SSL_JNI_OnLoad(JNIEnv* env, const char* packagePref
     return TCN_JNI_VERSION;
 }
 
-void netty_internal_tcnative_SSL_JNI_OnUnLoad(JNIEnv* env) { }
+void netty_internal_tcnative_SSL_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
+    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, "io/netty/internal/tcnative/SSL");
+}

@@ -59,6 +59,7 @@ static jclass    jString_class;
 static jmethodID jString_init;
 static jmethodID jString_getBytes;
 static jclass    byteArrayClass;
+static char*     staticPackagePrefix;
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 {
@@ -166,6 +167,22 @@ jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* pack
     jclass nativeCls = (*env)->FindClass(env, nettyClassName);
     if (nativeCls != NULL) {
         retValue = (*env)->RegisterNatives(env, nativeCls, methods, numMethods);
+    }
+done:
+    free(nettyClassName);
+    return retValue;
+}
+
+
+jint netty_internal_tcnative_util_unregister_natives(JNIEnv* env, const char* packagePrefix, const char* className) {
+    char* nettyClassName = NULL;
+    int retValue = JNI_ERR;
+
+    TCN_PREPEND(packagePrefix, className, nettyClassName, done);
+
+    jclass nativeCls = (*env)->FindClass(env, nettyClassName);
+    if (nativeCls != NULL) {
+        retValue = (*env)->UnregisterNatives(env, nativeCls);
     }
 done:
     free(nettyClassName);
@@ -369,41 +386,49 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
 
     return TCN_JNI_VERSION;
 error:
+    if (tcn_global_pool != NULL) {
+        TCN_UNLOAD_CLASS(env, jString_class);
+        apr_terminate();
+    }
+    TCN_UNLOAD_CLASS(env, byteArrayClass);
+
+    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, "io/netty/internal/tcnative/Library");
+
     // Call unload methods if needed to ensure we correctly release any resources.
     if (errorOnLoadCalled == 1) {
-        netty_internal_tcnative_Error_JNI_OnUnLoad(env);
+        netty_internal_tcnative_Error_JNI_OnUnLoad(env, packagePrefix);
     }
     if (bufferOnLoadCalled == 1) {
-        netty_internal_tcnative_Buffer_JNI_OnUnLoad(env);
+        netty_internal_tcnative_Buffer_JNI_OnUnLoad(env, packagePrefix);
     }
     if (jniMethodsOnLoadCalled == 1) {
-        netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env);
+        netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env, packagePrefix);
     }
     if (sslOnLoadCalled == 1) {
-        netty_internal_tcnative_SSL_JNI_OnUnLoad(env);
+        netty_internal_tcnative_SSL_JNI_OnUnLoad(env, packagePrefix);
     }
     if (contextOnLoadCalled == 1) {
-        netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
+        netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env, packagePrefix);
     }
     if (sessionOnLoadCalled == 1) {
-        netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env);
+        netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env, packagePrefix);
     }
     return JNI_ERR;
 }
 
-static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env) {
+static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
     if (tcn_global_pool != NULL) {
         TCN_UNLOAD_CLASS(env, jString_class);
         apr_terminate();
     }
 
     TCN_UNLOAD_CLASS(env, byteArrayClass);
-    netty_internal_tcnative_Error_JNI_OnUnLoad(env);
-    netty_internal_tcnative_Buffer_JNI_OnUnLoad(env);
-    netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env);
-    netty_internal_tcnative_SSL_JNI_OnUnLoad(env);
-    netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env);
-    netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env);
+    netty_internal_tcnative_Error_JNI_OnUnLoad(env, packagePrefix);
+    netty_internal_tcnative_Buffer_JNI_OnUnLoad(env, packagePrefix);
+    netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env, packagePrefix);
+    netty_internal_tcnative_SSL_JNI_OnUnLoad(env, packagePrefix);
+    netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env, packagePrefix);
+    netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env, packagePrefix);
 }
 
 /* Fix missing Dl_info & dladdr in AIX
@@ -617,12 +642,12 @@ static jint JNI_OnLoad_netty_tcnative0(JavaVM* vm, void* reserved) {
 
     tcn_global_vm = vm;
     jint ret = netty_internal_tcnative_Library_JNI_OnLoad(env, packagePrefix);
-
-    if (packagePrefix != NULL) {
-      free(packagePrefix);
-      packagePrefix = NULL;
+    if (ret == JNI_ERR) {
+        free(packagePrefix);
+    } else {
+        // This will be freed when we unload.
+        staticPackagePrefix = packagePrefix;
     }
-
     return ret;
 }
 
@@ -632,7 +657,9 @@ static void JNI_OnUnload_netty_tcnative0(JavaVM* vm, void* reserved) {
         // Something is wrong but nothing we can do about this :(
         return;
     }
-    netty_internal_tcnative_Library_JNI_OnUnLoad(env);
+    netty_internal_tcnative_Library_JNI_OnUnLoad(env, staticPackagePrefix);
+    free(staticPackagePrefix);
+    staticPackagePrefix = NULL;
 }
 
 // As we build with -fvisibility=hidden we need to ensure we mark the entry load and unload functions used by the
