@@ -28,6 +28,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#define LIBRARY_CLASSNAME "io/netty/internal/tcnative/Library"
+
 #ifndef _WIN32
 // It's important to have #define _GNU_SOURCE before any other include as otherwise it will not work.
 // See http://stackoverflow.com/questions/7296963/gnu-source-and-use-gnu
@@ -324,7 +327,7 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
     int sslOnLoadCalled = 0;
     int contextOnLoadCalled = 0;
 
-    if (netty_internal_tcnative_util_register_natives(env, packagePrefix, "io/netty/internal/tcnative/Library", method_table, method_table_size) != 0) {
+    if (netty_internal_tcnative_util_register_natives(env, packagePrefix, LIBRARY_CLASSNAME, method_table, method_table_size) != 0) {
         goto error;
     }
 
@@ -392,7 +395,7 @@ error:
     }
     TCN_UNLOAD_CLASS(env, byteArrayClass);
 
-    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, "io/netty/internal/tcnative/Library");
+    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, LIBRARY_CLASSNAME);
 
     // Call unload methods if needed to ensure we correctly release any resources.
     if (errorOnLoadCalled == 1) {
