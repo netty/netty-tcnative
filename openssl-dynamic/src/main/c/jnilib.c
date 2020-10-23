@@ -140,6 +140,10 @@ jint tcn_get_java_env(JNIEnv **env)
 
 // TODO: Share code with netty natives utilities.
 char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str) {
+    if (str == NULL) {
+        // If str is NULL we should just return NULL as passing NULL to strlen is undefined behavior.
+        return NULL;
+    }
     if (prefix == NULL) {
         char* result = (char*) malloc(sizeof(char) * (strlen(str) + 1));
         if (result == NULL) {
@@ -175,6 +179,11 @@ done:
 #ifndef TCN_BUILD_STATIC
 
 static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
+    if (s == NULL) {
+        // passing NULL to strndup is undefined behavior and may core dump.
+        return NULL;
+    }
+
 // windows / solaris does not have strndup
 #if defined(_WIN32) || defined(__sun)
 #ifdef _WIN32
@@ -193,6 +202,10 @@ static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
 }
 
 static char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1rend, const char* s2) {
+    if (s1rbegin == NULL || s1rend == NULL || s2 == NULL) {
+        // Return NULL if any of the parameters is NULL to not risk a segfault
+        return NULL;
+    }
     size_t s2len = strlen(s2);
     char *s = s1rbegin - s2len;
 
@@ -206,6 +219,10 @@ static char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1
 
 #ifdef _WIN32
 static char* netty_internal_tcnative_util_rstrchar(char* s1rbegin, const char* s1rend, const char c2) {
+    if (s1rbegin == NULL || s1rend == NULL || s2 == NULL) {
+        // Return NULL if any of the parameters is NULL to not risk a segfault
+        return NULL;
+    }
     for (; s1rbegin >= s1rend; --s1rbegin) {
         if (*s1rbegin == c2) {
             return s1rbegin;
@@ -216,6 +233,11 @@ static char* netty_internal_tcnative_util_rstrchar(char* s1rbegin, const char* s
 #endif // _WIN32
 
 static char* netty_internal_tcnative_util_strstr_last(const char* haystack, const char* needle) {
+    if (haystack == NULL || needle == NULL) {
+        // calling strstr with NULL is undefined behavior. Better just return NULL and not risk a crash.
+        return NULL;
+    }
+
     char* prevptr = NULL;
     char* ptr = (char*) haystack;
 
@@ -254,7 +276,7 @@ static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
         return NULL;
     }
     packagePrefix += 3;
-#endif
+#endif // _WIN32
 
     if (packagePrefix == packageNameEnd) {
         return NULL;
