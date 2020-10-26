@@ -18,6 +18,8 @@
 #include "ssl_private.h"
 #include "native_constants.h"
 
+#define NATIVE_CONSTANTS_CLASSNAME "io/netty/internal/tcnative/NativeStaticallyReferencedJniMethods"
+
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpCipherServerPreference)(TCN_STDARGS) {
     return SSL_OP_CIPHER_SERVER_PREFERENCE;
 }
@@ -686,11 +688,13 @@ static const jint method_table_size = sizeof(method_table) / sizeof(method_table
 jint netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
     if (netty_internal_tcnative_util_register_natives(env,
              packagePrefix,
-             "io/netty/internal/tcnative/NativeStaticallyReferencedJniMethods",
+             NATIVE_CONSTANTS_CLASSNAME,
              method_table, method_table_size) != 0) {
         return JNI_ERR;
     }
     return TCN_JNI_VERSION;
 }
 
-void netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(JNIEnv* env) { }
+void netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
+    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, NATIVE_CONSTANTS_CLASSNAME);
+ }

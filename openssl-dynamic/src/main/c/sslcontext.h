@@ -18,5 +18,5 @@
 
 // JNI initialization hooks. Users of this file are responsible for calling these in the JNI_OnLoad and JNI_OnUnload methods.
 jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* packagePrefix);
-void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env);
+void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix);
 #endif /* NETTY_TCNATIVE_SSLCONTEXT_H_ */

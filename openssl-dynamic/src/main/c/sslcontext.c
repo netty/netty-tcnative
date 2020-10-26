@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include "sslcontext.h"
 
+#define SSLCONTEXT_CLASSNAME "io/netty/internal/tcnative/SSLContext"
 
 static jclass    sslTask_class;
 static jfieldID  sslTask_returnValue;
@@ -2844,7 +2845,7 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     }
     if (netty_internal_tcnative_util_register_natives(env,
             packagePrefix,
-            "io/netty/internal/tcnative/SSLContext",
+            SSLCONTEXT_CLASSNAME,
             dynamicMethods,
             dynamicMethodsTableSize()) != 0) {
         goto error;
@@ -2900,10 +2901,12 @@ error:
     return JNI_ERR;
 }
 
-void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env) {
+void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
     TCN_UNLOAD_CLASS(env, sslTask_class);
     TCN_UNLOAD_CLASS(env, certificateCallbackTask_class);
     TCN_UNLOAD_CLASS(env, sslPrivateKeyMethodTask_class);
     TCN_UNLOAD_CLASS(env, sslPrivateKeyMethodSignTask_class);
     TCN_UNLOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class);
+
+    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, SSLCONTEXT_CLASSNAME);
 }

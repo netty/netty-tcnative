@@ -45,6 +45,8 @@
 #include "ssl_private.h"
 #include "ssl.h"
 
+#define SSL_CLASSNAME  "io/netty/internal/tcnative/SSL"
+
 static int ssl_initialized = 0;
 extern apr_pool_t *tcn_global_pool;
 
@@ -2706,11 +2708,13 @@ static const jint method_table_size = sizeof(method_table) / sizeof(method_table
 jint netty_internal_tcnative_SSL_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
     if (netty_internal_tcnative_util_register_natives(env,
              packagePrefix,
-             "io/netty/internal/tcnative/SSL",
+             SSL_CLASSNAME,
              method_table, method_table_size) != 0) {
         return JNI_ERR;
     }
     return TCN_JNI_VERSION;
 }
 
-void netty_internal_tcnative_SSL_JNI_OnUnLoad(JNIEnv* env) { }
+void netty_internal_tcnative_SSL_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
+    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, SSL_CLASSNAME);
+}

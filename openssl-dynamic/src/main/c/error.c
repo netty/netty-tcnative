@@ -91,7 +91,7 @@ error:
     return JNI_ERR;
 }
 
-void netty_internal_tcnative_Error_JNI_OnUnLoad(JNIEnv* env) {
+void netty_internal_tcnative_Error_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
      TCN_UNLOAD_CLASS(env, exceptionClass);
      TCN_UNLOAD_CLASS(env, nullPointerExceptionClass);
      TCN_UNLOAD_CLASS(env, illegalArgumentExceptionClass);

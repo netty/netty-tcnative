@@ -144,7 +144,10 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
     TCN_END_MACRO
 
 #define TCN_UNLOAD_CLASS(E, C)                      \
-        (*(E))->DeleteGlobalRef((E), (C))
+    TCN_BEGIN_MACRO                                 \
+        (*(E))->DeleteGlobalRef((E), (C));          \
+        C = NULL;                                   \
+    TCN_END_MACRO
 
 #define TCN_GET_METHOD(E, C, M, N, S, R)            \
     TCN_BEGIN_MACRO                                 \
@@ -205,5 +208,7 @@ char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str);
  * Return type is as defined in http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/functions.html#wp5833.
  */
 jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods);
+
+jint netty_internal_tcnative_util_unregister_natives(JNIEnv* env, const char* packagePrefix, const char* className);
 
 #endif /* TCN_H */
