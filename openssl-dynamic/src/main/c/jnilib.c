@@ -392,7 +392,9 @@ error:
     if (tcn_global_pool != NULL) {
         TCN_UNLOAD_CLASS(env, jString_class);
         apr_terminate();
+        tcn_global_pool = NULL;
     }
+
     TCN_UNLOAD_CLASS(env, byteArrayClass);
 
     netty_internal_tcnative_util_unregister_natives(env, packagePrefix, LIBRARY_CLASSNAME);
@@ -423,6 +425,7 @@ static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env, const char
     if (tcn_global_pool != NULL) {
         TCN_UNLOAD_CLASS(env, jString_class);
         apr_terminate();
+        tcn_global_pool = NULL;
     }
 
     TCN_UNLOAD_CLASS(env, byteArrayClass);
@@ -647,6 +650,7 @@ static jint JNI_OnLoad_netty_tcnative0(JavaVM* vm, void* reserved) {
     jint ret = netty_internal_tcnative_Library_JNI_OnLoad(env, packagePrefix);
     if (ret == JNI_ERR) {
         free(packagePrefix);
+        staticPackagePrefix = NULL;
     } else {
         // This will be freed when we unload.
         staticPackagePrefix = packagePrefix;

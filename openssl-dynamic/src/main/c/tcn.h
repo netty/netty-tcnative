@@ -144,7 +144,10 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
     TCN_END_MACRO
 
 #define TCN_UNLOAD_CLASS(E, C)                      \
-        (*(E))->DeleteGlobalRef((E), (C))
+    TCN_BEGIN_MACRO                                 \
+        (*(E))->DeleteGlobalRef((E), (C));          \
+        C = NULL;                                   \
+    TCN_END_MACRO
 
 #define TCN_GET_METHOD(E, C, M, N, S, R)            \
     TCN_BEGIN_MACRO                                 \
