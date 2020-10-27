@@ -35,6 +35,7 @@
     <libresslBuildDir>${libresslCheckoutDir}/build-ninja</libresslBuildDir>
     <libresslArchive>libressl-${libresslVersion}.tar.gz</libresslArchive>
     <linkStatic>true</linkStatic>
+    <compileLibrary>true</compileLibrary>
     <!-- Don't deploy this artifact to Maven Central -->
     <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
@@ -87,6 +88,30 @@
           </execution>
         </executions>
       </plugin>
+
+       <!-- Download the netty-jni-util source -->
+      <plugin>
+        <artifactId>maven-scm-plugin</artifactId>
+        <version>1.11.2</version>
+        <executions>
+          <execution>
+            <id>get-netty-jni-util</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>checkout</goal>
+            </goals>
+            <configuration>
+              <checkoutDirectory>${jniUtilCheckoutDir}</checkoutDirectory>
+              <connectionType>developerConnection</connectionType>
+              <developerConnectionUrl>scm:git:https://github.com/netty/netty-jni-util.git</developerConnectionUrl>
+              <scmVersion>${jniUtilVersion}</scmVersion>
+              <scmVersionType>branch</scmVersionType>
+              <skipCheckoutIfExists>true</skipCheckoutIfExists>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
      <!--
         Set the classifier property based on the settings of the os-detector-plugin.
         Fedora-based systems use a different soname for OpenSSL than other linux distributions.

@@ -373,14 +373,14 @@ struct tcn_ssl_state_t {
 };
 
 #define TCN_GET_SSL_CTX(ssl, C)                             \
-    TCN_BEGIN_MACRO                                         \
+    NETTY_JNI_UTIL_BEGIN_MACRO                              \
         tcn_ssl_state_t* _S = tcn_SSL_get_app_state(ssl);   \
         if (_S == NULL) {                                   \
             C = NULL;                                       \
         } else {                                            \
             C = _S->ctx;                                    \
         }                                                   \
-    TCN_END_MACRO
+   NETTY_JNI_UTIL_END_MACRO
 
 /*
  *  Additional Functions

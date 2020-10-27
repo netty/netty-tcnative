@@ -51,6 +51,7 @@
     <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslCheckoutDir>
     <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
     <linkStatic>true</linkStatic>
+    <compileLibrary>true</compileLibrary>
     <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
     <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
     <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
@@ -72,6 +73,21 @@
           <plugin>
             <artifactId>maven-scm-plugin</artifactId>
             <executions>
+              <execution>
+                <id>get-netty-jni-util</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <checkoutDirectory>${jniUtilCheckoutDir}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:git:https://github.com/netty/netty-jni-util.git</developerConnectionUrl>
+                  <scmVersion>${jniUtilVersion}</scmVersion>
+                  <scmVersionType>branch</scmVersionType>
+                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
+                </configuration>
+              </execution>
               <execution>
                 <id>get-boringssl</id>
                 <phase>generate-sources</phase>
@@ -423,6 +439,21 @@
           <plugin>
             <artifactId>maven-scm-plugin</artifactId>
             <executions>
+              <execution>
+                <id>get-netty-jni-util</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <checkoutDirectory>${jniUtilCheckoutDir}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:git:https://github.com/netty/netty-jni-util.git</developerConnectionUrl>
+                  <scmVersion>${jniUtilVersion}</scmVersion>
+                  <scmVersionType>branch</scmVersionType>
+                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
+                </configuration>
+              </execution>
               <execution>
                 <id>get-boringssl</id>
                 <phase>generate-sources</phase>

@@ -82,18 +82,18 @@ void tcn_throwOutOfMemoryError(JNIEnv* env, const char *msg)
 
 jint netty_internal_tcnative_Error_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
 
-    TCN_LOAD_CLASS(env, exceptionClass, "java/lang/Exception", error);
-    TCN_LOAD_CLASS(env, nullPointerExceptionClass, "java/lang/NullPointerException", error);
-    TCN_LOAD_CLASS(env, illegalArgumentExceptionClass, "java/lang/IllegalArgumentException", error);
-    TCN_LOAD_CLASS(env, oomeClass, "java/lang/OutOfMemoryError", error);
-    return TCN_JNI_VERSION;
+    NETTY_JNI_UTIL_LOAD_CLASS(env, exceptionClass, "java/lang/Exception", error);
+    NETTY_JNI_UTIL_LOAD_CLASS(env, nullPointerExceptionClass, "java/lang/NullPointerException", error);
+    NETTY_JNI_UTIL_LOAD_CLASS(env, illegalArgumentExceptionClass, "java/lang/IllegalArgumentException", error);
+    NETTY_JNI_UTIL_LOAD_CLASS(env, oomeClass, "java/lang/OutOfMemoryError", error);
+    return NETTY_JNI_UTIL_JNI_VERSION;
 error:
     return JNI_ERR;
 }
 
 void netty_internal_tcnative_Error_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
-     TCN_UNLOAD_CLASS(env, exceptionClass);
-     TCN_UNLOAD_CLASS(env, nullPointerExceptionClass);
-     TCN_UNLOAD_CLASS(env, illegalArgumentExceptionClass);
-     TCN_UNLOAD_CLASS(env, oomeClass);
+     NETTY_JNI_UTIL_UNLOAD_CLASS(env, exceptionClass);
+     NETTY_JNI_UTIL_UNLOAD_CLASS(env, nullPointerExceptionClass);
+     NETTY_JNI_UTIL_UNLOAD_CLASS(env, illegalArgumentExceptionClass);
+     NETTY_JNI_UTIL_UNLOAD_CLASS(env, oomeClass);
  }

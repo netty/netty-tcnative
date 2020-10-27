@@ -34,6 +34,7 @@
 
 // Start includes
 #include <jni.h>
+#include "netty_jni_util.h"
 
 #include "apr.h"
 #include "apr_pools.h"
@@ -94,9 +95,6 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
 #define J2S(V)  c##V
 #define J2L(V)  p##V
 
-#define TCN_BEGIN_MACRO     if (1) {
-#define TCN_END_MACRO       } else (void)(0)
-
 #define TCN_ALLOC_CSTRING(V)     \
     const char *c##V = V ? (const char *)((*e)->GetStringUTFChars(e, V, JNI_FALSE)) : NULL
 
@@ -106,85 +104,37 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
 #define AJP_TO_JSTRING(V)   (*e)->NewStringUTF((e), (V))
 
 #define TCN_CHECK_NULL(V, M, R)                      \
-    TCN_BEGIN_MACRO                                  \
+    NETTY_JNI_UTIL_BEGIN_MACRO                       \
         if (V == NULL) {                             \
             tcn_ThrowNullPointerException(e, #M);    \
             return R;                                \
         }                                            \
-    TCN_END_MACRO
+    NETTY_JNI_UTIL_END_MACRO
 
 #define TCN_FREE_JSTRING(V)      \
-    TCN_BEGIN_MACRO              \
+    NETTY_JNI_UTIL_BEGIN_MACRO   \
         if (c##V)                \
             free(c##V);          \
-    TCN_END_MACRO
+    NETTY_JNI_UTIL_END_MACRO
 
 #define TCN_THROW_IF_ERR(x, r)                  \
-    TCN_BEGIN_MACRO                             \
+    NETTY_JNI_UTIL_BEGIN_MACRO                  \
         apr_status_t R = (x);                   \
         if (R != APR_SUCCESS) {                 \
             tcn_ThrowAPRException(e, R);        \
             (r) = 0;                            \
             goto cleanup;                       \
         }                                       \
-    TCN_END_MACRO
-
-#define TCN_LOAD_CLASS(E, C, N, R)                  \
-    TCN_BEGIN_MACRO                                 \
-        jclass _##C = (*(E))->FindClass((E), N);    \
-        if (_##C == NULL) {                         \
-            (*(E))->ExceptionClear((E));            \
-            goto R;                                 \
-        }                                           \
-        C = (*(E))->NewGlobalRef((E), _##C);        \
-        (*(E))->DeleteLocalRef((E), _##C);          \
-        if (C == NULL) {                            \
-            goto R;                                 \
-        }                                           \
-    TCN_END_MACRO
-
-#define TCN_UNLOAD_CLASS(E, C)                      \
-    TCN_BEGIN_MACRO                                 \
-        (*(E))->DeleteGlobalRef((E), (C));          \
-        C = NULL;                                   \
-    TCN_END_MACRO
-
-#define TCN_GET_METHOD(E, C, M, N, S, R)            \
-    TCN_BEGIN_MACRO                                 \
-        M = (*(E))->GetMethodID((E), C, N, S);      \
-        if (M == NULL) {                            \
-            goto R;                                 \
-        }                                           \
-    TCN_END_MACRO
-
-#define TCN_GET_FIELD(E, C, F, N, S, R)             \
-    TCN_BEGIN_MACRO                                 \
-        F = (*(E))->GetFieldID((E), C, N, S);       \
-        if (F == NULL) {                            \
-            goto R;                                 \
-        }                                           \
-    TCN_END_MACRO
+    NETTY_JNI_UTIL_END_MACRO
 
 #define TCN_MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#ifndef TCN_JNI_VERSION
-#define TCN_JNI_VERSION JNI_VERSION_1_6
-#endif
-
 #define TCN_REASSIGN(V1, V2)                  \
-    TCN_BEGIN_MACRO                           \
+    NETTY_JNI_UTIL_BEGIN_MACRO                \
         free(V1);                             \
         V1 = V2;                              \
         V2 = NULL;                            \
-    TCN_END_MACRO
-
-
-#define TCN_PREPEND(P, S, N, R)                                          \
-    TCN_BEGIN_MACRO                                                      \
-        if ((N = netty_internal_tcnative_util_prepend(P, S)) == NULL) {  \
-            goto R;                                                      \
-        }                                                                \
-    TCN_END_MACRO
+    NETTY_JNI_UTIL_END_MACRO
 
 
 /* Return global String class
@@ -196,19 +146,5 @@ jclass tcn_get_byte_array_class();
 /* Get current thread JNIEnv
  */
 jint tcn_get_java_env(JNIEnv **);
-
-/**
- * Return a new string (caller must free this string) which is equivalent to <pre>prefix + str</pre>.
- *
- * Caller must free the return value!
- */
-char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str);
-
-/**
- * Return type is as defined in http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/functions.html#wp5833.
- */
-jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods);
-
-jint netty_internal_tcnative_util_unregister_natives(JNIEnv* env, const char* packagePrefix, const char* className);
 
 #endif /* TCN_H */

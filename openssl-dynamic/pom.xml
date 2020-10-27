@@ -31,7 +31,9 @@
   </description>
 
   <properties>
+    <compileLibrary>true</compileLibrary>
     <linkStatic>false</linkStatic>
+    <nativeSourceDirectory></nativeSourceDirectory>
   </properties>
 
   <build>
@@ -52,6 +54,28 @@
     </pluginManagement>
 
     <plugins>
+     <!-- Download the netty-jni-util source -->
+      <plugin>
+        <artifactId>maven-scm-plugin</artifactId>
+        <version>1.11.2</version>
+        <executions>
+          <execution>
+            <id>get-netty-jni-util</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>checkout</goal>
+            </goals>
+            <configuration>
+              <checkoutDirectory>${jniUtilCheckoutDir}</checkoutDirectory>
+              <connectionType>developerConnection</connectionType>
+              <developerConnectionUrl>scm:git:https://github.com/netty/netty-jni-util.git</developerConnectionUrl>
+              <scmVersion>${jniUtilVersion}</scmVersion>
+              <scmVersionType>branch</scmVersionType>
+              <skipCheckoutIfExists>true</skipCheckoutIfExists>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!--
         Set the classifier property based on the settings of the os-detector-plugin.
         Fedora-based systems use a different soname for OpenSSL than other linux distributions.
@@ -125,7 +149,7 @@
             <id>build-native-lib</id>
             <configuration>
               <name>netty_tcnative</name>
-              <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+              <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
               <libDirectory>${nativeLibOnlyDir}</libDirectory>
               <forceAutogen>${forceAutogen}</forceAutogen>
               <forceConfigure>${forceConfigure}</forceConfigure>
@@ -210,7 +234,7 @@
                 <id>build-native-lib</id>
                 <configuration>
                   <name>netty_tcnative</name>
-                  <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+                  <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
                   <libDirectory>${nativeLibOnlyDir}</libDirectory>
                   <forceAutogen>${forceAutogen}</forceAutogen>
                   <forceConfigure>${forceConfigure}</forceConfigure>
@@ -319,7 +343,7 @@
                 <id>build-native-lib</id>
                 <configuration>
                   <name>netty_tcnative</name>
-                  <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
+                  <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
                   <libDirectory>${nativeLibOnlyDir}</libDirectory>
                   <forceAutogen>${forceAutogen}</forceAutogen>
                   <forceConfigure>${forceConfigure}</forceConfigure>

@@ -686,15 +686,15 @@ static const jint method_table_size = sizeof(method_table) / sizeof(method_table
 // JNI Method Registration Table End
 
 jint netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
-    if (netty_internal_tcnative_util_register_natives(env,
+    if (netty_jni_util_register_natives(env,
              packagePrefix,
              NATIVE_CONSTANTS_CLASSNAME,
              method_table, method_table_size) != 0) {
         return JNI_ERR;
     }
-    return TCN_JNI_VERSION;
+    return NETTY_JNI_UTIL_JNI_VERSION;
 }
 
 void netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
-    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, NATIVE_CONSTANTS_CLASSNAME);
+    netty_jni_util_unregister_natives(env, packagePrefix, NATIVE_CONSTANTS_CLASSNAME);
  }
