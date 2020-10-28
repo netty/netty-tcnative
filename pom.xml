@@ -83,8 +83,7 @@
     <compileLibrary>false</compileLibrary>
     <jniUtilCheckoutDir>${project.build.directory}/netty-jni-util</jniUtilCheckoutDir>
     <jniUtilIncludeDir>${project.build.directory}/netty-jni-util/src/c</jniUtilIncludeDir>
-    <!-- TODO: Change this to a release tag once we did a release -->
-    <jniUtilVersion>main</jniUtilVersion>
+    <jniUtilVersion>0.0.1</jniUtilVersion>
   </properties>
 
   <build>
