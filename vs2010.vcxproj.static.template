@@ -186,6 +186,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include=".\src\netty_jni_util.c" />
     <ClCompile Include=".\src\bb.c" />
     <ClCompile Include=".\src\error.c" />
     <ClCompile Include=".\src\jnilib.c" />

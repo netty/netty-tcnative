@@ -80,6 +80,10 @@
     <jniArch>${os.detected.arch}</jniArch>
     <jniClassifier>${os.detected.name}-${os.detected.arch}</jniClassifier>
     <skipJapicmp>false</skipJapicmp>
+    <compileLibrary>false</compileLibrary>
+    <jniUtilCheckoutDir>${project.build.directory}/netty-jni-util</jniUtilCheckoutDir>
+    <jniUtilIncludeDir>${project.build.directory}/netty-jni-util/src/c</jniUtilIncludeDir>
+    <jniUtilVersion>0.0.1</jniUtilVersion>
   </properties>
 
   <build>
@@ -221,21 +225,35 @@
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>
+          <execution>
+           <id>copy-src</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target if="${compileLibrary}">
+                <!-- Copy all of the code from the dynamic module -->
+                <delete dir="${generatedSourcesDir}" quiet="true" />
+                <copy todir="${generatedSourcesDir}" verbose="true">
+                  <fileset dir="${opensslDynamicDir}/src/main" />
+                </copy>
+
+                <copy todir="${generatedSourcesDir}/c" verbose="true">
+                  <fileset dir="${jniUtilIncludeDir}" />
+                </copy>
+              </target>
+            </configuration>
+          </execution>
           <!-- Generate the source for a statically-linked modules by copying from the template -->
           <execution>
-            <id>copy-src</id>
+            <id>setup-template</id>
             <phase>generate-sources</phase>
             <goals>
               <goal>run</goal>
             </goals>
             <configuration>
               <target if="${linkStatic}">
-                <!-- Copy all of the code from the dynamic module -->
-                <delete dir="src" quiet="true" />
-                <mkdir dir="src" />
-                <copy todir="${generatedSourcesDir}" verbose="true">
-                  <fileset dir="${opensslDynamicDir}/src/main" />
-                </copy>
 
                 <!-- Convert the paths to windows format -->
                 <pathconvert property="aprHomeWindowsPath" targetos="windows">

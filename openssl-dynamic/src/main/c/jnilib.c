@@ -31,13 +31,12 @@
 
 #define LIBRARY_CLASSNAME "io/netty/internal/tcnative/Library"
 
-#ifndef _WIN32
-// It's important to have #define _GNU_SOURCE before any other include as otherwise it will not work.
-// See http://stackoverflow.com/questions/7296963/gnu-source-and-use-gnu
-#define _GNU_SOURCE
-#include <dlfcn.h>
-#else
+#ifdef _WIN32
 #define MAX_DLL_PATH_LEN 2048
+#endif
+
+#ifdef TCN_BUILD_STATIC
+#define NETTY_JNI_UTIL_BUILD_STATIC 
 #endif
 
 #include "tcn.h"
@@ -51,10 +50,6 @@
 #include "sslsession.h"
 #include "error.h"
 
-#ifndef TCN_JNI_VERSION
-#define TCN_JNI_VERSION JNI_VERSION_1_6
-#endif
-
 apr_pool_t *tcn_global_pool = NULL;
 static JavaVM     *tcn_global_vm = NULL;
 
@@ -62,7 +57,6 @@ static jclass    jString_class;
 static jmethodID jString_init;
 static jmethodID jString_getBytes;
 static jclass    byteArrayClass;
-static char*     staticPackagePrefix;
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 {
@@ -139,196 +133,8 @@ jclass tcn_get_byte_array_class()
 
 jint tcn_get_java_env(JNIEnv **env)
 {
-    return (*tcn_global_vm)->GetEnv(tcn_global_vm, (void **)env, TCN_JNI_VERSION);
+    return (*tcn_global_vm)->GetEnv(tcn_global_vm, (void **)env, NETTY_JNI_UTIL_JNI_VERSION);
 }
-
-// TODO: Share code with netty natives utilities.
-char* netty_internal_tcnative_util_prepend(const char* prefix, const char* str) {
-    if (str == NULL) {
-        // If str is NULL we should just return NULL as passing NULL to strlen is undefined behavior.
-        return NULL;
-    }
-    if (prefix == NULL) {
-        char* result = (char*) malloc(sizeof(char) * (strlen(str) + 1));
-        if (result == NULL) {
-            return NULL;
-        }
-        strcpy(result, str);
-        return result;
-    }
-    char* result = (char*) malloc(sizeof(char) * (strlen(prefix) + strlen(str) + 1));
-    if (result == NULL) {
-        return NULL;
-    }
-    strcpy(result, prefix);
-    strcat(result, str);
-    return result;
-}
-
-jint netty_internal_tcnative_util_register_natives(JNIEnv* env, const char* packagePrefix, const char* className, const JNINativeMethod* methods, jint numMethods) {
-    char* nettyClassName = NULL;
-    int retValue = JNI_ERR;
-    
-    TCN_PREPEND(packagePrefix, className, nettyClassName, done);
-   
-    jclass nativeCls = (*env)->FindClass(env, nettyClassName);
-    if (nativeCls != NULL) {
-        retValue = (*env)->RegisterNatives(env, nativeCls, methods, numMethods);
-    }
-done:
-    free(nettyClassName);
-    return retValue;
-}
-
-
-jint netty_internal_tcnative_util_unregister_natives(JNIEnv* env, const char* packagePrefix, const char* className) {
-    char* nettyClassName = NULL;
-    int retValue = JNI_ERR;
-
-    TCN_PREPEND(packagePrefix, className, nettyClassName, done);
-
-    jclass nativeCls = (*env)->FindClass(env, nettyClassName);
-    if (nativeCls != NULL) {
-        retValue = (*env)->UnregisterNatives(env, nativeCls);
-    }
-done:
-    free(nettyClassName);
-    return retValue;
-}
-
-#ifndef TCN_BUILD_STATIC
-
-static char* netty_internal_tcnative_util_strndup(const char *s, size_t n) {
-    if (s == NULL) {
-        // passing NULL to strndup is undefined behavior and may core dump.
-        return NULL;
-    }
-
-// windows / solaris does not have strndup
-#if defined(_WIN32) || defined(__sun)
-#ifdef _WIN32
-    char* copy = _strdup(s);
-#else
-    char* copy = strdup(s);
-#endif
-    if (copy != NULL && n < strlen(copy)) {
-        // mark the end
-        copy[n] = '\0';
-    }
-    return copy;
-#else
-    return strndup(s, n);
-#endif
-}
-
-static char* netty_internal_tcnative_util_rstrstr(char* s1rbegin, const char* s1rend, const char* s2) {
-    if (s1rbegin == NULL || s1rend == NULL || s2 == NULL) {
-        // Return NULL if any of the parameters is NULL to not risk a segfault
-        return NULL;
-    }
-    size_t s2len = strlen(s2);
-    char *s = s1rbegin - s2len;
-
-    for (; s >= s1rend; --s) {
-        if (strncmp(s, s2, s2len) == 0) {
-            return s;
-        }
-    }
-    return NULL;
-}
-
-#ifdef _WIN32
-static char* netty_internal_tcnative_util_rstrchar(char* s1rbegin, const char* s1rend, const char c2) {
-    if (s1rbegin == NULL || s1rend == NULL || c2 == NULL) {
-        // Return NULL if any of the parameters is NULL to not risk a segfault
-        return NULL;
-    }
-    for (; s1rbegin >= s1rend; --s1rbegin) {
-        if (*s1rbegin == c2) {
-            return s1rbegin;
-        }
-    }
-    return NULL;
-}
-#endif // _WIN32
-
-static char* netty_internal_tcnative_util_strstr_last(const char* haystack, const char* needle) {
-    if (haystack == NULL || needle == NULL) {
-        // calling strstr with NULL is undefined behavior. Better just return NULL and not risk a crash.
-        return NULL;
-    }
-
-    char* prevptr = NULL;
-    char* ptr = (char*) haystack;
-
-    while ((ptr = strstr(ptr, needle)) != NULL) {
-        // Just store the ptr and continue searching.
-        prevptr = ptr;
-        ++ptr;
-    }
-    return prevptr;
-}
-
-/**
- * The expected format of the library name is "lib<>netty_tcnative" on non windows platforms and "<>netty_tcnative" on windows,
- *  where the <> portion is what we will return.
- */
-static char* parsePackagePrefix(const char* libraryPathName, jint* status) {
-    char* packageNameEnd = netty_internal_tcnative_util_strstr_last(libraryPathName, "netty_tcnative");
-    if (packageNameEnd == NULL) {
-        *status = JNI_ERR;
-        return NULL;
-    }
-#ifdef _WIN32
-    // on windows there is no lib prefix so we instead look for the previous path separator or the beginning of the string.
-    char* packagePrefix = netty_internal_tcnative_util_rstrchar(packageNameEnd, libraryPathName, '\\');
-    if (packagePrefix == NULL) {
-        // The string does not have to specify a path [1].
-        // [1] https://msdn.microsoft.com/en-us/library/windows/desktop/ms683200(v=vs.85).aspx
-        packagePrefix = libraryPathName;
-    } else {
-        packagePrefix += 1;
-    }
-#else
-    char* packagePrefix = netty_internal_tcnative_util_rstrstr(packageNameEnd, libraryPathName, "lib");
-    if (packagePrefix == NULL) {
-        *status = JNI_ERR;
-        return NULL;
-    }
-    packagePrefix += 3;
-#endif // _WIN32
-
-    if (packagePrefix == packageNameEnd) {
-        return NULL;
-    }
-    // packagePrefix length is > 0
-    // Make a copy so we can modify the value without impacting libraryPathName.
-    size_t packagePrefixLen = packageNameEnd - packagePrefix;
-    if ((packagePrefix = netty_internal_tcnative_util_strndup(packagePrefix, packagePrefixLen)) == NULL) {
-        *status = JNI_ERR;
-        return NULL;
-    }
-    // Make sure the packagePrefix is in the correct format for the JNI functions it will be used with.
-    char* temp = packagePrefix;
-    packageNameEnd = packagePrefix + packagePrefixLen;
-    // Package names must be sanitized, in JNI packages names are separated by '/' characters.
-    for (; temp != packageNameEnd; ++temp) {
-        if (*temp == '_') {
-            *temp = '/';
-        }
-    }
-    // Make sure packagePrefix is terminated with the '/' JNI package separator.
-    if(*(--temp) != '/') {
-        temp = packagePrefix;
-        if ((packagePrefix = netty_internal_tcnative_util_prepend(packagePrefix, "/")) == NULL) {
-            *status = JNI_ERR;
-        } 
-        free(temp);
-    }
-    return packagePrefix;
-}
-
-#endif /* TCN_BUILD_STATIC */
 
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
@@ -349,7 +155,7 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
     int sslOnLoadCalled = 0;
     int contextOnLoadCalled = 0;
 
-    if (netty_internal_tcnative_util_register_natives(env, packagePrefix, LIBRARY_CLASSNAME, method_table, method_table_size) != 0) {
+    if (netty_jni_util_register_natives(env, packagePrefix, LIBRARY_CLASSNAME, method_table, method_table_size) != 0) {
         goto error;
     }
 
@@ -400,26 +206,26 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
 
 
     /* Initialize global java.lang.String class */
-    TCN_LOAD_CLASS(env, jString_class, "java/lang/String", error);
+    NETTY_JNI_UTIL_LOAD_CLASS(env, jString_class, "java/lang/String", error);
 
-    TCN_GET_METHOD(env, jString_class, jString_init,
+    NETTY_JNI_UTIL_GET_METHOD(env, jString_class, jString_init,
                    "<init>", "([B)V", error);
-    TCN_GET_METHOD(env, jString_class, jString_getBytes,
+    NETTY_JNI_UTIL_GET_METHOD(env, jString_class, jString_getBytes,
                    "getBytes", "()[B", error);
 
-    TCN_LOAD_CLASS(env, byteArrayClass, "[B", error);
+    NETTY_JNI_UTIL_LOAD_CLASS(env, byteArrayClass, "[B", error);
 
-    return TCN_JNI_VERSION;
+    return NETTY_JNI_UTIL_JNI_VERSION;
 error:
     if (tcn_global_pool != NULL) {
-        TCN_UNLOAD_CLASS(env, jString_class);
+        NETTY_JNI_UTIL_UNLOAD_CLASS(env, jString_class);
         apr_terminate();
         tcn_global_pool = NULL;
     }
 
-    TCN_UNLOAD_CLASS(env, byteArrayClass);
+    NETTY_JNI_UTIL_UNLOAD_CLASS(env, byteArrayClass);
 
-    netty_internal_tcnative_util_unregister_natives(env, packagePrefix, LIBRARY_CLASSNAME);
+    netty_jni_util_unregister_natives(env, packagePrefix, LIBRARY_CLASSNAME);
 
     // Call unload methods if needed to ensure we correctly release any resources.
     if (errorOnLoadCalled == 1) {
@@ -443,252 +249,20 @@ error:
     return JNI_ERR;
 }
 
-static void netty_internal_tcnative_Library_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
+static void netty_internal_tcnative_Library_JNI_OnUnload(JNIEnv* env, const char* packagePrefix) {
     if (tcn_global_pool != NULL) {
-        TCN_UNLOAD_CLASS(env, jString_class);
+        NETTY_JNI_UTIL_UNLOAD_CLASS(env, jString_class);
         apr_terminate();
         tcn_global_pool = NULL;
     }
 
-    TCN_UNLOAD_CLASS(env, byteArrayClass);
+    NETTY_JNI_UTIL_UNLOAD_CLASS(env, byteArrayClass);
     netty_internal_tcnative_Error_JNI_OnUnLoad(env, packagePrefix);
     netty_internal_tcnative_Buffer_JNI_OnUnLoad(env, packagePrefix);
     netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env, packagePrefix);
     netty_internal_tcnative_SSL_JNI_OnUnLoad(env, packagePrefix);
     netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env, packagePrefix);
     netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env, packagePrefix);
-}
-
-/* Fix missing Dl_info & dladdr in AIX
- * The code is taken from netbsd.org (src/crypto/external/bsd/openssl/dist/crypto/dso/dso_dlfcn.c)
- * except strlcpy & strlcat (those are taken from openbsd.org (src/lib/libc/string))
- */
-#ifdef _AIX
-/*-
- * See IBM's AIX Version 7.2, Technical Reference:
- *  Base Operating System and Extensions, Volume 1 and 2
- *  https://www.ibm.com/support/knowledgecenter/ssw_aix_72/com.ibm.aix.base/technicalreferences.htm
- */
-#include <sys/ldr.h>
-#include <errno.h>
-#include <openssl/crypto.h>
-
-/* strlcpy:
- * Copy string src to buffer dst of size dsize.  At most dsize-1
- * chars will be copied.  Always NUL terminates (unless dsize == 0).
- * Returns strlen(src); if retval >= dsize, truncation occurred.
- */
-size_t strlcpy(char *dst, const char *src, size_t dsize)
-{
-    const char *osrc = src;
-    size_t nleft = dsize;
-
-    /* Copy as many bytes as will fit. */
-    if (nleft != 0) {
-        while (--nleft != 0) {
-            if ((*dst++ = *src++) == '\0') {
-                break;
-            }
-        }
-    }
-
-    /* Not enough room in dst, add NUL and traverse rest of src. */
-    if (nleft == 0) {
-        if (dsize != 0) {
-            *dst = '\0';		/* NUL-terminate dst */
-        }
-        while (*src++) {
-            ;
-        }
-    }
-
-    return src - osrc - 1;	/* count does not include NUL */
-}
-
-/* strlcat:
- * Appends src to string dst of size dsize (unlike strncat, dsize is the
- * full size of dst, not space left).  At most dsize-1 characters
- * will be copied.  Always NUL terminates (unless dsize <= strlen(dst)).
- * Returns strlen(src) + MIN(dsize, strlen(initial dst)).
- * If retval >= dsize, truncation occurred.
- */
-size_t strlcat(char *dst, const char *src, size_t dsize)
-{
-    const char *odst = dst;
-    const char *osrc = src;
-    size_t n = dsize;
-    size_t dlen;
-
-    /* Find the end of dst and adjust bytes left but don't go past end. */
-    while (n-- != 0 && *dst != '\0') {
-        dst++;
-    }
-    dlen = dst - odst;
-    n = dsize - dlen;
-
-    if (n-- == 0) {
-        return dlen + strlen(src);
-    }
-    while (*src != '\0') {
-        if (n != 0) {
-            *dst++ = *src;
-            n--;
-        }
-        src++;
-    }
-    *dst = '\0';
-
-    return dlen + src - osrc;	/* count does not include NUL */
-}
-
-/* ~ 64 * (sizeof(struct ld_info) + _XOPEN_PATH_MAX + _XOPEN_NAME_MAX) */
-#  define DLFCN_LDINFO_SIZE 86976
-typedef struct Dl_info {
-    const char *dli_fname;
-} Dl_info;
-/*
- * This dladdr()-implementation will also find the ptrgl (Pointer Glue) virtual
- * address of a function, which is just located in the DATA segment instead of
- * the TEXT segment.
- */
-static int dladdr(void *ptr, Dl_info *dl)
-{
-    uintptr_t addr = (uintptr_t)ptr;
-    struct ld_info *ldinfos;
-    struct ld_info *next_ldi;
-    struct ld_info *this_ldi;
-
-    if ((ldinfos = OPENSSL_malloc(DLFCN_LDINFO_SIZE)) == NULL) {
-        dl->dli_fname = NULL;
-        return 0;
-    }
-
-    if ((loadquery(L_GETINFO, (void *)ldinfos, DLFCN_LDINFO_SIZE)) < 0) {
-        /*-
-         * Error handling is done through errno and dlerror() reading errno:
-         *  ENOMEM (ldinfos buffer is too small),
-         *  EINVAL (invalid flags),
-         *  EFAULT (invalid ldinfos ptr)
-         */
-        OPENSSL_free((void *)ldinfos);
-        dl->dli_fname = NULL;
-        return 0;
-    }
-    next_ldi = ldinfos;
-
-    do {
-        this_ldi = next_ldi;
-        if (((addr >= (uintptr_t)this_ldi->ldinfo_textorg)
-             && (addr < ((uintptr_t)this_ldi->ldinfo_textorg +
-                         this_ldi->ldinfo_textsize)))
-            || ((addr >= (uintptr_t)this_ldi->ldinfo_dataorg)
-                && (addr < ((uintptr_t)this_ldi->ldinfo_dataorg +
-                            this_ldi->ldinfo_datasize)))) {
-            char *buffer = NULL;
-            char *member = NULL;
-            size_t buffer_sz;
-            size_t member_len;
-
-            buffer_sz = strlen(this_ldi->ldinfo_filename) + 1;
-            member = this_ldi->ldinfo_filename + buffer_sz;
-            if ((member_len = strlen(member)) > 0) {
-                buffer_sz += 1 + member_len + 1;
-            }
-            if ((buffer = OPENSSL_malloc(buffer_sz)) != NULL) {
-                strlcpy(buffer, this_ldi->ldinfo_filename, buffer_sz);
-                if (member_len > 0) {
-                    /*
-                     * Need to respect a possible member name and not just
-                     * returning the path name in this case. See docs:
-                     * sys/ldr.h, loadquery() and dlopen()/RTLD_MEMBER.
-                     */
-                    strlcat(buffer, "(", buffer_sz);
-                    strlcat(buffer, member, buffer_sz);
-                    strlcat(buffer, ")", buffer_sz);
-                }
-                dl->dli_fname = buffer;
-            }
-            break;
-        } else {
-            next_ldi = (struct ld_info *)((uintptr_t)this_ldi +
-                                          this_ldi->ldinfo_next);
-        }
-    } while (this_ldi->ldinfo_next);
-    OPENSSL_free((void *)ldinfos);
-    return dl->dli_fname != NULL;
-}
-# endif                         /* _AIX */
-
-static jint JNI_OnLoad_netty_tcnative0(JavaVM* vm, void* reserved) {
-    JNIEnv* env = NULL;
-    if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
-        return JNI_ERR;
-    }
-
-#ifndef TCN_BUILD_STATIC
-    jint status = 0;
-    const char* name = NULL;
-#ifndef _WIN32
-    Dl_info dlinfo;
-    // We need to use an address of a function that is uniquely part of this library, so choose a static
-    // function. See https://github.com/netty/netty/issues/4840.
-    if (!dladdr((void*) parsePackagePrefix, &dlinfo)) {
-        fprintf(stderr, "FATAL: netty-tcnative JNI call to dladdr failed!\n");
-        return JNI_ERR;
-    }
-    name = dlinfo.dli_fname;
-#else
-    HMODULE module = NULL;
-    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (void*) parsePackagePrefix, &module) == 0){
-        fprintf(stderr, "FATAL: netty-tcnative JNI call to GetModuleHandleExA failed!\n");
-        return JNI_ERR;
-    }
-
-    // add space for \0 termination as this is not automatically included for windows XP
-    // See https://msdn.microsoft.com/en-us/library/windows/desktop/ms683197(v=vs.85).aspx
-    char dllPath[MAX_DLL_PATH_LEN + 1];
-    int dllPathLen = GetModuleFileNameA(module, dllPath, MAX_DLL_PATH_LEN);
-    if (dllPathLen == 0) {
-        fprintf(stderr, "FATAL: netty-tcnative JNI call to GetModuleFileNameA failed!\n");
-        return JNI_ERR;
-    } else {
-        // ensure we null terminate as this is not automatically done on windows xp
-        dllPath[dllPathLen] = '\0';
-    }
-
-    name = dllPath;
-#endif
-    char* packagePrefix = parsePackagePrefix(name, &status);
-
-    if (status == JNI_ERR) {
-        fprintf(stderr, "FATAL: netty-tcnative encountered unexpected library path: %s\n", name);
-        return JNI_ERR;
-    }
-#else
-    char* packagePrefix = NULL;
-#endif /* TCN_BUILD_STATIC */
-
-    tcn_global_vm = vm;
-    jint ret = netty_internal_tcnative_Library_JNI_OnLoad(env, packagePrefix);
-    if (ret == JNI_ERR) {
-        free(packagePrefix);
-        staticPackagePrefix = NULL;
-    } else {
-        // This will be freed when we unload.
-        staticPackagePrefix = packagePrefix;
-    }
-    return ret;
-}
-
-static void JNI_OnUnload_netty_tcnative0(JavaVM* vm, void* reserved) {
-    JNIEnv* env = NULL;
-    if ((*vm)->GetEnv(vm, (void**) &env, TCN_JNI_VERSION) != JNI_OK) {
-        // Something is wrong but nothing we can do about this :(
-        return;
-    }
-    netty_internal_tcnative_Library_JNI_OnUnLoad(env, staticPackagePrefix);
-    free(staticPackagePrefix);
-    staticPackagePrefix = NULL;
 }
 
 // As we build with -fvisibility=hidden we need to ensure we mark the entry load and unload functions used by the
@@ -699,20 +273,32 @@ static void JNI_OnUnload_netty_tcnative0(JavaVM* vm, void* reserved) {
 
 // Invoked by the JVM when statically linked
 JNIEXPORT jint JNI_OnLoad_netty_tcnative(JavaVM* vm, void* reserved) {
-    return JNI_OnLoad_netty_tcnative0(vm, reserved);
+    tcn_global_vm = vm;
+    jint ret = netty_jni_util_JNI_OnLoad(vm, reserved, "netty_tcnative", netty_internal_tcnative_Library_JNI_OnLoad);
+    if (ret == JNI_ERR) {
+        tcn_global_vm = NULL;
+    }
+    return ret;
 }
 
 // Invoked by the JVM when statically linked
 JNIEXPORT void JNI_OnUnload_netty_tcnative(JavaVM* vm, void* reserved) {
-    JNI_OnUnload_netty_tcnative0(vm, reserved);
+    netty_jni_util_JNI_OnUnload(vm, reserved, netty_internal_tcnative_Library_JNI_OnUnload);
+    tcn_global_vm = NULL;
 }
 
 #ifndef TCN_BUILD_STATIC
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
-    return JNI_OnLoad_netty_tcnative0(vm, reserved);
+    tcn_global_vm = vm;
+    jint ret = netty_jni_util_JNI_OnLoad(vm, reserved, "netty_tcnative", netty_internal_tcnative_Library_JNI_OnLoad);
+    if (ret == JNI_ERR) {
+        tcn_global_vm = NULL;
+    }
+    return ret;
 }
 
 JNIEXPORT void JNI_OnUnload(JavaVM* vm, void* reserved) {
-    JNI_OnUnload_netty_tcnative0(vm, reserved);
+    netty_jni_util_JNI_OnUnload(vm, reserved, netty_internal_tcnative_Library_JNI_OnUnload);
+    tcn_global_vm = NULL;
 }
 #endif /* TCN_BUILD_STATIC */
