@@ -35,6 +35,10 @@
 #define MAX_DLL_PATH_LEN 2048
 #endif
 
+#ifdef TCN_BUILD_STATIC
+#define NETTY_JNI_UTIL_BUILD_STATIC 
+#endif
+
 #include "tcn.h"
 #include "apr_version.h"
 #include "apr_atomic.h"
