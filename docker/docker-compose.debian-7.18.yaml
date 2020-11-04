@@ -7,7 +7,7 @@ services:
     build:
       args:
         debian_version : "7"
-        java_version : "adopt@1.8.0-265"
+        java_version : "adopt@1.8.0-272"
 
   build:
     image: netty-tcnative-debian:debian-7-1.8
