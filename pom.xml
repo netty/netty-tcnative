@@ -43,7 +43,7 @@
     <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
-    <netty.build.version>26</netty.build.version>
+    <netty.build.version>28</netty.build.version>
     <animal.sniffer.skip>true</animal.sniffer.skip>
     <forceAutogen>false</forceAutogen>
     <forceConfigure>false</forceConfigure>
@@ -374,7 +374,7 @@
   <dependencies>
     <dependency>
       <groupId>io.netty</groupId>
-      <artifactId>netty-build</artifactId>
+      <artifactId>netty-build-common</artifactId>
       <version>${netty.build.version}</version>
       <scope>test</scope>
     </dependency>
