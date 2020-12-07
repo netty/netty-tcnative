@@ -45,7 +45,20 @@ services:
         apr_version: "1.6.5"
         openssl_version: "1_1_1d"
 
-  cross-compile-aarch64:
+  cross-compile-aarch64-shell:
+    image: netty-tcnative-centos:cross_compile_aarch64
+    depends_on: [cross-compile-aarch64-runtime-setup]
+    volumes:
+      - ~/.ssh:/root/.ssh:delegated
+      - ~/.gnupg:/root/.gnupg:delegated
+      - ~/.m2:/root/.m2:delegated
+      - ~/.gitconfig:/root/.gitconfig:delegated
+      - ~/.gitignore:/root/.gitignore:delegated
+      - ..:/code:delegated
+    working_dir: /code
+    entrypoint: /bin/bash
+
+  cross-compile-aarch64-build:
     image: netty-tcnative-centos:cross_compile_aarch64
     depends_on: [cross-compile-aarch64-runtime-setup]
     volumes:

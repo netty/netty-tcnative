@@ -259,9 +259,11 @@
       <id>linux-aarch64</id>
 
       <properties>
-        <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch64.jar</nativeJarFile>
-        <jniClassifier>${os.detected.name}-aarch64</jniClassifier>
-        <jniArch>aarch64</jniArch>
+        <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
+        <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch_64.jar</nativeJarFile>
+        <jniClassifier>${os.detected.name}-aarch_64</jniClassifier>
+        <nativeLibOsParts>${os.detected.name}_aarch_64</nativeLibOsParts>
+        <jniArch>aarch_64</jniArch>
       </properties>
 
       <build>

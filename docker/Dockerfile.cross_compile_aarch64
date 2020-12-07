@@ -8,12 +8,15 @@ ENV GCC_VERSION $gcc_version
 ENV OPENSSL_VERSION $openssl_version
 ENV APR_VERSION $apr_version
 
+# We want to have git 2.x for the maven scm plugin and also for boringssl
+RUN yum install -y http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
+
 # Install requirements
 RUN  set -x && \
   yum -y install epel-release && \
   yum -y install wget tar git make autoconf automake libtool openssl-devel ninja-build gcc-c++
 
-# Install Java and Golang
+# Install Java
 RUN yum install -y java-1.8.0-openjdk-devel golang
 ENV JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk/"
 
