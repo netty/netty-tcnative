@@ -53,8 +53,8 @@
     <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}.jar</nativeJarFile>
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
-    <aprVersion>1.6.5</aprVersion>
-    <aprSha256>70dcf9102066a2ff2ffc47e93c289c8e54c95d8dda23b503f9e61bb0cbd2d105</aprSha256>
+    <aprVersion>1.7.0</aprVersion>
+    <aprSha256>48e9dbf45ae3fdc7b491259ffb6ccf7d63049ffacbc1c0977cced095e4c2d5a2</aprSha256>
     <boringsslBranch>chromium-stable</boringsslBranch>
     <libresslVersion>3.1.4</libresslVersion>
     <!--
@@ -67,6 +67,8 @@
     <opensslSha256>5c9ca8774bd7b03e5784f26ae9e9e6d749c9da2438545077e6b3d755a06595d9</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprBuildDir>${project.build.directory}/apr-${aprVersion}</aprBuildDir>
+    <aprPatchFile>r1871981-macos11.patch</aprPatchFile>
+    <aprPatchFileSha256>8754b8089d0eb53a7c4fd435c9a9300560b675a8ff2c32315a5e9303408447fe</aprPatchFileSha256>
     <archBits>64</archBits>
     <linkStatic>false</linkStatic>
     <sslHome>${project.build.directory}/ssl</sslHome>
@@ -544,6 +546,25 @@
                       <else>
                         <echo message="Building APR" />
                         <mkdir dir="${aprHome}" />
+
+                        <!-- 
+                          We need to patch APR on macOS to be able to compile it on macOS 11 as well. 
+                          Let's just re-use the same patch that homebrew is using
+                          https://github.com/Homebrew/homebrew-core/pull/56849 
+
+                          This should be removed again once apr 1.7.1 was released with the fix included.
+                        -->
+                        <if>
+                          <equals arg1="${os.detected.name}" arg2="osx" />
+                          <then>
+                             <echo message="Patching APR to make it's build scripts work on macOS 11" />
+                             <get src="https://raw.githubusercontent.com/Homebrew/formula-patches/7e2246542543bbd3111a4ec29f801e6e4d538f88/apr/${aprPatchFile}"  dest="${project.build.directory}/${aprPatchFile}" verbose="on" />
+                             <checksum file="${project.build.directory}/${aprPatchFile}" algorithm="SHA-256" property="${aprPatchFileSha256}" verifyProperty="isEqual" />
+                             <patch patchfile="${project.build.directory}/${aprPatchFile}" strip="0" dir="${aprBuildDir}"/>
+                             <exec executable="buildconf" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true"/>
+                          </then>
+                        </if>
+
                         <exec executable="configure" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
                           <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget}" />
                         </exec>
