@@ -36,7 +36,7 @@ docker-compose -f docker/docker-compose.opensuse.yaml -f docker/docker-compose.o
 ## centos7 with java8 for aarch64 cross compile
 
 ```
-docker-compose -f docker/docker-compose.centos.yaml run cross-compile-aarch64
+docker-compose -f docker/docker-compose.centos.yaml run cross-compile-aarch64-build
 ```
 
 etc, etc

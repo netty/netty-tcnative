@@ -53,6 +53,7 @@
     <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.classifier}.jar</nativeJarFile>
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
+    <nativeLibOsParts>${os.detected.name}_${os.detected.arch}</nativeLibOsParts>
     <aprVersion>1.7.0</aprVersion>
     <aprSha256>48e9dbf45ae3fdc7b491259ffb6ccf7d63049ffacbc1c0977cced095e4c2d5a2</aprSha256>
     <boringsslBranch>chromium-stable</boringsslBranch>
@@ -297,15 +298,15 @@
             <configuration>
               <exportAntProperties>true</exportAntProperties>
               <target>
-                <condition property="tcnative.snippet" value="libnetty_tcnative_${os.detected.name}_${os.detected.arch}.so;osname=linux">
+                <condition property="tcnative.snippet" value="libnetty_tcnative_${nativeLibOsParts}.so;osname=linux">
                   <equals arg1="${os.detected.name}" arg2="linux" />
                 </condition>
                 <!-- In OSGi specification, the alias of Windows family is win32, case insensitive -->
-                <condition property="tcnative.snippet" value="netty_tcnative_${os.detected.name}_${os.detected.arch}.dll;osname=win32">
+                <condition property="tcnative.snippet" value="netty_tcnative_${nativeLibOsParts}.dll;osname=win32">
                   <equals arg1="${os.detected.name}" arg2="windows" />
                 </condition>
                 <!-- In OSGi specification, the alias of OSX family is macos or macosx, case insensitive -->
-                <condition property="tcnative.snippet" value="libnetty_tcnative_${os.detected.name}_${os.detected.arch}.jnilib;osname=macosx;">
+                <condition property="tcnative.snippet" value="libnetty_tcnative_${nativeLibOsParts}.jnilib;osname=macosx;">
                   <equals arg1="${os.detected.name}" arg2="osx" />
                 </condition>
                 <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=${os.detected.arch}" />
