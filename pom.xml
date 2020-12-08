@@ -22,7 +22,7 @@
     <version>4.0.29.Final</version>
   </parent>
   <artifactId>netty-tcnative-parent</artifactId>
-  <version>2.0.35.Final-SNAPSHOT</version>
+  <version>2.0.35.Final</version>
   <packaging>pom</packaging>
 
   <name>Netty/TomcatNative [Parent]</name>
@@ -35,7 +35,7 @@
     <url>https://github.com/netty/netty-tcnative</url>
     <connection>scm:git:git://github.com/netty/netty-tcnative.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/netty/netty-tcnative.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>netty-tcnative-parent-2.0.35.Final</tag>
   </scm>
 
   <properties>
@@ -567,10 +567,10 @@
                           <equals arg1="${os.detected.name}" arg2="osx" />
                           <then>
                              <echo message="Patching APR to make it's build scripts work on macOS 11" />
-                             <get src="https://raw.githubusercontent.com/Homebrew/formula-patches/7e2246542543bbd3111a4ec29f801e6e4d538f88/apr/${aprPatchFile}"  dest="${project.build.directory}/${aprPatchFile}" verbose="on" />
+                             <get src="https://raw.githubusercontent.com/Homebrew/formula-patches/7e2246542543bbd3111a4ec29f801e6e4d538f88/apr/${aprPatchFile}" dest="${project.build.directory}/${aprPatchFile}" verbose="on" />
                              <checksum file="${project.build.directory}/${aprPatchFile}" algorithm="SHA-256" property="${aprPatchFileSha256}" verifyProperty="isEqual" />
-                             <patch patchfile="${project.build.directory}/${aprPatchFile}" strip="0" dir="${aprBuildDir}"/>
-                             <exec executable="buildconf" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true"/>
+                             <patch patchfile="${project.build.directory}/${aprPatchFile}" strip="0" dir="${aprBuildDir}" />
+                             <exec executable="buildconf" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
                           </then>
                         </if>
 
