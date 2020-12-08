@@ -741,6 +741,12 @@
         <libDir>${project.build.directory}/lib</libDir>
         <nativeDir>${project.build.outputDirectory}/META-INF/native</nativeDir>
         <skipTests>true</skipTests>
+        <!--
+          As we just re-package we don't want to do any extra steps that are needed for static compilation or
+          building the native lib itself.
+        -->
+        <linkStatic>false</linkStatic>
+        <compileLibrary>false</compileLibrary>
         <uberArch>${os.detected.arch}</uberArch>
       </properties>
 
@@ -890,6 +896,12 @@
         <libDir>${project.build.directory}/lib</libDir>
         <nativeDir>${project.build.outputDirectory}/META-INF/native</nativeDir>
         <skipTests>true</skipTests>
+        <!--
+          As we just re-package we don't want to do any extra steps that are needed for static compilation or
+          building the native lib itself.
+        -->
+        <linkStatic>false</linkStatic>
+        <compileLibrary>false</compileLibrary>
         <uberArch>${os.detected.arch}</uberArch>
       </properties>
 
