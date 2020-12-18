@@ -54,7 +54,7 @@ jobs:
     #    uses a compiled language
 
     - name: Install tools / libraries 
-      run: sudo apt-get -y install autoconf automake libtool make tar libapr1-dev libssl-dev cmake perl ninja-build
+      run: sudo apt-get update && sudo apt-get -y install autoconf automake libtool make tar libapr1-dev libssl-dev cmake perl ninja-build
 
     - name: Build project
       run: ./mvnw clean package -DskipTests=true
