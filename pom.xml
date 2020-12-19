@@ -84,9 +84,8 @@
     <jniClassifier>${os.detected.name}-${os.detected.arch}</jniClassifier>
     <skipJapicmp>false</skipJapicmp>
     <compileLibrary>false</compileLibrary>
-    <jniUtilCheckoutDir>${project.build.directory}/netty-jni-util</jniUtilCheckoutDir>
-    <jniUtilIncludeDir>${project.build.directory}/netty-jni-util/src/c</jniUtilIncludeDir>
-    <jniUtilVersion>0.0.1</jniUtilVersion>
+    <jniUtilIncludeDir>${project.build.directory}/netty-jni-util/</jniUtilIncludeDir>
+    <jniUtilVersion>0.0.2.Final</jniUtilVersion>
   </properties>
 
   <build>
@@ -375,6 +374,13 @@
   </build>
 
   <dependencies>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-jni-util</artifactId>
+      <version>${jniUtilVersion}</version>
+      <classifier>sources</classifier>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-build-common</artifactId>
