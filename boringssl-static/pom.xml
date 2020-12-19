@@ -69,25 +69,33 @@
 
       <build>
         <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <!-- unpack netty-jni-util files -->
+              <execution>
+                <id>unpack</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>unpack-dependencies</goal>
+                </goals>
+                <configuration>
+                  <includeGroupIds>io.netty</includeGroupIds>
+                  <includeArtifactIds>netty-jni-util</includeArtifactIds>
+                  <classifier>sources</classifier>
+                  <outputDirectory>${jniUtilIncludeDir}</outputDirectory>
+                  <includes>**.h,**.c</includes>
+                  <overWriteReleases>false</overWriteReleases>
+                  <overWriteSnapshots>true</overWriteSnapshots>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
           <!-- Download the BoringSSL source -->
           <plugin>
             <artifactId>maven-scm-plugin</artifactId>
             <executions>
-              <execution>
-                <id>get-netty-jni-util</id>
-                <phase>generate-sources</phase>
-                <goals>
-                  <goal>checkout</goal>
-                </goals>
-                <configuration>
-                  <checkoutDirectory>${jniUtilCheckoutDir}</checkoutDirectory>
-                  <connectionType>developerConnection</connectionType>
-                  <developerConnectionUrl>scm:git:https://github.com/netty/netty-jni-util.git</developerConnectionUrl>
-                  <scmVersion>${jniUtilVersion}</scmVersion>
-                  <scmVersionType>tag</scmVersionType>
-                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
-                </configuration>
-              </execution>
               <execution>
                 <id>get-boringssl</id>
                 <phase>generate-sources</phase>
@@ -437,25 +445,33 @@
               </execution>
             </executions>
           </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <!-- unpack netty-jni-util files -->
+              <execution>
+                <id>unpack</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>unpack-dependencies</goal>
+                </goals>
+                <configuration>
+                  <includeGroupIds>io.netty</includeGroupIds>
+                  <includeArtifactIds>netty-jni-util</includeArtifactIds>
+                  <classifier>sources</classifier>
+                  <outputDirectory>${jniUtilIncludeDir}</outputDirectory>
+                  <includes>**.h,**.c</includes>
+                  <overWriteReleases>false</overWriteReleases>
+                  <overWriteSnapshots>true</overWriteSnapshots>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
           <!-- Download the BoringSSL source -->
           <plugin>
             <artifactId>maven-scm-plugin</artifactId>
             <executions>
-              <execution>
-                <id>get-netty-jni-util</id>
-                <phase>generate-sources</phase>
-                <goals>
-                  <goal>checkout</goal>
-                </goals>
-                <configuration>
-                  <checkoutDirectory>${jniUtilCheckoutDir}</checkoutDirectory>
-                  <connectionType>developerConnection</connectionType>
-                  <developerConnectionUrl>scm:git:https://github.com/netty/netty-jni-util.git</developerConnectionUrl>
-                  <scmVersion>${jniUtilVersion}</scmVersion>
-                  <scmVersionType>tag</scmVersionType>
-                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
-                </configuration>
-              </execution>
               <execution>
                 <id>get-boringssl</id>
                 <phase>generate-sources</phase>
