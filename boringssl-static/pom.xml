@@ -223,7 +223,7 @@
                             <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
                             <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
                             <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -DOPENSSL_C11_ATOMIC" />
-                            <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
+                            <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=range-loop-analysis" />
                           </else>
                         </if>
                         <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
