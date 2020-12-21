@@ -12,7 +12,10 @@ services:
   build:
     image: netty-tcnative-centos:centos-6-1.8
 
-  build-precompiled:
+  build-clean:
+    image: netty-tcnative-centos:centos-6-1.8
+
+  deploy:
     image: netty-tcnative-centos:centos-6-1.8
 
   shell:
