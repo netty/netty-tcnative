@@ -48,16 +48,16 @@
   </build>
 
   <properties>
-    <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslCheckoutDir>
-    <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
+    <boringsslSourceDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslSourceDir>
+    <boringsslHome>${boringsslSourceDir}/build</boringsslHome>
     <linkStatic>true</linkStatic>
     <compileLibrary>true</compileLibrary>
-    <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
-    <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
+    <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
+    <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto;${boringsslHome}/decrepit</msvcSslLibDirs>
     <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
     <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
-    <cppflags>-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</cppflags>
-    <ldflags>-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</ldflags>
+    <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
+    <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -L${boringsslHome}/decrepit -ldecrepit -lssl -lcrypto</ldflags>
   </properties>
   <profiles>
     <!-- Default profile that builds a platform-specific jar -->
@@ -69,29 +69,6 @@
 
       <build>
         <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-              <!-- unpack netty-jni-util files -->
-              <execution>
-                <id>unpack</id>
-                <phase>generate-sources</phase>
-                <goals>
-                  <goal>unpack-dependencies</goal>
-                </goals>
-                <configuration>
-                  <includeGroupIds>io.netty</includeGroupIds>
-                  <includeArtifactIds>netty-jni-util</includeArtifactIds>
-                  <classifier>sources</classifier>
-                  <outputDirectory>${jniUtilIncludeDir}</outputDirectory>
-                  <includes>**.h,**.c</includes>
-                  <overWriteReleases>false</overWriteReleases>
-                  <overWriteSnapshots>true</overWriteSnapshots>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
           <!-- Download the BoringSSL source -->
           <plugin>
             <artifactId>maven-scm-plugin</artifactId>
@@ -103,7 +80,7 @@
                   <goal>checkout</goal>
                 </goals>
                 <configuration>
-                  <checkoutDirectory>${boringsslCheckoutDir}</checkoutDirectory>
+                  <checkoutDirectory>${boringsslSourceDir}</checkoutDirectory>
                   <connectionType>developerConnection</connectionType>
                   <developerConnectionUrl>scm:git:https://boringssl.googlesource.com/boringssl</developerConnectionUrl>
                   <scmVersion>${boringsslBranch}</scmVersion>
@@ -125,7 +102,7 @@
                   <goal>create</goal>
                 </goals>
                 <configuration>
-                  <scmDirectory>${boringsslCheckoutDir}</scmDirectory>
+                  <scmDirectory>${boringsslSourceDir}</scmDirectory>
                   <buildNumberPropertyName>boringsslBuildNumber</buildNumberPropertyName>
                 </configuration>
               </execution>
@@ -197,14 +174,14 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
                     <property environment="env" />
                     <if>
-                      <available file="${boringsslBuildDir}" />
+                      <available file="${boringsslHome}" />
                       <then>
                         <echo message="BoringSSL was already build, skipping the build step." />
                       </then>
                       <else>
                         <echo message="Building BoringSSL" />
 
-                        <mkdir dir="${boringsslBuildDir}" />
+                        <mkdir dir="${boringsslHome}" />
 
                         <if>
                           <equals arg1="${os.detected.name}" arg2="windows" />
@@ -234,7 +211,7 @@
                             <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=range-loop-analysis" />
                           </else>
                         </if>
-                        <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                        <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
@@ -242,7 +219,7 @@
                           <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
                           <arg value="${cmakeOsxDeploymentTarget}" />
                           <arg value="-GNinja" />
-                          <arg value=".." />
+                          <arg value="${boringsslSourceDir}" />
                         </exec>
                         <if>
                           <!-- may be called ninja-build or ninja -->
@@ -258,7 +235,7 @@
                         <if>
                           <equals arg1="${os.detected.name}" arg2="linux" />
                           <then>
-                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                               <arg value="crypto/libcrypto.a" />
                               <arg value="crypto/fipsmodule/fipsmodule" />
                               <arg value="ssl/libssl.a" />
@@ -266,7 +243,7 @@
                             </exec>
                           </then>
                           <else>
-                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslHome}" resolveexecutable="true" />
                           </else>
                         </if>
                       </else>
@@ -378,11 +355,11 @@
       <id>linux-aarch64</id>
 
       <properties>
-        <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslCheckoutDir>
-        <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
+        <boringsslSourceDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslSourceDir>
+        <boringsslHome>${boringsslSourceDir}/build</boringsslHome>
         <linkStatic>true</linkStatic>
-        <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
+        <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
+        <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto;${boringsslHome}/decrepit</msvcSslLibDirs>
         <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch_64.jar</nativeJarFile>
@@ -445,29 +422,6 @@
               </execution>
             </executions>
           </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-              <!-- unpack netty-jni-util files -->
-              <execution>
-                <id>unpack</id>
-                <phase>generate-sources</phase>
-                <goals>
-                  <goal>unpack-dependencies</goal>
-                </goals>
-                <configuration>
-                  <includeGroupIds>io.netty</includeGroupIds>
-                  <includeArtifactIds>netty-jni-util</includeArtifactIds>
-                  <classifier>sources</classifier>
-                  <outputDirectory>${jniUtilIncludeDir}</outputDirectory>
-                  <includes>**.h,**.c</includes>
-                  <overWriteReleases>false</overWriteReleases>
-                  <overWriteSnapshots>true</overWriteSnapshots>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
           <!-- Download the BoringSSL source -->
           <plugin>
             <artifactId>maven-scm-plugin</artifactId>
@@ -479,7 +433,7 @@
                   <goal>checkout</goal>
                 </goals>
                 <configuration>
-                  <checkoutDirectory>${boringsslCheckoutDir}</checkoutDirectory>
+                  <checkoutDirectory>${boringsslSourceDir}</checkoutDirectory>
                   <connectionType>developerConnection</connectionType>
                   <developerConnectionUrl>scm:git:https://boringssl.googlesource.com/boringssl</developerConnectionUrl>
                   <scmVersion>${boringsslBranch}</scmVersion>
@@ -501,7 +455,7 @@
                   <goal>create</goal>
                 </goals>
                 <configuration>
-                  <scmDirectory>${boringsslCheckoutDir}</scmDirectory>
+                  <scmDirectory>${boringsslSourceDir}</scmDirectory>
                   <buildNumberPropertyName>boringsslBuildNumber</buildNumberPropertyName>
                 </configuration>
               </execution>
@@ -573,14 +527,14 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
                     <property environment="env" />
                     <if>
-                      <available file="${boringsslBuildDir}" />
+                      <available file="${boringsslHome}" />
                       <then>
                         <echo message="BoringSSL was already build, skipping the build step." />
                       </then>
                       <else>
                         <echo message="Building BoringSSL" />
 
-                        <mkdir dir="${boringsslBuildDir}" />
+                        <mkdir dir="${boringsslHome}" />
 
                         <if>
                           <equals arg1="${os.detected.name}" arg2="windows" />
@@ -608,7 +562,7 @@
                             <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
                           </else>
                         </if>
-                        <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                        <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
@@ -619,17 +573,17 @@
                           <arg value="-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc" />
                           <arg value="-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++" />
                           <arg value="-GNinja" />
-                          <arg value=".." />
+                          <arg value="${boringsslSourceDir}" />
                         </exec>
                         <if>
                           <!-- may be called ninja-build or ninja -->
                           <!-- See https://github.com/netty/netty-tcnative/issues/475 -->
                           <available file="ninja-build" filepath="${env.PATH}" />
                           <then>
-                            <exec executable="ninja-build" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                            <exec executable="ninja-build" failonerror="true" dir="${boringsslHome}" resolveexecutable="true" />
                           </then>
                           <else>
-                            <exec executable="ninja" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                            <exec executable="ninja" failonerror="true" dir="${boringsslHome}" resolveexecutable="true" />
                           </else>
                         </if>
                       </else>
@@ -725,8 +679,8 @@
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
-                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslSourceDir}/include</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslHome}/ssl -L${boringsslHome}/crypto -L${boringsslHome}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
                   </configureArgs>
                 </configuration>
@@ -1034,8 +988,8 @@
       <properties>
         <!-- We do not use an -O flag to ensure we have all functions in the stack when a leak is reported later on -->
         <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -fsanitize=address</cflags>
-        <cppflags>-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include -fsanitize=address</cppflags>
-        <ldflags>-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto -fsanitize=address</ldflags>
+        <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include -fsanitize=address</cppflags>
+        <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -L${boringsslHome}/decrepit -ldecrepit -lssl -lcrypto -fsanitize=address</ldflags>
       </properties>
     </profile>
   </profiles>

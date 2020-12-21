@@ -17,10 +17,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>io.netty</groupId>
-    <artifactId>netty-parent</artifactId>
-    <version>4.0.29.Final</version>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>9</version>
   </parent>
+
+  <groupId>io.netty</groupId>
   <artifactId>netty-tcnative-parent</artifactId>
   <version>2.0.36.Final-SNAPSHOT</version>
   <packaging>pom</packaging>
@@ -39,6 +41,7 @@
   </scm>
 
   <properties>
+    <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
     <checkstyle.skip>true</checkstyle.skip>
     <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
     <maven.compiler.source>1.6</maven.compiler.source>
@@ -67,7 +70,7 @@
     <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
     <opensslSha256>5c9ca8774bd7b03e5784f26ae9e9e6d749c9da2438545077e6b3d755a06595d9</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
-    <aprBuildDir>${project.build.directory}/apr-${aprVersion}</aprBuildDir>
+    <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
     <aprPatchFile>r1871981-macos11.patch</aprPatchFile>
     <aprPatchFileSha256>8754b8089d0eb53a7c4fd435c9a9300560b675a8ff2c32315a5e9303408447fe</aprPatchFileSha256>
     <archBits>64</archBits>
@@ -108,6 +111,23 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>${enforcer.plugin.version}</version>
+          <dependencies>
+            <!-- Provides the 'requireFilesContent' enforcer rule. -->
+            <dependency>
+              <groupId>com.ceilfors.maven.plugin</groupId>
+              <artifactId>enforcer-rules</artifactId>
+              <version>1.2.0</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+        <plugin>
           <groupId>org.fusesource.hawtjni</groupId>
           <artifactId>maven-hawtjni-plugin</artifactId>
           <version>1.11</version>
@@ -127,7 +147,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>2.10</version>
+          <version>3.1.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-antrun-plugin</artifactId>
@@ -172,6 +192,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
         <configuration>
           <source>${maven.compiler.source}</source>
           <target>${maven.compiler.target}</target>
@@ -180,6 +201,7 @@
 
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
         <configuration combine.self="override">
           <includes>
             <include>**/*Test*.java</include>
@@ -220,6 +242,30 @@
             <goals>
               <goal>cmp</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <!-- unpack netty-jni-util files -->
+          <execution>
+            <id>unpack</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <includeGroupIds>io.netty</includeGroupIds>
+              <includeArtifactIds>netty-jni-util</includeArtifactIds>
+              <classifier>sources</classifier>
+              <outputDirectory>${jniUtilIncludeDir}</outputDirectory>
+              <includes>**.h,**.c</includes>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>true</overWriteSnapshots>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -320,6 +366,7 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
+        <version>5.1.1</version>
         <executions>
           <execution>
             <id>generate-manifest</id>
@@ -349,26 +396,6 @@
           <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
           <autoVersionSubmodules>true</autoVersionSubmodules>
         </configuration>
-      </plugin>
-
-      <plugin>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>${enforcer.plugin.version}</version>
-        <executions>
-          <execution>
-            <id>enforce-tools</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>[3.1.1,)</version>
-                </requireMavenVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
@@ -431,7 +458,7 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${aprBuildDir}" />
+                      <available file="${aprSourceDir}" />
                       <then>
                         <echo message="APR was already downloaded, skipping the build step." />
                       </then>
@@ -444,6 +471,7 @@
                         <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
                           <equals arg1="${archBits}" arg2="32" />
                         </condition>
+                        <move file="${project.build.directory}/apr-${aprVersion}" tofile="${aprSourceDir}"/>
                       </else>
                     </if>
                   </target>
@@ -473,19 +501,19 @@
                         </condition>
                         <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
                         <!-- On Windows, force building APR with /MT for static linking -->
-                        <replace dir="${aprBuildDir}" token="/MD" value="/MT">
+                        <replace dir="${aprSourceDir}" token="/MD" value="/MT">
                           <include name="*.mak" />
                         </replace>
                         <retry retrycount="3">
-                          <exec executable="nmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
+                          <exec executable="nmake" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
                             <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />
                           </exec>
                         </retry>
                         <copy todir="${aprHome}/include">
-                          <fileset dir="${aprBuildDir}/include/arch/win32" includes="*.h" />
+                          <fileset dir="${aprSourceDir}/include/arch/win32" includes="*.h" />
                         </copy>
                         <copy todir="${aprHome}">
-                          <fileset dir="${aprBuildDir}/include/arch" includes="*.h" />
+                          <fileset dir="${aprSourceDir}/include/arch" includes="*.h" />
                         </copy>
                       </else>
                     </if>
@@ -521,7 +549,7 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${aprBuildDir}" />
+                      <available file="${aprSourceDir}" />
                       <then>
                         <echo message="APR was already downloaded, skipping the build step." />
                       </then>
@@ -537,6 +565,7 @@
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                           <arg line="xfvz ${aprTarGzFile}" />
                         </exec>
+                        <move file="${project.build.directory}/apr-${aprVersion}" tofile="${aprSourceDir}"/>
                       </else>
                     </if>
                   </target>
@@ -575,16 +604,16 @@
                              <echo message="Patching APR to make it's build scripts work on macOS 11" />
                              <get src="https://raw.githubusercontent.com/Homebrew/formula-patches/7e2246542543bbd3111a4ec29f801e6e4d538f88/apr/${aprPatchFile}" dest="${project.build.directory}/${aprPatchFile}" verbose="on" />
                              <checksum file="${project.build.directory}/${aprPatchFile}" algorithm="SHA-256" property="${aprPatchFileSha256}" verifyProperty="isEqual" />
-                             <patch patchfile="${project.build.directory}/${aprPatchFile}" strip="0" dir="${aprBuildDir}" />
-                             <exec executable="buildconf" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
+                             <patch patchfile="${project.build.directory}/${aprPatchFile}" strip="0" dir="${aprSourceDir}" />
+                             <exec executable="buildconf" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
                           </then>
                         </if>
 
-                        <exec executable="configure" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
+                        <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
                           <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget}" />
                         </exec>
-                        <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
-                        <exec executable="make" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
+                        <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+                        <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
                           <arg line="install" />
                         </exec>
                       </else>
