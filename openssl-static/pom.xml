@@ -31,7 +31,8 @@
   </description>
 
   <properties>
-    <opensslBuildDir>${project.build.directory}/openssl-${opensslVersion}</opensslBuildDir>
+    <opensslSourceDir>${project.build.directory}/openssl-source</opensslSourceDir>
+    <opensslHome>${project.build.directory}/openssl</opensslHome>
     <linkStatic>true</linkStatic>
     <compileLibrary>true</compileLibrary>
     <!-- Don't deploy this artifact to Maven Central -->
@@ -81,30 +82,6 @@
               <sources>
                 <source>${generatedSourcesDir}/java</source>
               </sources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <!-- Download the netty-jni-util source -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <!-- unpack netty-jni-util files -->
-          <execution>
-            <id>unpack</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <includeGroupIds>io.netty</includeGroupIds>
-              <includeArtifactIds>netty-jni-util</includeArtifactIds>
-              <classifier>sources</classifier>
-              <outputDirectory>${jniUtilIncludeDir}</outputDirectory>
-              <includes>**.h,**.c</includes>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
             </configuration>
           </execution>
         </executions>
@@ -195,7 +172,7 @@
               <windowsBuildTool>msbuild</windowsBuildTool>
               <configureArgs>
                 <configureArg>${macOsxDeploymentTarget}</configureArg>
-                <configureArg>--with-ssl=${sslHome}</configureArg>
+                <configureArg>--with-ssl=${opensslHome}</configureArg>
                 <configureArg>--with-apr=${aprHome}</configureArg>
                 <configureArg>--with-static-libs</configureArg>
                 <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
@@ -232,7 +209,7 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${opensslBuildDir}" />
+                      <available file="${opensslSourceDir}" />
                       <then>
                         <echo message="OpenSSL was already downloaded, skipping the build step." />
                       </then>
@@ -257,6 +234,7 @@
 
                         <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/" />
                         <untar src="${project.build.directory}/openssl-${opensslVersion}.tar" dest="${project.build.directory}/" />
+                        <move file="${project.build.directory}/openssl-${opensslVersion}" tofile="${opensslSourceDir}"/>
                       </else>
                     </if>
                   </target>
@@ -275,7 +253,7 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${sslHome}" />
+                      <available file="${opensslHome}" />
                       <then>
                         <echo message="OpenSSL was already build, skipping the build step." />
                       </then>
@@ -284,25 +262,25 @@
 
                         <!-- Build for the correct platform -->
                         <pathconvert property="sslHomePath" targetos="windows">
-                          <path location="${sslHome}" />
+                          <path location="${opensslHome}" />
                         </pathconvert>
                         <if>
                           <equals arg1="${archBits}" arg2="32" />
                           <then>
                             <echo message="Building OpenSSL for Win32" />
-                            <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                            <exec executable="perl" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                               <arg line="Configure VC-WIN32 --prefix=${sslHomePath}" />
                             </exec>
-                            <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                            <exec executable="nmake" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                               <arg line="install" />
                             </exec>
                           </then>
                           <else>
                             <echo message="Building OpenSSL for Win64" />
-                            <exec executable="perl" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                            <exec executable="perl" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                               <arg line="Configure VC-WIN64A --prefix=${sslHome}" />
                             </exec>
-                            <exec executable="nmake" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                            <exec executable="nmake" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                               <arg line="install" />
                             </exec>
                           </else>
@@ -341,7 +319,7 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${opensslBuildDir}" />
+                      <available file="${opensslSourceDir}" />
                       <then>
                         <echo message="OpenSSL was already downloaded, skipping the build step." />
                       </then>
@@ -368,6 +346,7 @@
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                            <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
                          </exec>
+                        <move file="${project.build.directory}/openssl-${opensslVersion}" tofile="${opensslSourceDir}"/>
                       </else>
                     </if>
                   </target>
@@ -386,21 +365,21 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${sslHome}" />
+                      <available file="${opensslHome}" />
                       <then>
                         <echo message="OpenSSL was already build, skipping the build step." />
                       </then>
                       <else>
                         <echo message="Building OpenSSL" />
-                        <mkdir dir="${sslHome}" />
-                        <exec executable="config" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg line="-O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome}" />
+                        <mkdir dir="${opensslHome}" />
+                        <exec executable="config" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
+                          <arg line="-O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${opensslHome} --openssldir=${opensslHome}" />
                         </exec>
-                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                        <exec executable="make" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                           <arg value="depend" />
                         </exec>
-                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
-                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                        <exec executable="make" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true" />
+                        <exec executable="make" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                           <!-- Don't install manpages to make things as fast a possible -->
                           <arg value="install_sw" />
                         </exec>
@@ -438,7 +417,7 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${opensslBuildDir}" />
+                      <available file="${opensslSourceDir}" />
                       <then>
                         <echo message="OpenSSL was already downloaded, skipping the build step." />
                       </then>
@@ -465,6 +444,7 @@
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                            <arg line="xfvz openssl-${opensslVersion}.tar.gz" />
                          </exec>
+                        <move file="${project.build.directory}/openssl-${opensslVersion}" tofile="${opensslSourceDir}"/>
                       </else>
                     </if>
                   </target>
@@ -482,21 +462,21 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${sslHome}" />
+                      <available file="${opensslHome}" />
                       <then>
                         <echo message="OpenSSL was already build, skipping the build step." />
                       </then>
                       <else>
                         <echo message="Building OpenSSL" />
-                        <mkdir dir="${sslHome}" />
-                        <exec executable="Configure" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
-                          <arg line="darwin64-x86_64-cc -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${sslHome} --openssldir=${sslHome} ${macOsxDeploymentTarget}" />
+                        <mkdir dir="${opensslHome}" />
+                        <exec executable="Configure" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
+                          <arg line="darwin64-x86_64-cc -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${opensslHome} --openssldir=${opensslHome} ${macOsxDeploymentTarget}" />
                         </exec>
-                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                        <exec executable="make" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                           <arg value="depend" />
                         </exec>
-                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true" />
-                        <exec executable="make" failonerror="true" dir="${opensslBuildDir}" resolveexecutable="true">
+                        <exec executable="make" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true" />
+                        <exec executable="make" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                           <!-- Don't install manpages to make things as fast a possible -->
                           <arg value="install_sw" />
                         </exec>

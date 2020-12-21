@@ -12,5 +12,8 @@ services:
   build:
     image: netty-tcnative-centos:centos-6-1.8
 
+  build-precompiled:
+    image: netty-tcnative-centos:centos-6-1.8
+
   shell:
     image: netty-tcnative-centos:centos-6-1.8

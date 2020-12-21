@@ -31,8 +31,8 @@
   </description>
 
   <properties>
-    <libresslCheckoutDir>${project.build.directory}/libressl-${libresslVersion}</libresslCheckoutDir>
-    <libresslBuildDir>${libresslCheckoutDir}/build-ninja</libresslBuildDir>
+    <libresslSourceDir>${project.build.directory}/libressl-source</libresslSourceDir>
+    <libresslHome>${project.build.directory}/libressl</libresslHome>
     <libresslArchive>libressl-${libresslVersion}.tar.gz</libresslArchive>
     <linkStatic>true</linkStatic>
     <compileLibrary>true</compileLibrary>
@@ -89,31 +89,6 @@
         </executions>
       </plugin>
 
-       <!-- Download the netty-jni-util source -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <!-- unpack netty-jni-util files -->
-          <execution>
-            <id>unpack</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <includeGroupIds>io.netty</includeGroupIds>
-              <includeArtifactIds>netty-jni-util</includeArtifactIds>
-              <classifier>sources</classifier>
-              <outputDirectory>${jniUtilIncludeDir}</outputDirectory>
-              <includes>**.h,**.c</includes>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      
      <!--
         Set the classifier property based on the settings of the os-detector-plugin.
         Fedora-based systems use a different soname for OpenSSL than other linux distributions.
@@ -205,8 +180,8 @@
                 <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                 <configureArg>${macOsxDeploymentTarget}</configureArg>
                 <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
-                <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${libresslCheckoutDir}/include</configureArg>
-                <configureArg>LDFLAGS=-L${libresslBuildDir}/ssl -L${libresslBuildDir}/crypto -L${libresslBuildDir}/tls -ltls -lssl -lcrypto</configureArg>
+                <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${libresslSourceDir}/include</configureArg>
+                <configureArg>LDFLAGS=-L${libresslHome}/ssl -L${libresslHome}/crypto -L${libresslHome}/tls -ltls -lssl -lcrypto</configureArg>
               </configureArgs>
             </configuration>
           </execution>
@@ -225,7 +200,7 @@
       </activation>
       <properties>
         <msvcSslLibs>libssl-39.lib; libcrypto-38.lib; libtls-11.lib</msvcSslLibs>
-        <msvcSslLibDirs>${sslHome}/x${archBits}</msvcSslLibDirs>
+        <msvcSslLibDirs>${libresslHome}/x${archBits}</msvcSslLibDirs>
         <libresslWindows>libressl-${libresslVersion}-windows</libresslWindows>
         <libresslWindowsZip>${libresslWindows}.zip</libresslWindowsZip>
       </properties>
@@ -245,7 +220,7 @@
                   <target>
                     <get src="https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslWindowsZip}" dest="${project.build.directory}/${libresslWindowsZip}" verbose="on" />
                     <unzip src="${project.build.directory}/${libresslWindowsZip}" dest="${project.build.directory}/" />
-                    <move file="${project.build.directory}/${libresslWindows}" tofile="${sslHome}" />
+                    <move file="${project.build.directory}/${libresslWindows}" tofile="${libresslHome}" />
                   </target>
                 </configuration>
               </execution>
@@ -280,7 +255,7 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${libresslCheckoutDir}" />
+                      <available file="${libresslSourceDir}" />
                       <then>
                         <echo message="LibreSSL was already downloaded, skipping the build step." />
                       </then>
@@ -293,6 +268,7 @@
                           <arg value="xfv" />
                           <arg value="${libresslArchive}" />
                         </exec>
+                        <move file="${project.build.directory}/libressl-${libresslVersion}" tofile="${libresslSourceDir}"/>
                       </else>
                     </if>
                   </target>
@@ -310,31 +286,31 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${libresslBuildDir}" />
+                      <available file="${libresslHome}" />
                       <then>
                         <echo message="LibreSSL was already build, skipping the build step." />
                       </then>
                       <else>
                         <echo message="Building LibreSSL" />
-                        <mkdir dir="${libresslBuildDir}" />
-                        <exec executable="cmake" failonerror="true" dir="${libresslBuildDir}" resolveexecutable="true">
+                        <mkdir dir="${libresslHome}" />
+                        <exec executable="cmake" failonerror="true" dir="${libresslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer -fPIC" />
                           <arg value="${cmakeOsxDeploymentTarget}" />
                           <arg value="-GNinja" />
-                          <arg value=".." />
+                          <arg value="${libresslSourceDir}" />
                         </exec>
                         <if>
                           <!-- may be called ninja-build or ninja -->
                           <!-- See https://github.com/netty/netty-tcnative/issues/475 -->
                           <available file="ninja-build" filepath="${env.PATH}" />
                           <then>
-                            <exec executable="ninja-build" failonerror="true" dir="${libresslBuildDir}" resolveexecutable="true" />
+                            <exec executable="ninja-build" failonerror="true" dir="${libresslHome}" resolveexecutable="true" />
                           </then>
                           <else>
-                            <exec executable="ninja" failonerror="true" dir="${libresslBuildDir}" resolveexecutable="true" />
+                            <exec executable="ninja" failonerror="true" dir="${libresslHome}" resolveexecutable="true" />
                           </else>
                         </if>
                       </else>

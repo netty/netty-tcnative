@@ -1,0 +1,45 @@
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-centos:default
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.centos6
+
+  common: &common
+    image: netty-tcnative-centos:default
+    depends_on: [runtime-setup]
+    volumes:
+      - ~/.ssh:/root/.ssh:delegated
+      - ~/.gnupg:/root/.gnupg:delegated
+      - ..:/code:delegated
+    working_dir: /code
+
+  build-clean:
+    <<: *common
+    command: /bin/bash -cl "mvn clean package"
+
+  build:
+    <<: *common
+    command: /bin/bash -cl "mvn clean package -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
+
+  deploy:
+    <<: *common
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ~/.m2/settings.xml:/root/.m2/settings.xml
+      - ..:/code
+    command: /bin/bash -cl "mvn clean deploy -DskipTests=true -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
+
+  shell:
+    <<: *common
+    volumes:
+      - ~/.ssh:/root/.ssh:delegated
+      - ~/.gnupg:/root/.gnupg:delegated
+      - ~/.gitconfig:/root/.gitconfig:delegated
+      - ~/.gitignore:/root/.gitignore:delegated
+      - ..:/code:delegated
+    entrypoint: /bin/bash

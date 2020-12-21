@@ -18,7 +18,7 @@ docker-compose -f docker/docker-compose.arch.yaml -f docker/docker-compose.arch-
 ## centos 6 with java 8
 
 ```
-docker-compose -f docker/docker-compose.centos.yaml -f docker/docker-compose.centos-6.18.yaml run build
+docker-compose -f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml run build
 ```
 
 ## debian 7 with java 8
@@ -36,7 +36,7 @@ docker-compose -f docker/docker-compose.opensuse.yaml -f docker/docker-compose.o
 ## centos7 with java8 for aarch64 cross compile
 
 ```
-docker-compose -f docker/docker-compose.centos.yaml run cross-compile-aarch64-build
+docker-compose -f docker/docker-compose.centos-7.yaml run cross-compile-aarch64-build
 ```
 
 etc, etc
