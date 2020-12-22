@@ -55,7 +55,7 @@ jobs:
         run: docker-compose -f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml build
 
       - name: Build project
-        run: docker-compose -f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml run build
+        run: docker-compose -f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml run build-dynamic-only
 
       - uses: actions/upload-artifact@v2
         if: ${{ failure() }}
