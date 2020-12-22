@@ -40,4 +40,9 @@ services:
 
   cross-compile-aarch64-deploy:
     <<: *cross-compile-aarch64-common
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ~/.m2/settings.xml:/root/.m2/settings.xml
+      - ..:/code
     command: /bin/bash -cl "pushd ./openssl-dynamic && mvn clean deploy -Plinux-aarch64 -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share -DskipTests && popd && pushd ./boringssl-static && mvn clean deploy -Plinux-aarch64 -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DskipTests && popd"

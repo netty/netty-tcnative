@@ -23,6 +23,11 @@ services:
 
   deploy-dynamic-only:
     <<: *common
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ~/.m2/settings.xml:/root/.m2/settings.xml
+      - ..:/code
     command: /bin/bash -cl "mvn -pl openssl-dynamic clean deploy -DskipTests=true"
 
   build-dynamic-only:
