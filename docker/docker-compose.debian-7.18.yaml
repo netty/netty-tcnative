@@ -9,6 +9,12 @@ services:
         debian_version : "7"
         java_version : "adopt@1.8.0-272"
 
+  deploy-dynamic-only:
+    image: netty-tcnative-debian:debian-7-1.8
+
+  build-dynamic-only:
+    image: netty-tcnative-debian:debian-7-1.8
+
   build:
     image: netty-tcnative-debian:debian-7-1.8
 

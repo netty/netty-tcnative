@@ -4,6 +4,8 @@ FROM debian:$debian_version
 ARG debian_version
 
 ENV SOURCE_DIR /root/source
+ENV WORKSPACE_DIR /root/workspace
+ENV PROJECT_DIR /root/workspace/project
 ENV CMAKE_VERSION_BASE 3.8
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
 ENV NINJA_VERSION 1.7.2
@@ -61,3 +63,26 @@ RUN curl -sL https://github.com/shyiko/jabba/raw/master/install.sh | JABBA_COMMA
 
 RUN echo 'export JAVA_HOME="/jdk"' >> ~/.bashrc
 RUN echo 'PATH=/jdk/bin:$PATH' >> ~/.bashrc
+
+
+WORKDIR /opt
+RUN curl https://downloads.apache.org/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz | tar -xz
+RUN echo 'PATH=/opt/apache-maven-3.6.3/bin/:$PATH' >> ~/.bashrc
+
+# Prepare our own build
+ENV PATH /opt/apache-maven-3.6.3/bin/:$PATH
+ENV JAVA_HOME /jdk/
+
+RUN mkdir $WORKSPACE_DIR
+RUN mkdir $PROJECT_DIR
+WORKDIR $PROJECT_DIR
+
+# Copy all the pom.xml files so we can download dependencies etc.
+COPY ./boringssl-static/pom.xml $PROJECT_DIR/boringssl-static/pom.xml
+COPY ./libressl-static/pom.xml $PROJECT_DIR/libressl-static/pom.xml
+COPY ./openssl-dynamic/pom.xml $PROJECT_DIR/openssl-dynamic/pom.xml
+COPY ./openssl-static/pom.xml $PROJECT_DIR/openssl-static/pom.xml
+COPY ./pom.xml $PROJECT_DIR/pom.xml
+
+# Download dependencies
+RUN /bin/bash -c 'source $HOME/.bashrc && mvn dependency:go-offline checkstyle:check animal-sniffer:check surefire:test -ntp'

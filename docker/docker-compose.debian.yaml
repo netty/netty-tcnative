@@ -5,8 +5,8 @@ services:
   runtime-setup:
     image: netty-tcnative-debian:default
     build:
-      context: .
-      dockerfile: Dockerfile.debian
+      context: ..
+      dockerfile: docker/Dockerfile.debian
 
   common: &common
     image: netty-tcnative-debian:default
@@ -19,7 +19,15 @@ services:
 
   build:
     <<: *common
-    command: /bin/bash -cl "./mvnw clean package"
+    command: /bin/bash -cl "mvn clean package"
+
+  deploy-dynamic-only:
+    <<: *common
+    command: /bin/bash -cl "mvn -pl openssl-dynamic clean deploy -DskipTests=true"
+
+  build-dynamic-only:
+    <<: *common
+    command: /bin/bash -cl "mvn -pl openssl-dynamic clean package"
 
   shell:
     <<: *common
