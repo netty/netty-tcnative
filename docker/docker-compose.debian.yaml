@@ -5,8 +5,8 @@ services:
   runtime-setup:
     image: netty-tcnative-debian:default
     build:
-      context: .
-      dockerfile: Dockerfile.debian
+      context: ..
+      dockerfile: docker/Dockerfile.debian
 
   common: &common
     image: netty-tcnative-debian:default

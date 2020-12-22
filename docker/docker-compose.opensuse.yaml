@@ -5,8 +5,8 @@ services:
   runtime-setup:
     image: netty-tcnative-opensuse:default
     build:
-      context: .
-      dockerfile: Dockerfile.opensuse
+      context: ../
+      dockerfile: docker/Dockerfile.opensuse
 
   common: &common
     image: netty-tcnative-opensuse:default

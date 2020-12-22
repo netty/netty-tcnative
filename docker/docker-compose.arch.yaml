@@ -5,8 +5,8 @@ services:
   runtime-setup:
     image: netty-tcnative-arch:default
     build:
-      context: .
-      dockerfile: Dockerfile.arch
+      context: ../
+      dockerfile: docker/Dockerfile.arch
 
   common: &common
     image: netty-tcnative-arch:default
