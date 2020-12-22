@@ -17,13 +17,9 @@ services:
       - ..:/code:delegated
     working_dir: /code
 
-  build-clean:
-    <<: *common
-    command: /bin/bash -cl "mvn clean package"
-
   build:
     <<: *common
-    command: /bin/bash -cl "mvn clean package -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
+    command: /bin/bash -cl "mvn clean package"
 
   deploy-dynamic-only:
     <<: *common

@@ -18,8 +18,5 @@ services:
   build:
     image: netty-tcnative-debian:debian-7-1.8
 
-  build-clean:
-    image: netty-tcnative-debian:debian-7-1.8
-
   shell:
     image: netty-tcnative-debian:debian-7-1.8
