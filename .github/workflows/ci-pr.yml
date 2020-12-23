@@ -1,11 +1,8 @@
-name: Build project
+name: Build PR
 
 on:
-  push:
+  pull_request:
     branches: [ main ]
-
-  schedule:
-    - cron: '30 3 * * 1'  # At 03:30 on Monday, every Monday.
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -20,9 +17,9 @@ jobs:
       - uses: satackey/action-docker-layer-caching@v0.0.8
         continue-on-error: true
         with:
-          key: build-centos6-x86_64-docker-cache-{hash}
+          key: pr-centos6-x86_64-docker-cache-{hash}
           restore-keys: |
-            build-centos6-x86_64-docker-cache-
+            pr-centos6-x86_64-docker-cache-
 
       - name: Build docker image
         run: docker-compose -f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml build
@@ -45,9 +42,9 @@ jobs:
       - uses: satackey/action-docker-layer-caching@v0.0.8
         continue-on-error: true
         with:
-          key: build-debian7-x86_64-docker-cache-{hash}
+          key: pr-debian7-x86_64-docker-cache-{hash}
           restore-keys: |
-            build-debian7-x86_64-docker-cache-
+            pr-debian7-x86_64-docker-cache-
 
       - name: Build docker image
         run: docker-compose -f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml build
@@ -70,9 +67,9 @@ jobs:
       - uses: satackey/action-docker-layer-caching@v0.0.8
         continue-on-error: true
         with:
-          key: build-centos7-aarch64-docker-cache-{hash}
+          key: pr-centos7-aarch64-docker-cache-{hash}
           restore-keys: |
-            build-centos7-aarch64-docker-cache-
+            pr-centos7-aarch64-docker-cache-
 
       - name: Build docker image
         run: docker-compose -f docker/docker-compose.centos-7.yaml build
