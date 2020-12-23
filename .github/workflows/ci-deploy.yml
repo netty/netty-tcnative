@@ -41,6 +41,8 @@ jobs:
 
   deploy-debian7-x86_64:
     runs-on: ubuntu-latest
+    # Skip for now until we figured out how to deploy SNAPSHOTS with the te same timestamps
+    if: ${{ false }}
     steps:
       - uses: s4u/maven-settings-action@v2.2.0
         with:
@@ -71,6 +73,8 @@ jobs:
 
   deploy-centos7-aarch64:
     runs-on: ubuntu-latest
+    # Skip for now until we figured out how to deploy SNAPSHOTS with the te same timestamps
+    if: ${{ false }}
     steps:
       - uses: s4u/maven-settings-action@v2.2.0
         with:
