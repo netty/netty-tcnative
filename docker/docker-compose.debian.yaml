@@ -34,6 +34,15 @@ services:
     <<: *common
     command: /bin/bash -cl "mvn -pl openssl-dynamic clean package"
 
+  stage-snapshot:
+    <<: *common
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ~/local-staging:/root/local-staging
+      - ..:/code
+    command: /bin/bash -cl "mvn -pl openssl-dynamic clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true"
+
   shell:
     <<: *common
     volumes:

@@ -25,6 +25,15 @@ services:
     <<: *common
     command: /bin/bash -cl "mvn clean package -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
 
+  stage-snapshot:
+    <<: *common
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ~/local-staging:/root/local-staging
+      - ..:/code
+    command: /bin/bash -cl "mvn clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true"
+
   deploy:
     <<: *common
     volumes:

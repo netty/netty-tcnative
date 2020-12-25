@@ -46,3 +46,12 @@ services:
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ..:/code
     command: /bin/bash -cl "pushd ./openssl-dynamic && mvn clean deploy -Plinux-aarch64 -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share -DskipTests && popd && pushd ./boringssl-static && mvn clean deploy -Plinux-aarch64 -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DskipTests && popd"
+
+  cross-compile-aarch64-stage-snapshot:
+    <<: *cross-compile-aarch64-common
+    volumes:
+      - ~/.ssh:/root/.ssh
+      - ~/.gnupg:/root/.gnupg
+      - ~/local-staging:/root/local-staging
+      - ..:/code
+    command: /bin/bash -cl "pushd ./openssl-dynamic && mvn -Plinux-aarch64 -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true && popd && pushd ./boringssl-static && mvn -Plinux-aarch64 -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true"
