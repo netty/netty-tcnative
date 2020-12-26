@@ -60,6 +60,10 @@
     <aprVersion>1.7.0</aprVersion>
     <aprSha256>48e9dbf45ae3fdc7b491259ffb6ccf7d63049ffacbc1c0977cced095e4c2d5a2</aprSha256>
     <boringsslBranch>chromium-stable</boringsslBranch>
+    <!--
+      See https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable for the latest commit
+    -->
+    <boringsslCommitSha>3743aafdacff2f7b083615a043a37101f740fa53</boringsslCommitSha>
     <libresslVersion>3.1.4</libresslVersion>
     <!--
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
