@@ -358,8 +358,15 @@
                 <condition property="tcnative.snippet" value="libnetty_tcnative_${nativeLibOsParts}.jnilib;osname=macosx;">
                   <equals arg1="${os.detected.name}" arg2="osx" />
                 </condition>
-                <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=${os.detected.arch}" />
-                <echo message="Bundle-NativeCode: ${tcnativeManifest}" />
+
+                <!-- In OSGi specification, the alias of x86_32 is x86 -->
+                <condition property="nativeCode.processor" value="x86" else="${os.detected.arch}">
+                  <equals arg1="${os.detected.arch}" arg2="x86_32"/>
+                </condition>
+
+                <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=${nativeCode.processor}"/>
+                <echo message="Bundle-NativeCode: ${tcnativeManifest}"/>
+
               </target>
             </configuration>
           </execution>
