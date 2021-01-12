@@ -715,7 +715,7 @@
                 <goals>
                   <goal>unpack</goal>
                 </goals>
-                <configuration>
+                <configuration combine.self="override">
                   <artifactItems>
                     <!-- Unpack just the native libraries -->
                     <artifactItem>
@@ -862,7 +862,7 @@
                 <goals>
                   <goal>unpack</goal>
                 </goals>
-                <configuration>
+                <configuration combine.self="override">
                   <artifactItems>
                     <!-- Unpack just the native libraries (windows excluded as we not publish snapshots for it yet) -->
                     <artifactItem>
