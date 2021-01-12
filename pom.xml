@@ -24,7 +24,7 @@
 
   <groupId>io.netty</groupId>
   <artifactId>netty-tcnative-parent</artifactId>
-  <version>2.0.36.Final-SNAPSHOT</version>
+  <version>2.0.36.Final</version>
   <packaging>pom</packaging>
 
   <name>Netty/TomcatNative [Parent]</name>
@@ -361,11 +361,11 @@
 
                 <!-- In OSGi specification, the alias of x86_32 is x86 -->
                 <condition property="nativeCode.processor" value="x86" else="${os.detected.arch}">
-                  <equals arg1="${os.detected.arch}" arg2="x86_32"/>
+                  <equals arg1="${os.detected.arch}" arg2="x86_32" />
                 </condition>
 
-                <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=${nativeCode.processor}"/>
-                <echo message="Bundle-NativeCode: ${tcnativeManifest}"/>
+                <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=${nativeCode.processor}" />
+                <echo message="Bundle-NativeCode: ${tcnativeManifest}" />
 
               </target>
             </configuration>
@@ -482,7 +482,7 @@
                         <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
                           <equals arg1="${archBits}" arg2="32" />
                         </condition>
-                        <move file="${project.build.directory}/apr-${aprVersion}" tofile="${aprSourceDir}"/>
+                        <move file="${project.build.directory}/apr-${aprVersion}" tofile="${aprSourceDir}" />
                       </else>
                     </if>
                   </target>
@@ -576,7 +576,7 @@
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                           <arg line="xfvz ${aprTarGzFile}" />
                         </exec>
-                        <move file="${project.build.directory}/apr-${aprVersion}" tofile="${aprSourceDir}"/>
+                        <move file="${project.build.directory}/apr-${aprVersion}" tofile="${aprSourceDir}" />
                       </else>
                     </if>
                   </target>
