@@ -32,7 +32,12 @@
 
 package io.netty.internal.tcnative;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 public final class SSLContext {
+    private static final int MAX_ALPN_NPN_PROTO_SIZE = 65535;
 
     private SSLContext() { }
 
@@ -529,6 +534,30 @@ public final class SSLContext {
      */
     public static native void setSniHostnameMatcher(long ctx, SniHostNameMatcher matcher);
 
+    private static byte[] protocolsToWireFormat(String[] protocols) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            for (String p : protocols) {
+                byte[] bytes = p.getBytes(StandardCharsets.US_ASCII);
+                if (bytes.length <= MAX_ALPN_NPN_PROTO_SIZE) {
+                    out.write(bytes.length);
+                    out.write(bytes);
+                }
+            }
+           return out.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException ignore) {
+                    // ignore
+                }
+            }
+        }
+    }
+
     /**
      * Set next protocol for next protocol negotiation extension
      * @param ctx Server context to use.
@@ -536,7 +565,11 @@ public final class SSLContext {
      * @param selectorFailureBehavior see {@link SSL#SSL_SELECTOR_FAILURE_NO_ADVERTISE}
      *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
      */
-    public static native void setNpnProtos(long ctx, String[] nextProtos, int selectorFailureBehavior);
+    public static void setNpnProtos(long ctx, String[] nextProtos, int selectorFailureBehavior) {
+        setNpnProtos0(ctx, protocolsToWireFormat(nextProtos), selectorFailureBehavior);
+    }
+
+    private static native void setNpnProtos0(long ctx, byte[] nextProtos, int selectorFailureBehavior);
 
     /**
      * Set application layer protocol for application layer protocol negotiation extension
@@ -545,7 +578,11 @@ public final class SSLContext {
      * @param selectorFailureBehavior see {@link SSL#SSL_SELECTOR_FAILURE_NO_ADVERTISE}
      *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
      */
-    public static native void setAlpnProtos(long ctx, String[] alpnProtos, int selectorFailureBehavior);
+    public static void setAlpnProtos(long ctx, String[] alpnProtos, int selectorFailureBehavior) {
+        setAlpnProtos0(ctx, protocolsToWireFormat(alpnProtos), selectorFailureBehavior);
+    }
+
+    private static native void setAlpnProtos0(long ctx, byte[] alpnProtos, int selectorFailureBehavior);
 
     /**
      * Set length of the DH to use.

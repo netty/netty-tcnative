@@ -918,105 +918,20 @@ cleanup:
 #endif // OPENSSL_IS_BORINGSSL
 }
 
-// Convert protos to wire format
-static int initProtocols(JNIEnv *e, unsigned char **proto_data,
-            unsigned int *proto_len, jobjectArray protos) {
-    int i;
-    unsigned char *p_data = NULL;
-    unsigned char *p_data_tmp = NULL;
-
-    // We start with allocate 128 bytes which should be good enough for most use-cases while still be pretty low.
-    // We will call realloc to increase this if needed.
-    size_t p_data_size = 128;
-    size_t p_data_len = 0;
-    jstring proto_string = NULL;
-    const char *proto_chars = NULL;
-    size_t proto_chars_len;
-    int cnt;
-
-    if (protos == NULL) {
-        // Guard against NULL protos.
-        return -1;
-    }
-
-    cnt = (*e)->GetArrayLength(e, protos);
-
-    if (cnt == 0) {
-        // if cnt is 0 we not need to continue and can just fail fast.
-        return -1;
-    }
-
-    p_data = (unsigned char *) OPENSSL_malloc(p_data_size);
-    if (p_data == NULL) {
-        // Not enough memory?
-        return -1;
-    }
-
-    for (i = 0; i < cnt; ++i) {
-         proto_string = (jstring) (*e)->GetObjectArrayElement(e, protos, i);
-         proto_chars = (*e)->GetStringUTFChars(e, proto_string, JNI_FALSE);
-
-         proto_chars_len = strlen(proto_chars);
-         if (proto_chars_len > 0 && proto_chars_len <= MAX_ALPN_NPN_PROTO_SIZE) {
-            // We need to add +1 as each protocol is prefixed by it's length (unsigned char).
-            // For all except of the last one we already have the extra space as everything is
-            // delimited by ','.
-            p_data_len += 1 + proto_chars_len;
-            if (p_data_len > p_data_size) {
-                // double size
-                p_data_size <<= 1;
-                p_data_tmp = realloc(p_data, p_data_size);
-                if (p_data_tmp == NULL) {
-                    // Not enough memory?
-                    (*e)->ReleaseStringUTFChars(e, proto_string, proto_chars);
-
-                    // If realloc failed we need to still free the original pointer to ensure we not leak any memory.
-                    // See https://linux.die.net/man/3/realloc
-                    OPENSSL_free(p_data);
-                    p_data = NULL;
-                    break;
-                } else {
-                    p_data = p_data_tmp;
-                    p_data_tmp = NULL;
-                }
-            }
-            // Write the length of the protocol and then increment before memcpy the protocol itself.
-            *p_data = proto_chars_len;
-            ++p_data;
-            memcpy(p_data, proto_chars, proto_chars_len);
-            p_data += proto_chars_len;
-         }
-
-         // Release the string to prevent memory leaks
-         (*e)->ReleaseStringUTFChars(e, proto_string, proto_chars);
-    }
-
-    if (p_data == NULL) {
-        // Something went wrong so update the proto_len and return -1
-        *proto_len = 0;
-        return -1;
-    } else {
-        if (*proto_data != NULL) {
-            // Free old data
-            OPENSSL_free(*proto_data);
-        }
-        // Decrement pointer again as we incremented it while creating the protocols in wire format.
-        p_data -= p_data_len;
-        *proto_data = p_data;
-        *proto_len = p_data_len;
-        return 0;
-    }
-}
-
-TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobjectArray next_protos,
+TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos0)(TCN_STDARGS, jlong ctx, jbyteArray next_protos,
         jint selectorFailureBehavior)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    if (initProtocols(e, &c->next_proto_data, &c->next_proto_len, next_protos) == 0) {
-        c->next_selector_failure_behavior = selectorFailureBehavior;
+    if (next_protos != NULL) {
+        OPENSSL_free(c->next_proto_data);
+
+        int next_protos_len = (*e)->GetArrayLength(e, next_protos);
+        c->next_proto_data = OPENSSL_malloc(next_protos_len);
+        c->next_proto_len = next_protos_len;
+        (*e)->GetByteArrayRegion(e, next_protos, 0, next_protos_len, (jbyte*) c->next_proto_data);
 
         // depending on if it's client mode or not we need to call different functions.
         if (c->mode == SSL_MODE_CLIENT)  {
@@ -1027,7 +942,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos)(TCN_STDARGS, jlong ctx, jobje
     }
 }
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobjectArray alpn_protos,
+TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos0)(TCN_STDARGS, jlong ctx, jobjectArray alpn_protos,
         jint selectorFailureBehavior)
 {
     // Only supported with GCC
@@ -1043,15 +958,20 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos)(TCN_STDARGS, jlong ctx, jobj
 
         TCN_CHECK_NULL(c, ctx, /* void */);
 
-        if (initProtocols(e, &c->alpn_proto_data, &c->alpn_proto_len, alpn_protos) == 0) {
-            c->alpn_selector_failure_behavior = selectorFailureBehavior;
+        if (alpn_protos != NULL) {
+            OPENSSL_free(c->alpn_proto_data);
+
+            int alpn_protos_len = (*e)->GetArrayLength(e, alpn_protos);
+            c->alpn_proto_data = OPENSSL_malloc(alpn_protos_len);
+            c->alpn_proto_len = alpn_protos_len;
+            (*e)->GetByteArrayRegion(e, alpn_protos, 0, alpn_protos_len, (jbyte*) c->alpn_proto_data);
+
 
             // depending on if it's client mode or not we need to call different functions.
             if (c->mode == SSL_MODE_CLIENT)  {
                 SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
             } else {
                 SSL_CTX_set_alpn_select_cb(c->ctx, tcn_SSL_callback_alpn_select_proto, (void *) c);
-
             }
         }
     #endif
@@ -2710,8 +2630,8 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setVerify, (JII)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCertificate, (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCertificateBio, (JJJLjava/lang/String;)Z, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(setNpnProtos, (J[Ljava/lang/String;I)V, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(setAlpnProtos, (J[Ljava/lang/String;I)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setNpnProtos0, (J[BI)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setAlpnProtos0, (J[BI)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setSessionCacheMode, (JJ)J, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(getSessionCacheMode, (J)J, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setSessionCacheTimeout, (JJ)J, SSLContext) },
