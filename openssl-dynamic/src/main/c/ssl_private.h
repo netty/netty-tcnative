@@ -117,8 +117,6 @@
 
 #define SSL_TO_APR_ERROR(X)         (APR_OS_START_USERERR + 1000 + X)
 
-#define MAX_ALPN_NPN_PROTO_SIZE 65535
-
 extern const char* TCN_UNKNOWN_AUTH_METHOD;
 
 /* ECC: make sure we have at least 1.0.0 */
