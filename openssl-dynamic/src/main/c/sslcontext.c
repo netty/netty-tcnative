@@ -942,7 +942,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos0)(TCN_STDARGS, jlong ctx, jbyt
     }
 }
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos0)(TCN_STDARGS, jlong ctx, jobjectArray alpn_protos,
+TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos0)(TCN_STDARGS, jlong ctx, jbyteArray alpn_protos,
         jint selectorFailureBehavior)
 {
     // Only supported with GCC
