@@ -548,12 +548,10 @@ public final class SSLContext {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         } finally {
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException ignore) {
-                    // ignore
-                }
+            try {
+                out.close();
+            } catch (IOException ignore) {
+                // ignore
             }
         }
     }
