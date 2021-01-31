@@ -38,7 +38,9 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
  unzip \
  wget \
  xutils-dev \
- zip
+ zip \
+ gcc-4.9-backport
+
 
 RUN mkdir $SOURCE_DIR
 WORKDIR $SOURCE_DIR
@@ -52,7 +54,7 @@ RUN wget -q http://storage.googleapis.com/golang/go$GO_VERSION.linux-amd64.tar.g
 RUN wget -q ftp://ftp.gnu.org/gnu/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.gz && tar zxf gcc-$GCC_VERSION.tar.gz
 WORKDIR gcc-$GCC_VERSION
 
-RUN ./contrib/download_prerequisites && ./configure --prefix=/opt/gcc-$GCC_VERSION/ --enable-languages=c,c++ && make && make install && echo 'PATH=/opt/gcc-$GCC_VERSION/bin:$PATH' >> ~/.bashrc && echo 'export CC=/opt/gcc-$GCC_VERSION/bin/gcc' >> ~/.bashrc && echo 'export CXX=/opt/gcc-$GCC_VERSION/bin/g++' >> ~/.bashrc
+#RUN ./contrib/download_prerequisites && ./configure --prefix=/opt/gcc-$GCC_VERSION/ --enable-languages=c,c++ && make && make install && echo 'PATH=/opt/gcc-$GCC_VERSION/bin:$PATH' >> ~/.bashrc && echo 'export CC=/opt/gcc-$GCC_VERSION/bin/gcc' >> ~/.bashrc && echo 'export CXX=/opt/gcc-$GCC_VERSION/bin/g++' >> ~/.bashrc
 
 RUN rm -rf $SOURCE_DIR
 
