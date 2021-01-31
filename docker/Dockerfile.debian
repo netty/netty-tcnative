@@ -38,8 +38,7 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
  unzip \
  wget \
  xutils-dev \
- zip \
- gcc-4.9-backport
+ zip
 
 
 RUN mkdir $SOURCE_DIR
