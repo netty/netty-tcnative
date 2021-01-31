@@ -92,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: windows-x86_64-local-staging
-          path: local-staging
+          path: boringssl-static/local-staging
           if-no-files-found: error
 
   deploy-staged-snapshots:
