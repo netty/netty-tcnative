@@ -98,7 +98,7 @@ jobs:
   deploy-staged-snapshots:
     runs-on: ubuntu-18.04
     # Wait until we have staged everything
-    needs: stage-snapshot
+    needs: [stage-snapshot, stage-snapshot-windows]
     steps:
       - uses: actions/checkout@v2
 
