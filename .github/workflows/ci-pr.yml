@@ -52,6 +52,7 @@ jobs:
 
   build-pr-windows:
     runs-on: windows-2016
+    name: windows-86_64
     steps:
       - uses: actions/checkout@v2
 
