@@ -19,7 +19,7 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
 
  apt-get -y update && apt-get --force-yes -y install \
  autoconf \
- automakers \
+ automake \
  bzip2 \
  cmake \
  curl \
