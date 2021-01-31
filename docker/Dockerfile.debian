@@ -15,17 +15,19 @@ ENV GCC_VERSION 4.9.4
 # install dependencies
 RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > /etc/apt/sources.list && \
  echo "deb-src http://archive.debian.org/debian/ wheezy contrib main non-free" >> /etc/apt/sources.list && \ 
+ echo "deb http://archive.debian.org/debian/ wheezy-backports contrib main non-free" > /etc/apt/sources.list && \
+
  apt-get -y update && apt-get --force-yes -y install \
  autoconf \
- automake \
+ automakers \
  bzip2 \
  cmake \
  curl \
- gcc \
+ gcc-4.9 \
  gcc-multilib \
  git \
  gnupg \
- g++ \
+ g++-4.9 \
  libapr1-dev \
  libssl1.0.0=1.0.1e-2+deb7u20 \
  libssl-dev \
