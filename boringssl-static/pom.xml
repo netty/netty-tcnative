@@ -53,11 +53,11 @@
     <linkStatic>true</linkStatic>
     <compileLibrary>true</compileLibrary>
     <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
-    <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto;${boringsslHome}/decrepit</msvcSslLibDirs>
-    <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
+    <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto</msvcSslLibDirs>
+    <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
     <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
     <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
-    <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -L${boringsslHome}/decrepit -ldecrepit -lssl -lcrypto</ldflags>
+    <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
   </properties>
   <profiles>
     <!-- Default profile that builds a platform-specific jar -->
@@ -227,7 +227,6 @@
                               <arg value="crypto/libcrypto.a" />
                               <arg value="crypto/fipsmodule/fipsmodule" />
                               <arg value="ssl/libssl.a" />
-                              <arg value="decrepit/libdecrepit.a" />
                             </exec>
                           </then>
                           <else>
@@ -347,8 +346,8 @@
         <boringsslHome>${boringsslSourceDir}/build</boringsslHome>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto;${boringsslHome}/decrepit</msvcSslLibDirs>
-        <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
+        <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto</msvcSslLibDirs>
+        <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch_64.jar</nativeJarFile>
         <nativeLibOsParts>${os.detected.name}_aarch_64</nativeLibOsParts>
@@ -656,7 +655,7 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslSourceDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslHome}/ssl -L${boringsslHome}/crypto -L${boringsslHome}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
                   </configureArgs>
                 </configuration>
@@ -965,7 +964,7 @@
         <!-- We do not use an -O flag to ensure we have all functions in the stack when a leak is reported later on -->
         <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -fsanitize=address</cflags>
         <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include -fsanitize=address</cppflags>
-        <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -L${boringsslHome}/decrepit -ldecrepit -lssl -lcrypto -fsanitize=address</ldflags>
+        <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto -fsanitize=address</ldflags>
       </properties>
     </profile>
   </profiles>
