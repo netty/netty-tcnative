@@ -704,6 +704,15 @@
       </modules>
     </profile>
 
+    <profile>
+      <id>stage</id>
+      <modules>
+        <!-- When stage we only want to deploy dynamic openssl version and the static boring one. -->
+        <module>openssl-dynamic</module>
+        <module>boringssl-static</module>
+      </modules>
+    </profile>
+
     <!--
       Profile for building all modules. This is enabled by default so if any profile is manually specified,
       this will be disabled automatically.
