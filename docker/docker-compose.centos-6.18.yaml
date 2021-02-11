@@ -21,5 +21,8 @@ services:
   stage-snapshot:
     image: netty-tcnative-centos:centos-6-1.8
 
+  stage-release:
+    image: netty-tcnative-centos:centos-6-1.8
+
   shell:
     image: netty-tcnative-centos:centos-6-1.8

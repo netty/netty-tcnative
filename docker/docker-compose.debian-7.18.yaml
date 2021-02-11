@@ -15,6 +15,9 @@ services:
   stage-snapshot:
     image: netty-tcnative-debian:debian-7-1.8
 
+  stage-release:
+    image: netty-tcnative-debian:debian-7-1.8
+
   build-dynamic-only:
     image: netty-tcnative-debian:debian-7-1.8
 
