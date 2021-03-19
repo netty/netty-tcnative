@@ -46,7 +46,7 @@
     <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
-    <netty.build.version>28</netty.build.version>
+    <netty.build.version>29</netty.build.version>
     <animal.sniffer.skip>true</animal.sniffer.skip>
     <forceAutogen>false</forceAutogen>
     <forceConfigure>false</forceConfigure>
