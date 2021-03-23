@@ -332,6 +332,7 @@
                     <configureArg>--with-apr=${aprArmHome}</configureArg>
                     <configureArg>--with-ssl=${opensslArmHome}</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
+                    <configureArg>CC=aarch64-none-linux-gnu-gcc</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
