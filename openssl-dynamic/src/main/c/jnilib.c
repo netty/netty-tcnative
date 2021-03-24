@@ -57,6 +57,7 @@ static jclass    jString_class;
 static jmethodID jString_init;
 static jmethodID jString_getBytes;
 static jclass    byteArrayClass;
+static char* staticPackagePrefix = NULL;
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 {
@@ -214,6 +215,8 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
                    "getBytes", "()[B", error);
 
     NETTY_JNI_UTIL_LOAD_CLASS(env, byteArrayClass, "[B", error);
+    if (packagePrefix)
+        staticPackagePrefix = strdup(packagePrefix);
 
     return NETTY_JNI_UTIL_JNI_VERSION;
 error:
@@ -249,7 +252,7 @@ error:
     return JNI_ERR;
 }
 
-static void netty_internal_tcnative_Library_JNI_OnUnload(JNIEnv* env, const char* packagePrefix) {
+static void netty_internal_tcnative_Library_JNI_OnUnload(JNIEnv* env) {
     if (tcn_global_pool != NULL) {
         NETTY_JNI_UTIL_UNLOAD_CLASS(env, jString_class);
         apr_terminate();
@@ -257,12 +260,14 @@ static void netty_internal_tcnative_Library_JNI_OnUnload(JNIEnv* env, const char
     }
 
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, byteArrayClass);
-    netty_internal_tcnative_Error_JNI_OnUnLoad(env, packagePrefix);
-    netty_internal_tcnative_Buffer_JNI_OnUnLoad(env, packagePrefix);
-    netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env, packagePrefix);
-    netty_internal_tcnative_SSL_JNI_OnUnLoad(env, packagePrefix);
-    netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env, packagePrefix);
-    netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env, packagePrefix);
+    netty_internal_tcnative_Error_JNI_OnUnLoad(env, staticPackagePrefix);
+    netty_internal_tcnative_Buffer_JNI_OnUnLoad(env, staticPackagePrefix);
+    netty_internal_tcnative_NativeStaticallyReferencedJniMethods_JNI_OnUnLoad(env, staticPackagePrefix);
+    netty_internal_tcnative_SSL_JNI_OnUnLoad(env, staticPackagePrefix);
+    netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env, staticPackagePrefix);
+    netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env, staticPackagePrefix);
+    free(staticPackagePrefix);
+    staticPackagePrefix = NULL;
 }
 
 // As we build with -fvisibility=hidden we need to ensure we mark the entry load and unload functions used by the
