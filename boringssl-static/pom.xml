@@ -545,8 +545,8 @@
                           <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
                           <arg value="-DCMAKE_SYSTEM_NAME=Linux" />
                           <arg value="-DCMAKE_SYSTEM_PROCESSOR=aarch64" />
-                          <arg value="-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc" />
-                          <arg value="-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++" />
+                          <arg value="-DCMAKE_C_COMPILER=aarch64-none-linux-gnu-gcc" />
+                          <arg value="-DCMAKE_CXX_COMPILER=aarch64-none-linux-gnu-g++" />
                           <arg value="-GNinja" />
                           <arg value="${boringsslSourceDir}" />
                         </exec>
@@ -586,7 +586,7 @@
                         <equals arg1="${strip.skip}" arg2="false" />
                       </and>
                       <then>
-                        <exec executable="aarch64-linux-gnu-strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
+                        <exec executable="aarch64-none-linux-gnu-strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
                           <arg value="--strip-debug" />
                           <arg value="libnetty_tcnative.so" />
                         </exec>
@@ -657,6 +657,7 @@
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslSourceDir}/include</configureArg>
                     <configureArg>LDFLAGS=-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
+                    <configureArg>CC=aarch64-none-linux-gnu-gcc</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
