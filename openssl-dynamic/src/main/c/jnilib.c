@@ -215,7 +215,7 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* 
                    "getBytes", "()[B", error);
 
     NETTY_JNI_UTIL_LOAD_CLASS(env, byteArrayClass, "[B", error);
-    if (packagePrefix)
+    if (packagePrefix) {
         staticPackagePrefix = strdup(packagePrefix);
 
     return NETTY_JNI_UTIL_JNI_VERSION;
