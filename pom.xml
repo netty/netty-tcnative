@@ -63,7 +63,7 @@
     <!--
       See https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable for the latest commit
     -->
-    <boringsslCommitSha>3743aafdacff2f7b083615a043a37101f740fa53</boringsslCommitSha>
+    <boringsslCommitSha>1607f54fed72c6589d560254626909a64124f091</boringsslCommitSha>
     <libresslVersion>3.1.4</libresslVersion>
     <!--
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
