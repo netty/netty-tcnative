@@ -2808,6 +2808,7 @@ error:
 void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslTask_class);
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, certificateCallbackTask_class);
+    NETTY_JNI_UTIL_UNLOAD_CLASS(env, certificateVerifierTask_class);
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodTask_class);
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodSignTask_class);
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class);
