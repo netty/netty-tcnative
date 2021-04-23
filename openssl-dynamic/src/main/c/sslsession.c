@@ -68,22 +68,24 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSLSession, getSessionId)(TCN_STDARGS, jlong sess
     return bArray;
 }
 
+TCN_IMPLEMENT_CALL(jint, SSLSession, refCnt)(TCN_STDARGS, jlong session) {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    return -1;
+#else
+    return session_->references;
+#endif // OPENSSL_VERSION_NUMBER >= 0x10100000L
+}
+
 TCN_IMPLEMENT_CALL(jboolean, SSLSession, upRef)(TCN_STDARGS, jlong session) {
     SSL_SESSION *session_ = J2P(session, SSL_SESSION *);
 
     TCN_CHECK_NULL(session_, session, JNI_FALSE);
 
-
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     return SSL_SESSION_up_ref(session_) == 1 ? JNI_TRUE : JNI_FALSE;
 #else
-    fprintf(stderr, "Before: %d\n", session_->references);
-    fflush(stderr);
     // Older versions of OpenSSL don't expose SSL_SESSION_up_ref
-    jboolean ret =  CRYPTO_add(&session_->references, 1, CRYPTO_LOCK_SSL_SESSION) >= 1 ? JNI_TRUE: JNI_FALSE;
-    fprintf(stderr, "After: %d\n", session_->references);
-    fflush(stderr);
-    return ret;
+    return CRYPTO_add(&session_->references, 1, CRYPTO_LOCK_SSL_SESSION) >= 1 ? JNI_TRUE: JNI_FALSE;
 #endif // OPENSSL_VERSION_NUMBER >= 0x10100000L
 }
 
@@ -113,6 +115,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setTimeout, (JJ)J, SSLSession) },
   { TCN_METHOD_TABLE_ENTRY(getSessionId, (J)[B, SSLSession) },
   { TCN_METHOD_TABLE_ENTRY(free, (J)V, SSLSession) },
+  { TCN_METHOD_TABLE_ENTRY(refCnt, (J)I, SSLSession) },
   { TCN_METHOD_TABLE_ENTRY(upRef, (J)Z, SSLSession) },
   { TCN_METHOD_TABLE_ENTRY(shouldBeSingleUse, (J)Z, SSLSession) }
 };

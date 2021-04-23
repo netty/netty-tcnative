@@ -63,7 +63,9 @@ public final class SSLSession {
      */
     public static native boolean upRef(long session);
 
-     /**
+    public static native int refCnt(long session);
+
+    /**
      * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_SESSION_free.html">SSL_SESSION_free</a>.
      *
      * @param session the SSL_SESSION instance (SSL_SESSION *)
