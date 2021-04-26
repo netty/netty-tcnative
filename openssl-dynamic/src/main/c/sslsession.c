@@ -86,7 +86,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLSession, upRef)(TCN_STDARGS, jlong session) {
     return SSL_SESSION_up_ref(session_) == 1 ? JNI_TRUE : JNI_FALSE;
 #else
     // Older versions of OpenSSL don't expose SSL_SESSION_up_ref
-    return CRYPTO_add(&session_->references, 1, CRYPTO_LOCK_SSL_SESSION) >= 1 ? JNI_TRUE: JNI_FALSE;
+    return JNI_TRUE; //CRYPTO_add(&session_->references, 1, CRYPTO_LOCK_SSL_SESSION) >= 1 ? JNI_TRUE: JNI_FALSE;
 #endif // OPENSSL_VERSION_NUMBER >= 0x10100000L
 }
 

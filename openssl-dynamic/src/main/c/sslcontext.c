@@ -2353,9 +2353,13 @@ static SSL_SESSION* tcn_get_session_cb(SSL *ssl, unsigned char *session_id, int 
     if (result == -1) {
         return NULL;
     }
-    // Set copy to 0 and require the callback to explict call SSL_SESSION_up_ref to avoid issues in multi-threaded enviroments.
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    // Set copy to 0 and require the callback to explicit call SSL_SESSION_up_ref to avoid issues in multi-threaded enviroments.
     // See https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CTX_sess_set_get_cb
     *copy = 0;
+#else
+    *copy = 1;
+#endif // OPENSSL_VERSION_NUMBER >= 0x10100000L
     return (SSL_SESSION*) result;
 }
 
