@@ -74,7 +74,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLSession, upRef)(TCN_STDARGS, jlong session) {
     TCN_CHECK_NULL(session_, session, JNI_FALSE);
 
     // Only supported with GCC
-    #if defined(__GNUC__) || defined(__GNUG__)
+    #if !defined(OPENSSL_IS_BORINGSSL) && (defined(__GNUC__) || defined(__GNUG__))
         if (!SSL_SESSION_up_ref) {
             return JNI_FALSE;
         }
