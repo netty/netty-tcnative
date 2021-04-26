@@ -451,6 +451,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     extern void X509_VERIFY_PARAM_set_hostflags(X509_VERIFY_PARAM *param, unsigned int flags) __attribute__((weak));
     extern int X509_VERIFY_PARAM_set1_host(X509_VERIFY_PARAM *param, const char *name, size_t namelen) __attribute__((weak));
     extern int SSL_CTX_set_num_tickets(SSL_CTX *ctx, size_t num_tickets) __attribute__((weak));
+    extern int SSL_SESSION_up_ref(SSL_SESSION *session) __attribute__((weak));
 #endif // OPENSSL_IS_BORINGSSL
 
     extern int SSL_get_sigalgs(SSL *s, int idx, int *psign, int *phash, int *psignhash, unsigned char *rsig, unsigned char *rhash) __attribute__((weak));
