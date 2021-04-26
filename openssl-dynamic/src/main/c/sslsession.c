@@ -72,6 +72,7 @@ TCN_IMPLEMENT_CALL(jint, SSLSession, refCnt)(TCN_STDARGS, jlong session) {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     return -1;
 #else
+    SSL_SESSION *session_ = J2P(session, SSL_SESSION *);
     return session_->references;
 #endif // OPENSSL_VERSION_NUMBER >= 0x10100000L
 }
