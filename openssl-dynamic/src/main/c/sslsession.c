@@ -122,6 +122,8 @@ static const jint method_table_size = sizeof(method_table) / sizeof(method_table
 
 // JNI Method Registration Table End
 
+// IMPORTANT: If you add any NETTY_JNI_UTIL_LOAD_CLASS or NETTY_JNI_UTIL_FIND_CLASS calls you also need to update
+//            Library to reflect that.
 jint netty_internal_tcnative_SSLSession_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
     if (netty_jni_util_register_natives(env,
              packagePrefix,
