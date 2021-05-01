@@ -80,8 +80,9 @@ void tcn_throwOutOfMemoryError(JNIEnv* env, const char *msg)
     (*env)->ThrowNew(env, oomeClass, msg);
 }
 
+// IMPORTANT: If you add any NETTY_JNI_UTIL_LOAD_CLASS or NETTY_JNI_UTIL_FIND_CLASS calls you also need to update
+//            Library to reflect that.
 jint netty_internal_tcnative_Error_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
-
     NETTY_JNI_UTIL_LOAD_CLASS(env, exceptionClass, "java/lang/Exception", error);
     NETTY_JNI_UTIL_LOAD_CLASS(env, nullPointerExceptionClass, "java/lang/NullPointerException", error);
     NETTY_JNI_UTIL_LOAD_CLASS(env, illegalArgumentExceptionClass, "java/lang/IllegalArgumentException", error);

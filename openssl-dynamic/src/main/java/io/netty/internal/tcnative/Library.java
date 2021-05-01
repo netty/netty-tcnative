@@ -49,6 +49,48 @@ public final class Library {
      */
     private static Library _instance = null;
 
+    static {
+        // Preload all classes that will be used in the OnLoad(...) function of JNI to eliminate the possiblity of a
+        // class-loader deadlock. This is a workaround for https://github.com/netty/netty/issues/11209.
+
+        // This needs to match all the classes that are loaded via NETTY_JNI_UTIL_LOAD_CLASS or looked up via
+        // NETTY_JNI_UTIL_FIND_CLASS.
+        tryLoadClasses(ClassLoader.getSystemClassLoader(),
+                // error
+                Exception.class, NullPointerException.class, IllegalArgumentException.class, OutOfMemoryError.class,
+
+                // jnilib
+                String.class, byte[].class,
+
+                // sslcontext
+                SSLTask.class, CertificateCallbackTask.class, CertificateCallback.class, SSLPrivateKeyMethodTask.class,
+                SSLPrivateKeyMethodSignTask.class, SSLPrivateKeyMethodDecryptTask.class
+                );
+    }
+
+    /**
+     * Preload the given classes and so ensure the {@link ClassLoader} has these loaded after this method call.
+     *
+     * @param classLoader   the {@link ClassLoader}
+     * @param classes    the classes to load.
+     */
+    private static void tryLoadClasses(ClassLoader classLoader, Class<?>... classes) {
+        for (Class<?> clazz: classes) {
+            tryLoadClass(classLoader, clazz.getName());
+        }
+    }
+
+    private static void tryLoadClass(ClassLoader classLoader, String className) {
+        try {
+            // Load the class and also ensure we init it which means its linked etc.
+            Class.forName(className, true, classLoader);
+        } catch (ClassNotFoundException ignore) {
+            // Ignore
+        } catch (SecurityException ignore) {
+            // Ignore
+        }
+    }
+
     private Library() throws Exception {
         boolean loaded = false;
         String path = System.getProperty("java.library.path");

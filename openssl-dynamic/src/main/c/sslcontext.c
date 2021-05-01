@@ -2740,6 +2740,8 @@ error:
 
 // JNI Method Registration Table End
 
+// IMPORTANT: If you add any NETTY_JNI_UTIL_LOAD_CLASS or NETTY_JNI_UTIL_FIND_CLASS calls you also need to update
+//            Library to reflect that.
 jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
     char* name = NULL;
     char* combinedName = NULL;

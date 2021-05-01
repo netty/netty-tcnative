@@ -53,6 +53,8 @@ static const JNINativeMethod method_table[] = {
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
 // JNI Method Registration Table End
 
+// IMPORTANT: If you add any NETTY_JNI_UTIL_LOAD_CLASS or NETTY_JNI_UTIL_FIND_CLASS calls you also need to update
+//            Library to reflect that.
 jint netty_internal_tcnative_Buffer_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
     if (netty_jni_util_register_natives(env, packagePrefix, BUFFER_CLASSNAME, method_table, method_table_size) != 0) {
         return JNI_ERR;
