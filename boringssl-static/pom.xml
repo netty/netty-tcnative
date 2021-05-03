@@ -50,6 +50,9 @@
   <properties>
     <boringsslSourceDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslSourceDir>
     <boringsslHome>${boringsslSourceDir}/build</boringsslHome>
+    <boringsslSourceDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslSourceDir>
+    <boringsslRepository>https://boringssl.googlesource.com/boringssl</boringsslRepository>
+    <boringsslBranch>chromium-stable</boringsslBranch>
     <linkStatic>true</linkStatic>
     <compileLibrary>true</compileLibrary>
     <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
@@ -82,7 +85,7 @@
                 <configuration>
                   <checkoutDirectory>${boringsslSourceDir}</checkoutDirectory>
                   <connectionType>developerConnection</connectionType>
-                  <developerConnectionUrl>scm:git:https://boringssl.googlesource.com/boringssl</developerConnectionUrl>
+                  <developerConnectionUrl>scm:git:${boringsslRepository}</developerConnectionUrl>
                   <scmVersion>${boringsslBranch}</scmVersion>
                   <scmVersionType>branch</scmVersionType>
                   <skipCheckoutIfExists>true</skipCheckoutIfExists>
