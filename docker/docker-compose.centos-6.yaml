@@ -13,6 +13,7 @@ services:
     depends_on: [runtime-setup]
     volumes:
       - ~/.ssh:/root/.ssh:delegated
+      - ~/.m2/repository:/root/.m2/repository
       - ~/.gnupg:/root/.gnupg:delegated
       - ..:/code:delegated
     working_dir: /code
@@ -30,6 +31,7 @@ services:
     volumes:
       - ~/.ssh:/root/.ssh
       - ~/.gnupg:/root/.gnupg
+      - ~/.m2/repository:/root/.m2/repository
       - ~/local-staging:/root/local-staging
       - ..:/code
     command: /bin/bash -cl "mvn -Pstage -pl openssl-dynamic,boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true"
@@ -42,6 +44,7 @@ services:
       - GPG_PRIVATE_KEY
     volumes:
       - ~/.ssh:/root/.ssh
+      - ~/.m2/repository:/root/.m2/repository
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ~/local-staging:/root/local-staging
       - ..:/code
@@ -52,6 +55,7 @@ services:
     volumes:
       - ~/.ssh:/root/.ssh
       - ~/.gnupg:/root/.gnupg
+      - ~/.m2/repository:/root/.m2/repository
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ..:/code
     command: /bin/bash -cl "mvn clean deploy -DskipTests=true -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
@@ -61,6 +65,8 @@ services:
     volumes:
       - ~/.ssh:/root/.ssh:delegated
       - ~/.gnupg:/root/.gnupg:delegated
+      - ~/.m2/repository:/root/.m2/repository
+      - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ~/.gitconfig:/root/.gitconfig:delegated
       - ~/.gitignore:/root/.gitignore:delegated
       - ..:/code:delegated

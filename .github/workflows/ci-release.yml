@@ -31,14 +31,11 @@ jobs:
 
       # Cache .m2/repository
       - uses: actions/cache@v2
-        env:
-          cache-name: release-cache-m2-repository
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-pr-${{ env.cache-name }}-${{ hashFiles('**/pom.xml') }}
+          key: prepare-release-cache-m2-repository-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-pr-${{ env.cache-name }}-
-            ${{ runner.os }}-pr-
+            prepare-release-cache-m2-repository-
 
       - name: Prepare release with Maven
         run: |
@@ -94,6 +91,14 @@ jobs:
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY_PEM }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: stage-release-linux-${{ matrix.setup }}-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            stage-release-linux-${{ matrix.setup }}-m2-repository-cache-
 
       # Enable caching of Docker layers
       - uses: satackey/action-docker-layer-caching@v0.0.11
@@ -191,14 +196,11 @@ jobs:
 
       # Cache .m2/repository
       - uses: actions/cache@v2
-        env:
-          cache-name: staging-release-cache-windows-m2-repository
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/pom.xml') }}
+          key: staging-release-cache-windows-m2-repository-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
-            ${{ runner.os }}-
+            staging-release-cache-windows-m2-repository-
 
       - uses: s4u/maven-settings-action@v2.2.0
         with:
@@ -284,6 +286,15 @@ jobs:
       - name: Merge staging repositories
         working-directory: ./prepare-release-workspace/
         run: bash ./.github/scripts/merge_local_staging.sh /home/runner/local-staging/staging ~/windows-x86_64-local-staging/staging ~/centos7-aarch64-local-staging/staging ~/debian7-x86_64-local-staging/staging ~/centos6-x86_64-local-staging/staging
+
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: deploy-staged-release-cache-m2-repository-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            deploy-staged-release-cache-m2-repository-
+
 
       - uses: s4u/maven-settings-action@v2.2.0
         with:
