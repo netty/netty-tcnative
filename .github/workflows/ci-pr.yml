@@ -35,6 +35,14 @@ jobs:
           restore-keys: |
             pr-${{ matrix.setup }}-docker-cache-
 
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: build-pr-${{ matrix.setup }}-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            build-pr-${{ matrix.setup }}-m2-repository-cache-
+
       - name: Build docker image
         run: docker-compose ${{ matrix.docker-compose-build }}
 
@@ -73,6 +81,14 @@ jobs:
         uses: crazy-max/ghaction-chocolatey@v1
         with:
           args: install ninja nasm
+
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: build-pr-windows-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            build-pr-windows-m2-repository-cache-
 
       - name: Build netty-tcnative-boringssl-static
         run: mvn --file pom.xml -pl boringssl-static clean package

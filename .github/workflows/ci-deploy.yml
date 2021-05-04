@@ -31,6 +31,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: stage-snapshot-${{ matrix.setup }}-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            stage-snapshot-${{ matrix.setup }}-m2-repository-cache-
+
       # Enable caching of Docker layers
       - uses: satackey/action-docker-layer-caching@v0.0.11
         env:
@@ -85,6 +93,14 @@ jobs:
         with:
           args: install ninja nasm
 
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: stage-snapshot-windows-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            stage-snapshot-windows-m2-repository-cache-
+
       - name: Build netty-tcnative-boringssl-static
         run: mvn --file pom.xml -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=local-staging -DskipRemoteStaging=true -DskipTests=true
 
@@ -106,17 +122,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
-
-      # Cache .m2/repository
-      - uses: actions/cache@v2
-        env:
-          cache-name: deploy-staging-cache-m2-repository
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-deploy-${{ env.cache-name }}-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-deploy-${{ env.cache-name }}-
-            ${{ runner.os }}-deploy-
 
       # Setup some env to re-use later.
       - name: Prepare enviroment variables
@@ -160,6 +165,15 @@ jobs:
           cp -r ~/debian7-x86_64-local-staging/deferred/* ~/local-staging/deferred/
           cat ~/centos6-x86_64-local-staging/deferred/.index >>  ~/local-staging/deferred/.index
           cp -r ~/centos6-x86_64-local-staging/deferred/* ~/local-staging/deferred/
+
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: deploy-staged-snapshot-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            deploy-stage-snapshot-m2-repository-cache-
+
 
       - uses: s4u/maven-settings-action@v2.2.0
         with:
