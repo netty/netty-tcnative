@@ -20,11 +20,11 @@ services:
 
   build-clean:
     <<: *common
-    command: /bin/bash -cl "mvn clean package"
+    command: /bin/bash -cl "mvn -Pci clean package"
 
   build:
     <<: *common
-    command: /bin/bash -cl "mvn clean package -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
+    command: /bin/bash -cl "mvn -Pci clean package -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
 
   stage-snapshot:
     <<: *common
@@ -34,7 +34,7 @@ services:
       - ~/.m2/repository:/root/.m2/repository
       - ~/local-staging:/root/local-staging
       - ..:/code
-    command: /bin/bash -cl "mvn -Pstage -pl openssl-dynamic,boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true"
+    command: /bin/bash -cl "mvn -Pci,stage -pl openssl-dynamic,boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true"
 
   stage-release:
     <<: *common
@@ -48,7 +48,7 @@ services:
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ~/local-staging:/root/local-staging
       - ..:/code
-    command: /bin/bash -cl "cat <(echo -e \"${GPG_PRIVATE_KEY}\") | gpg --batch --import && mvn -B -Pstage -pl openssl-dynamic,boringssl-static clean javadoc:jar package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEYNAME}"
+    command: /bin/bash -cl "cat <(echo -e \"${GPG_PRIVATE_KEY}\") | gpg --batch --import && mvn -B -Pci,stage -pl openssl-dynamic,boringssl-static clean javadoc:jar package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEYNAME}"
 
   deploy:
     <<: *common
@@ -58,7 +58,7 @@ services:
       - ~/.m2/repository:/root/.m2/repository
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ..:/code
-    command: /bin/bash -cl "mvn clean deploy -DskipTests=true -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
+    command: /bin/bash -cl "mvn -Pci clean deploy -DskipTests=true -DaprSourceDir=/root/workspace/apr-source -DaprHome=/root/workspace/apr -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DopensslSourceDir=/root/workspace/openssl-source -DopensslHome=/root/workspace/openssl -DlibresslSourceDir=/root/workspace/libressl-source -DlibresslHome=/root/workspace/libressl"
 
   shell:
     <<: *common

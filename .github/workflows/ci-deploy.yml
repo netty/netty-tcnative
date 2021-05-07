@@ -102,7 +102,7 @@ jobs:
             stage-snapshot-windows-m2-repository-cache-
 
       - name: Build netty-tcnative-boringssl-static
-        run: mvn --file pom.xml -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=local-staging -DskipRemoteStaging=true -DskipTests=true
+        run: mvn --file pom.xml -Pci -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=local-staging -DskipRemoteStaging=true -DskipTests=true
 
       - name: Upload local staging directory
         uses: actions/upload-artifact@v2
@@ -185,4 +185,4 @@ jobs:
             }]
 
       - name: Deploy local staged artifacts
-        run: mvn -B --file pom.xml org.sonatype.plugins:nexus-staging-maven-plugin:deploy-staged -DaltStagingDirectory=$LOCAL_STAGING_DIR
+        run: mvn -B --file pom.xml -Pci org.sonatype.plugins:nexus-staging-maven-plugin:deploy-staged -DaltStagingDirectory=$LOCAL_STAGING_DIR
