@@ -428,15 +428,6 @@
   </dependencies>
   <profiles>
     <profile>
-      <id>ci</id>
-      <properties>
-        <http.keepAlive>false</http.keepAlive>
-        <maven.wagon.http.pool>false</maven.wagon.http.pool>
-        <maven.wagon.httpconnectionManager.ttlSeconds>120</maven.wagon.httpconnectionManager.ttlSeconds>
-      </properties>
-    </profile>
-
-    <profile>
       <id>disable-autogen-windows</id>
       <activation>
         <os>
