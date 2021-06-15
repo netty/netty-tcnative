@@ -32,7 +32,8 @@ final class CertificateVerifierTask extends SSLTask {
     }
 
     @Override
-    protected int runTask(long ssl) {
-        return verifier.verify(ssl, x509, authAlgorithm);
+    protected void runTask(long ssl, TaskCallback callback) {
+        int result = verifier.verify(ssl, x509, authAlgorithm);
+        callback.onResult(ssl, result);
     }
 }

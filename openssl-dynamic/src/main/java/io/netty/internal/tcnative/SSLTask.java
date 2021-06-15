@@ -15,16 +15,19 @@
  */
 package io.netty.internal.tcnative;
 
+import java.util.concurrent.CountDownLatch;
+
 /**
- * A SSL related task that will be returned by {@link SSL#getTask(int)}
+ * A SSL related task that will be returned by {@link SSL#getTask(long)} / {@link SSL#getAsyncTask(long)}.
  */
-abstract class SSLTask implements Runnable {
+abstract class SSLTask implements AsyncTask {
 
     private final long ssl;
 
     // These fields are accessed via JNI.
     private int returnValue;
     private boolean complete;
+    private boolean didRun;
 
     protected SSLTask(long ssl) {
         // It is important that this constructor never throws. Be sure to not change this!
@@ -33,14 +36,43 @@ abstract class SSLTask implements Runnable {
 
     @Override
     public final void run() {
-        if (!complete) {
-            complete = true;
-            returnValue = runTask(ssl);
+        final CountDownLatch latch = new CountDownLatch(1);
+        runAsync(new Runnable() {
+            @Override
+            public void run() {
+                latch.countDown();
+            }
+        });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @Override
+    public final void runAsync(final Runnable completeCallback) {
+        if (!didRun) {
+            didRun = true;
+            runTask(ssl, new TaskCallback() {
+                @Override
+                public void onResult(long ssl, int result) {
+                    returnValue = result;
+                    complete = true;
+                    completeCallback.run();
+                }
+            });
+        } else {
+            completeCallback.run();
         }
     }
 
     /**
      * Run the task and return the return value that should be passed back to OpenSSL.
      */
-    protected abstract int runTask(long ssl);
+    protected abstract void runTask(long ssl, TaskCallback callback);
+
+    interface TaskCallback {
+        void onResult(long ssl, int result);
+    }
 }
