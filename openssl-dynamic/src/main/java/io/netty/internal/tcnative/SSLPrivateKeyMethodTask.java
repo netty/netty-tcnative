@@ -15,7 +15,7 @@
  */
 package io.netty.internal.tcnative;
 
-abstract class SSLPrivateKeyMethodTask extends SSLTask {
+abstract class SSLPrivateKeyMethodTask extends SSLTask implements AsyncTask {
     private static final byte[] EMPTY = new byte[0];
     private final AsyncSSLPrivateKeyMethod method;
 
@@ -25,6 +25,12 @@ abstract class SSLPrivateKeyMethodTask extends SSLTask {
     SSLPrivateKeyMethodTask(long ssl, AsyncSSLPrivateKeyMethod method) {
         super(ssl);
         this.method = method;
+    }
+
+
+    @Override
+    public final void runAsync(final Runnable completeCallback) {
+        run(completeCallback);
     }
 
     @Override

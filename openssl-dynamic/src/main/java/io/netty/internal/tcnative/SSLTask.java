@@ -15,19 +15,22 @@
  */
 package io.netty.internal.tcnative;
 
-import java.util.concurrent.CountDownLatch;
-
 /**
- * A SSL related task that will be returned by {@link SSL#getTask(long)} / {@link SSL#getAsyncTask(long)}.
+ * A SSL related task that will be returned by {@link SSL#getTask(long)}.
  */
-abstract class SSLTask implements AsyncTask {
-
+abstract class SSLTask implements Runnable {
+    private static final Runnable NOOP = new Runnable() {
+        @Override
+        public void run() {
+            // NOOP
+        }
+    };
     private final long ssl;
 
     // These fields are accessed via JNI.
     private int returnValue;
     private boolean complete;
-    private boolean didRun;
+    protected boolean didRun;
 
     protected SSLTask(long ssl) {
         // It is important that this constructor never throws. Be sure to not change this!
@@ -36,22 +39,10 @@ abstract class SSLTask implements AsyncTask {
 
     @Override
     public final void run() {
-        final CountDownLatch latch = new CountDownLatch(1);
-        runAsync(new Runnable() {
-            @Override
-            public void run() {
-                latch.countDown();
-            }
-        });
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        run(NOOP);
     }
 
-    @Override
-    public final void runAsync(final Runnable completeCallback) {
+    protected final void run(final Runnable completeCallback) {
         if (!didRun) {
             didRun = true;
             runTask(ssl, new TaskCallback() {
