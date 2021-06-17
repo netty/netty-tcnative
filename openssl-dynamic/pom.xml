@@ -218,7 +218,7 @@
                   <forceConfigure>${forceConfigure}</forceConfigure>
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
-                    <configureArg>--with-apr=/usr/local/opt/apr/libexec/</configureArg>
+                    <configureArg>--with-apr=/opt/homebrew/opt/apr/libexec/</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
