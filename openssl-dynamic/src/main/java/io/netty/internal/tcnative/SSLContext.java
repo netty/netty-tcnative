@@ -663,7 +663,7 @@ public final class SSLContext {
     }
 
     /**
-     * Set the {@link AsyncSSLPrivateKeyMethod} to use for the given {@link SSLContext}.
+     * Sets the {@link AsyncSSLPrivateKeyMethod} to use for the given {@link SSLContext}.
      * This allows to offload private key operations if needed.
      *
      * This method is currently only supported when {@code BoringSSL} is used.
