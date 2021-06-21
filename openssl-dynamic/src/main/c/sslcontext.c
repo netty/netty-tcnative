@@ -59,6 +59,8 @@ static jmethodID sslPrivateKeyMethodSignTask_init;
 static jclass    sslPrivateKeyMethodDecryptTask_class;
 static jmethodID sslPrivateKeyMethodDecryptTask_init;
 
+static const char* staticPackagePrefix = NULL;
+
 extern apr_pool_t *tcn_global_pool;
 
 static apr_status_t ssl_context_cleanup(void *data)
@@ -2240,11 +2242,14 @@ const SSL_PRIVATE_KEY_METHOD private_key_method = {
 #endif // OPENSSL_IS_BORINGSSL
 
 
-TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod)(TCN_STDARGS, jlong ctx, jobject method) {
+TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod0)(TCN_STDARGS, jlong ctx, jobject method) {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 #ifdef OPENSSL_IS_BORINGSSL
+    char* name = NULL;
+    char* combinedName = NULL;
+
     jobject oldMethod = c->ssl_private_key_method;
     if (method == NULL) {
         c->ssl_private_key_method = NULL;
@@ -2259,13 +2264,21 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod)(TCN_STDARGS, jlong ctx
             return;
         }
 
-        jmethodID signMethod = (*e)->GetMethodID(e, method_class, "sign", "(JI[B)[B");
+        NETTY_JNI_UTIL_PREPEND(staticPackagePrefix, "io/netty/internal/tcnative/ResultCallback;)V", name, error);
+        NETTY_JNI_UTIL_PREPEND("(JI[BL", name, combinedName, error);
+        TCN_REASSIGN(name, combinedName);
+
+        jmethodID signMethod = (*e)->GetMethodID(e, method_class, "sign", name);
         if (signMethod == NULL) {
             tcn_ThrowIllegalArgumentException(e, "Unable to retrieve sign method");
             return;
         }
 
-        jmethodID decryptMethod = (*e)->GetMethodID(e, method_class, "decrypt", "(J[B)[B");
+        NETTY_JNI_UTIL_PREPEND(staticPackagePrefix, "io/netty/internal/tcnative/ResultCallback;)V", name, error);
+        NETTY_JNI_UTIL_PREPEND("(J[BL", name, combinedName, error);
+        TCN_REASSIGN(name, combinedName);
+
+        jmethodID decryptMethod = (*e)->GetMethodID(e, method_class, "decrypt", name);
         if (decryptMethod == NULL) {
             tcn_ThrowIllegalArgumentException(e, "Unable to retrieve decrypt method");
             return;
@@ -2284,7 +2297,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod)(TCN_STDARGS, jlong ctx
     }
     if (oldMethod != NULL) {
         (*e)->DeleteGlobalRef(e, oldMethod);
-    } 
+    }
+
+error:
+    free(name);
+    free(combinedName);
 #else
     tcn_ThrowException(e, "Requires BoringSSL");
 #endif // OPENSSL_IS_BORINGSSL
@@ -2660,7 +2677,7 @@ static const JNINativeMethod fixed_method_table[] = {
   // setCertRequestedCallback -> needs dynamic method table
   // setCertificateCallback -> needs dynamic method table
   // setSniHostnameMatcher -> needs dynamic method table
-  // setPrivateKeyMethod --> needs dynamic method table
+  // setPrivateKeyMethod0 --> needs dynamic method table
   // setSSLSessionCache --> needs dynamic method table
 
   { TCN_METHOD_TABLE_ENTRY(setSessionIdContext, (J[B)Z, SSLContext) },
@@ -2718,11 +2735,11 @@ static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSniHostnameMatcher);
   
     dynamicMethod = &dynamicMethods[fixed_method_table_size + 4];
-    NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V", dynamicTypeName, error); 
+    NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", dynamicTypeName, error);
     NETTY_JNI_UTIL_PREPEND("(JL", dynamicTypeName,  dynamicMethod->signature, error);
     netty_jni_util_free_dynamic_name(&dynamicTypeName);
-    dynamicMethod->name = "setPrivateKeyMethod";
-    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setPrivateKeyMethod);
+    dynamicMethod->name = "setPrivateKeyMethod0";
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setPrivateKeyMethod0);
 
     dynamicMethod = &dynamicMethods[fixed_method_table_size + 5];
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLSessionCache;)V", dynamicTypeName, error); 
@@ -2785,7 +2802,7 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodSignTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS(env, sslPrivateKeyMethodSignTask_class, name, error);
 
-    NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V", name, error);
+    NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(JI[BL", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init, "<init>", name, error);
@@ -2793,11 +2810,14 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodDecryptTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class, name, error);
 
-    NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethod;)V", name, error);
+    NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[BL", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_init, "<init>", name, error);
 
+    if (packagePrefix != NULL) {
+        staticPackagePrefix = strdup(packagePrefix);
+    }
     return NETTY_JNI_UTIL_JNI_VERSION;
 error:
     free(name);
@@ -2814,6 +2834,9 @@ void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env, const char* pa
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodTask_class);
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodSignTask_class);
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class);
+
+    free((void*) staticPackagePrefix);
+    staticPackagePrefix = NULL;
 
     netty_jni_util_unregister_natives(env, packagePrefix, SSLCONTEXT_CLASSNAME);
 }

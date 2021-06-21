@@ -19,7 +19,7 @@ final class SSLPrivateKeyMethodSignTask extends SSLPrivateKeyMethodTask {
     private final int signatureAlgorithm;
     private final byte[] digest;
 
-    SSLPrivateKeyMethodSignTask(long ssl, int signatureAlgorithm, byte[] digest, SSLPrivateKeyMethod method) {
+    SSLPrivateKeyMethodSignTask(long ssl, int signatureAlgorithm, byte[] digest, AsyncSSLPrivateKeyMethod method) {
         super(ssl, method);
         this.signatureAlgorithm = signatureAlgorithm;
         // It's OK to not clone the arrays as we create these in JNI and not reuse.
@@ -27,7 +27,8 @@ final class SSLPrivateKeyMethodSignTask extends SSLPrivateKeyMethodTask {
     }
 
     @Override
-    protected byte[] runTask(long ssl, SSLPrivateKeyMethod method) throws Exception {
-        return method.sign(ssl, signatureAlgorithm, digest);
+    protected void runTask(long ssl, AsyncSSLPrivateKeyMethod method,
+                           ResultCallback<byte[]> resultCallback) {
+        method.sign(ssl, signatureAlgorithm, digest, resultCallback);
     }
 }

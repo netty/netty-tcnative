@@ -649,7 +649,8 @@ public final class SSLContext {
     public static native void setUseTasks(long ctx, boolean useTasks);
 
     /**
-     * Set the {@link SSLPrivateKeyMethod} to use for the given {@link SSLContext}. This allows to offload privatekey operations
+     * Set the {@link SSLPrivateKeyMethod} to use for the given {@link SSLContext}.
+     * This allows to offload private key operations
      * if needed.
      *
      * This method is currently only supported when {@code BoringSSL} is used.
@@ -657,7 +658,24 @@ public final class SSLContext {
      * @param ctx context to use
      * @param method method to use for the given context.
      */
-    public static native void setPrivateKeyMethod(long ctx, SSLPrivateKeyMethod method);
+    public static void setPrivateKeyMethod(long ctx, final SSLPrivateKeyMethod method) {
+        setPrivateKeyMethod(ctx, new AsyncSSLPrivateKeyMethodAdapter(method));
+    }
+
+    /**
+     * Sets the {@link AsyncSSLPrivateKeyMethod} to use for the given {@link SSLContext}.
+     * This allows to offload private key operations if needed.
+     *
+     * This method is currently only supported when {@code BoringSSL} is used.
+     *
+     * @param ctx context to use
+     * @param method method to use for the given context.
+     */
+    public static void setPrivateKeyMethod(long ctx, AsyncSSLPrivateKeyMethod method) {
+        setPrivateKeyMethod0(ctx, method);
+    }
+
+    private static native void setPrivateKeyMethod0(long ctx, AsyncSSLPrivateKeyMethod method);
 
     /**
      * Set the {@link SSLSessionCache} that will be used if session caching is enabled.

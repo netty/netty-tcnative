@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 The Netty Project
+ * Copyright 2021 The Netty Project
  *
  * The Netty Project licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -15,19 +15,25 @@
  */
 package io.netty.internal.tcnative;
 
-final class SSLPrivateKeyMethodDecryptTask extends SSLPrivateKeyMethodTask {
+/**
+ * Callback that is called once an operation completed.
+ *
+ * @param <T>   The result type.
+ */
+public interface ResultCallback<T> {
+    /**
+     * Called when the operation completes with the given result.
+     *
+     * @param ssl       the SSL instance (SSL *)
+     * @param result    the result.
+     */
+    void onSuccess(long ssl, T result);
 
-    private final byte[] input;
-
-    SSLPrivateKeyMethodDecryptTask(long ssl, byte[] input, AsyncSSLPrivateKeyMethod method) {
-        super(ssl, method);
-        // It's OK to not clone the arrays as we create these in JNI and not reuse.
-        this.input = input;
-    }
-
-    @Override
-    protected void runTask(long ssl, AsyncSSLPrivateKeyMethod method,
-                           ResultCallback<byte[]> resultCallback) {
-        method.decrypt(ssl, input, resultCallback);
-    }
+    /**
+     * Called when the operation completes with an error.
+     *
+     * @param ssl       the SSL instance (SSL *)
+     * @param cause     the error.
+     */
+    void onError(long ssl, Throwable cause);
 }

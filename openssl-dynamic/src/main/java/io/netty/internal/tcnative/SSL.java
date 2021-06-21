@@ -835,13 +835,32 @@ public final class SSL {
     public static native byte[] getClientRandom(long ssl);
 
     /**
-     * Return the {@link Runnable} thats needs to be run as an operation returned {@link #SSL_ERROR_WANT_X509_LOOKUP}.
-     * After the task was run we should retry the operations that returned {@link #SSL_ERROR_WANT_X509_LOOKUP}.
+     * Return the {@link Runnable} that needs to be run as an operation did signal that a task needs to be completed
+     * before we can retry the previous action.
+     *
+     * After the task was run we should retry the operation that did signal back that a task needed to be run.
+     *
+     *
+     * The {@link Runnable} may also implement {@link AsyncTask} which allows for fully asynchronous execution if
+     * {@link AsyncTask#runAsync(Runnable)} is used.
      *
      * @param ssl the SSL instance (SSL *)
      * @return the task to run.
      */
     public static native Runnable getTask(long ssl);
+
+    /**
+     * Return the {@link AsyncTask} that needs to be run as an operation did signal that a task needs to be completed
+     * before we can retry it.
+     *
+     * After the task was run we should retry the operation that did signal back that a task needed to be run.
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the task to run.
+     */
+    public static AsyncTask getAsyncTask(long ssl) {
+        return (AsyncTask) getTask(ssl);
+    }
 
     /**
      * Return {@code true} if the SSL_SESSION was reused. 
