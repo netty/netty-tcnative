@@ -166,4 +166,10 @@ final class NativeStaticallyReferencedJniMethods {
     static native int sslSignRsaPssRsaeSha512();
     static native int sslSignEd25519();
     static native int sslSignRsaPkcs1Md5Sha1();
+
+    static native int sslRenegotiateNever();
+    static native int sslRenegotiateOnce();
+    static native int sslRenegotiateFreely();
+    static native int sslRenegotiateIgnore();
+    static native int sslRenegotiateExplicit();
 }

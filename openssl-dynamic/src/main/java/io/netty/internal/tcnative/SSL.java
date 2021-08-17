@@ -110,6 +110,12 @@ public final class SSL {
     public static final int X509_CHECK_FLAG_NO_PARTIAL_WILD_CARDS = x509CheckFlagNoPartialWildCards();
     public static final int X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS = x509CheckFlagMultiLabelWildCards();
 
+    public static final int SSL_RENEGOTIATE_NEVER = sslRenegotiateNever();
+    public static final int SSL_RENEGOTIATE_ONCE = sslRenegotiateOnce();
+    public static final int SSL_RENEGOTIATE_FREELY = sslRenegotiateFreely();
+    public static final int SSL_RENEGOTIATE_IGNORE = sslRenegotiateIgnore();
+    public static final int SSL_RENEGOTIATE_EXPLICIT = sslRenegotiateExplicit();
+
     /* Return OpenSSL version number */
     public static native int version();
 
@@ -887,4 +893,15 @@ public final class SSL {
      * @return the SSL_SESSION instance (SSL_SESSION *) used
      */
     public static native long getSession(long ssl);
+
+    /**
+     * Allow to set the renegotiation mode that is used. This is only support by {@code BoringSSL}.
+     *
+     * See <a href="https://boringssl.googlesource.com/boringssl/+/refs/heads/master/include/openssl/ssl.h#4081">
+     *     SSL_set_renegotiate_mode</a>..
+     * @param ssl the SSL instance (SSL *)
+     * @param mode  the mode.
+     * @throws Exception thrown if some error happens.
+     */
+    public static native void setRenegotiateMode(long ssl, int mode) throws Exception;
 }

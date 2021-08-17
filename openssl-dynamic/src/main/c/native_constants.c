@@ -559,6 +559,47 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPkcs1Md
     return SSL_SIGN_RSA_PKCS1_MD5_SHA1;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateNever)(TCN_STDARGS) {
+#ifdef OPENSSL_IS_BORINGSSL
+    return (jint) ssl_renegotiate_never;
+#else
+    return 0;
+#endif
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateOnce)(TCN_STDARGS) {
+#ifdef OPENSSL_IS_BORINGSSL
+    return (jint) ssl_renegotiate_once;
+#else
+    return 0;
+#endif
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateFreely)(TCN_STDARGS) {
+#ifdef OPENSSL_IS_BORINGSSL
+    return (jint) ssl_renegotiate_freely;
+#else
+    return 0;
+#endif
+}
+
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateIgnore)(TCN_STDARGS) {
+#ifdef OPENSSL_IS_BORINGSSL
+    return (jint) ssl_renegotiate_ignore;
+#else
+    return 0;
+#endif
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateExplicit)(TCN_STDARGS) {
+#ifdef OPENSSL_IS_BORINGSSL
+    return (jint) ssl_renegotiate_explicit;
+#else
+    return 0;
+#endif
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslOpCipherServerPreference, ()I, NativeStaticallyReferencedJniMethods) },
@@ -679,7 +720,13 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslSignRsaPssRsaeSha384, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSignRsaPssRsaeSha512, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSignEd25519, ()I, NativeStaticallyReferencedJniMethods) },
-  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPkcs1Md5Sha1, ()I, NativeStaticallyReferencedJniMethods) }
+  { TCN_METHOD_TABLE_ENTRY(sslSignRsaPkcs1Md5Sha1, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslRenegotiateNever, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslRenegotiateOnce, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslRenegotiateFreely, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslRenegotiateIgnore, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslRenegotiateExplicit, ()I, NativeStaticallyReferencedJniMethods) }
+
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
