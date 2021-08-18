@@ -2624,6 +2624,17 @@ complete:
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
 }
 
+TCN_IMPLEMENT_CALL(void, SSL, setRenegotiateMode)(TCN_STDARGS, jlong ssl, jint mode) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
+#ifndef OPENSSL_IS_BORINGSSL
+    tcn_Throw(e, "Not supported");
+#else
+    SSL_set_renegotiate_mode(ssl_, (enum ssl_renegotiate_mode_t) mode);
+#endif
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(bioLengthByteBuffer, (J)I, SSL) },
@@ -2698,7 +2709,8 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getServerRandom, (J)[B, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getTask, (J)Ljava/lang/Runnable;, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getSession, (J)J, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(isSessionReused, (J)Z, SSL) }
+  { TCN_METHOD_TABLE_ENTRY(isSessionReused, (J)Z, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setRenegotiateMode, (JI)V, SSL) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
