@@ -2640,24 +2640,11 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCurvesList0)(TCN_STDARGS, jlong ctx,
     if (curves == NULL) {
         return JNI_FALSE;
     }
-
-// Only supported with GCC
-#if defined(__GNUC__) || defined(__GNUG__)
-    if (!SSL_CTX_set1_curves_list) {
-        return JNI_FALSE;
-    }
-#endif
-
-// We can only support it when either use openssl version >= 1.0.2 or GCC as this way we can use weak linking
-#if OPENSSL_VERSION_NUMBER >= 0x10102000L  || defined(__GNUC__) || defined(__GNUG__)
     const char *nativeString = (*e)->GetStringUTFChars(e, curves, 0);
-    int ret = SSL_CTX_set1_curves_list(c->ctx, nativeString);
+    int ret = tcn_SSL_CTX_set1_curves_list(c->ctx, nativeString);
     (*e)->ReleaseStringUTFChars(e, curves, nativeString);
 
     return ret == 1 ? JNI_TRUE : JNI_FALSE;
-#else
-    return JNI_FALSE;
-#endif
 }
 
 // JNI Method Registration Table Begin
