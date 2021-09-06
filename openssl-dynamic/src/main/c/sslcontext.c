@@ -2631,6 +2631,22 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setUseTasks)(TCN_STDARGS, jlong ctx, jboole
     c->use_tasks = useTasks == JNI_TRUE ? 1 : 0;
 }
 
+
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCurvesList0)(TCN_STDARGS, jlong ctx, jstring curves) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
+    if (curves == NULL) {
+        return JNI_FALSE;
+    }
+    const char *nativeString = (*e)->GetStringUTFChars(e, curves, 0);
+    int ret = SSL_CTX_set1_curves_list(c->ctx, nativeString);
+    (*e)->ReleaseStringUTFChars(e, curves, nativeString);
+
+    return ret == 1 ? JNI_TRUE : JNI_FALSE;
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(make, (II)J, SSLContext) },
@@ -2687,7 +2703,8 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(disableOcsp, (J)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(getSslCtx, (J)J, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) }
+  { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setCurvesList0, (JLjava/lang/String;)Z, SSLContext) }
 };
 
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);

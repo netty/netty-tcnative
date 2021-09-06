@@ -694,4 +694,31 @@ public final class SSLContext {
      * @return {@code true} if successful, {@code false} otherwise.
      */
     public static native boolean setNumTickets(long ctx, int tickets);
+
+    /**
+     * Sets the curves to use.
+     *
+     * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_CTX_set1_curves_list.html">SSL_CTX_set1_curves_list</a>.
+     * @param ctx context to use
+     * @param curves the curves to use.
+     * @return {@code true} if successful, {@code false} otherwise.
+     */
+    public static boolean setCurvesList(long ctx, String... curves) {
+        if (curves == null) {
+            throw new NullPointerException("curves");
+        }
+        if (curves.length == 0) {
+            throw new IllegalArgumentException();
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String curve: curves) {
+            sb.append(curve);
+            // Curves are separated by : as explained in the manpage.
+            sb.append(':');
+        }
+        sb.setLength(sb.length() - 1);
+        return setCurvesList0(ctx, sb.toString());
+    }
+
+    private static native boolean setCurvesList0(long ctx, String curves);
 }
