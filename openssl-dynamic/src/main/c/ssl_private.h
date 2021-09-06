@@ -456,6 +456,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 
     extern int SSL_get_sigalgs(SSL *s, int idx, int *psign, int *phash, int *psignhash, unsigned char *rsig, unsigned char *rhash) __attribute__((weak));
     extern void SSL_CTX_set_cert_cb(SSL_CTX *c, int (*cert_cb)(SSL *ssl, void *arg), void *arg) __attribute__((weak));
+    extern int SSL_CTX_set1_curves_list(SSL_CTX *ctx, char* curves) __attribute__((weak));
 #endif
 
 #endif /* SSL_PRIVATE_H */
