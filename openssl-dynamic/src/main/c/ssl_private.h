@@ -461,6 +461,9 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 #ifdef OPENSSL_IS_BORINGSSL
 #define tcn_SSL_CTX_set1_curves_list(ctx, s) SSL_CTX_set1_curves_list(ctx, s)
 #else
+#ifndef SSL_CTRL_SET_GROUPS_LIST
+#define SSL_CTRL_SET_GROUPS_LIST                92
+#endif // SSL_CTRL_SET_GROUPS_LIST
 #define tcn_SSL_CTX_set1_curves_list(ctx, s) SSL_CTX_ctrl(ctx, SSL_CTRL_SET_GROUPS_LIST, 0, (char *)(s))
 #endif // OPENSSL_IS_BORINGSSL
 
