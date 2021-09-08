@@ -79,6 +79,7 @@
     <aprPatchFileSha256>8754b8089d0eb53a7c4fd435c9a9300560b675a8ff2c32315a5e9303408447fe</aprPatchFileSha256>
     <archBits>64</archBits>
     <linkStatic>false</linkStatic>
+    <osxCrossCompile>false</osxCrossCompile>
     <sslHome>${project.build.directory}/ssl</sslHome>
     <msvcSslIncludeDirs>${sslHome}/include</msvcSslIncludeDirs>
     <msvcSslLibDirs>${sslHome}/lib</msvcSslLibDirs>
@@ -620,13 +621,42 @@
                           </then>
                         </if>
 
-                        <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                          <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget}" />
-                        </exec>
-                        <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
-                        <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                          <arg line="install" />
-                        </exec>
+                        <if>
+                          <equals arg1="${osxCrossCompile}" arg2="true" />
+                          <then>
+                            <!--
++                             We need to set some extra variables as otherwise the configure of apr will fail when trying to cross-compile.
++                             See https://stackoverflow.com/a/1605497/1074097
++                           -->
+                            <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC -target arm64-apple-macos11' --host=aarch64-apple-darwin ${macOsxDeploymentTarget} ac_cv_file__dev_zero=yes apr_cv_process_shared_works=yes apr_cv_mutex_robust_shared=no apr_cv_tcp_nodelay_with_cork=yes ${macOsxDeploymentTarget}" />
+                            </exec>
+                            <!--
+                              Make will fail when it tries to use the gen_test_char program.
+                              We work around this by compile gen_test_char separate, execute and than rerun make.
+                              See https://stackoverflow.com/a/56262330/1074097
+                            -->
+                            <exec executable="make" failonerror="false" dir="${aprSourceDir}" resolveexecutable="true" />
+                            <exec executable="gcc" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="-Wall -O2 -DCROSS_COMPILE tools/gen_test_char.c -o tools/gen_test_char" />
+                            </exec>
+                            <exec executable="tools/gen_test_char" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" output="${aprSourceDir}/include/private/apr_escape_test_char.h"/>
+                            <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+                            <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="install" />
+                            </exec>
+                          </then>
+                          <else>
+                            <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget}" />
+                            </exec>
+                            <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+                            <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="install" />
+                            </exec>
+                          </else>
+                        </if>
+
                       </else>
                     </if>
                   </target>
