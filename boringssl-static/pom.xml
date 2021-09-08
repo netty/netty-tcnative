@@ -1196,7 +1196,6 @@
                   <libDirectory>${nativeLibOnlyDir}</libDirectory>
                   <forceAutogen>${forceAutogen}</forceAutogen>
                   <forceConfigure>${forceConfigure}</forceConfigure>
-                  <windowsBuildTool>msbuild</windowsBuildTool>
                   <!-- <verbose>true</verbose> -->
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
