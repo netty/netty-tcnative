@@ -24,7 +24,7 @@
 
   <groupId>io.netty</groupId>
   <artifactId>netty-tcnative-parent</artifactId>
-  <version>2.0.42.Final-SNAPSHOT</version>
+  <version>2.0.42.Final</version>
   <packaging>pom</packaging>
 
   <name>Netty/TomcatNative [Parent]</name>
@@ -640,7 +640,7 @@
                             <exec executable="gcc" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
                               <arg line="-Wall -O2 -DCROSS_COMPILE tools/gen_test_char.c -o tools/gen_test_char" />
                             </exec>
-                            <exec executable="tools/gen_test_char" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" output="${aprSourceDir}/include/private/apr_escape_test_char.h"/>
+                            <exec executable="tools/gen_test_char" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" output="${aprSourceDir}/include/private/apr_escape_test_char.h" />
                             <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
                             <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
                               <arg line="install" />

@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.42.Final-SNAPSHOT</version>
+    <version>2.0.42.Final</version>
   </parent>
   <artifactId>netty-tcnative-boringssl-static</artifactId>
   <packaging>jar</packaging>
@@ -981,8 +981,8 @@
       <properties>
         <linkStatic>true</linkStatic>
         <osxCrossCompile>true</osxCrossCompile>
-        <macOsxDeploymentTarget/>
-        <cmakeOsxDeploymentTarget/>
+        <macOsxDeploymentTarget />
+        <cmakeOsxDeploymentTarget />
         <cflags>-target arm64-apple-macos11 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
         <cppflags>-target arm64-apple-macos11 -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
         <ldflags>-arch arm64 -L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
