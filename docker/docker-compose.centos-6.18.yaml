@@ -7,7 +7,7 @@ services:
     build:
       args:
         centos_version : "6"
-        java_version : "adopt@1.8.0-292"
+        java_version : "8.0.302-zulu"
 
   build:
     image: netty-tcnative-centos:centos-6-1.8
