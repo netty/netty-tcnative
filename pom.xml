@@ -392,7 +392,6 @@
               </supportedProjectTypes>
               <instructions>
                 <Export-Package>io.netty.internal.tcnative.*</Export-Package>
-                <Bundle-NativeCode>${tcnativeManifest}</Bundle-NativeCode>
               </instructions>
             </configuration>
           </execution>

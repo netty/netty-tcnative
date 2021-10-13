@@ -125,7 +125,12 @@
                   <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
                   <globmapper from="netty_tcnative.*" to="netty_tcnative_${os.detected.name}_${jniArch}.*" />
                 </move>
-                 
+
+                <!-- Append the Bundle-NativeCode section -->
+                <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
+                  <attribute name="Bundle-NativeCode" value="${tcnativeManifest}"/>
+                </manifest>
+
                 <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
                 <!-- Adjust the classifier used for different OS distributions which provide differently-built openSSL libraries -->
                 <condition property="classifier" value="${jniClassifier}-fedora">
