@@ -294,6 +294,12 @@
                       <fileset dir="../license" />
                     </copy>
 
+
+                    <!-- Append the Bundle-NativeCode section -->
+                    <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
+                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}"/>
+                    </manifest>
+
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
                     <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
                   </target>
@@ -622,6 +628,11 @@
                     <copy todir="${nativeJarWorkdir}/META-INF/license">
                       <fileset dir="../license" />
                     </copy>
+
+                    <!-- Append the Bundle-NativeCode section -->
+                    <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
+                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}"/>
+                    </manifest>
 
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
                     <attachartifact file="${nativeJarFile}" classifier="${os.detected.name}-aarch_64" type="jar" />
@@ -1170,6 +1181,11 @@
                     <copy todir="${nativeJarWorkdir}/META-INF/license">
                       <fileset dir="../license" />
                     </copy>
+
+                    <!-- Append the Bundle-NativeCode section -->
+                    <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
+                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}"/>
+                    </manifest>
 
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
                     <attachartifact file="${nativeJarFile}" classifier="${os.detected.name}-aarch_64" type="jar" />
