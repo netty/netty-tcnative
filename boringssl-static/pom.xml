@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.45.Final-SNAPSHOT</version>
+    <version>2.0.45.Final</version>
   </parent>
   <artifactId>netty-tcnative-boringssl-static</artifactId>
   <packaging>jar</packaging>
@@ -297,7 +297,7 @@
 
                     <!-- Append the Bundle-NativeCode section -->
                     <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
-                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}"/>
+                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}" />
                     </manifest>
 
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
@@ -631,7 +631,7 @@
 
                     <!-- Append the Bundle-NativeCode section -->
                     <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
-                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}"/>
+                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}" />
                     </manifest>
 
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
@@ -1184,7 +1184,7 @@
 
                     <!-- Append the Bundle-NativeCode section -->
                     <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
-                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}"/>
+                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}" />
                     </manifest>
 
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
