@@ -195,6 +195,14 @@
     </plugins>
   </build>
 
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>netty-tcnative-classes</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
   <profiles>
     <profile>
       <id>build-libressl-windows</id>

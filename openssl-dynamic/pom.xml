@@ -34,6 +34,7 @@
     <compileLibrary>true</compileLibrary>
     <linkStatic>false</linkStatic>
     <nativeSourceDirectory />
+    <skipJapicmp>true</skipJapicmp>
   </properties>
 
   <build>
@@ -151,6 +152,14 @@
       </plugin>
     </plugins>
   </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>netty-tcnative-classes</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
 
   <profiles>
     <!-- Make sure all required environment variables are present on Windows. -->

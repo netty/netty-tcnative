@@ -25,7 +25,7 @@ services:
 
   build:
     <<: *common
-    command: /bin/bash -cl "./mvnw -Pci clean package"
+    command: /bin/bash -cl "./mvnw clean package"
 
   shell:
     <<: *common

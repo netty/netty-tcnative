@@ -4,8 +4,6 @@ FROM debian:$debian_version
 ARG debian_version
 
 ENV SOURCE_DIR /root/source
-ENV WORKSPACE_DIR /root/workspace
-ENV PROJECT_DIR /root/workspace/project
 ENV CMAKE_VERSION_BASE 3.8
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
 ENV NINJA_VERSION 1.7.2
@@ -75,7 +73,3 @@ RUN echo 'PATH=/opt/apache-maven-3.6.3/bin/:$PATH' >> ~/.bashrc
 # Prepare our own build
 ENV PATH /opt/apache-maven-3.6.3/bin/:$PATH
 ENV JAVA_HOME /jdk/
-
-RUN mkdir $WORKSPACE_DIR
-RUN mkdir $PROJECT_DIR
-WORKDIR $PROJECT_DIR

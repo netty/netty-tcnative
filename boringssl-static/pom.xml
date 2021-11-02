@@ -61,7 +61,17 @@
     <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
     <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
     <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
+    <skipJapicmp>true</skipJapicmp>
   </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>netty-tcnative-classes</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
   <profiles>
     <!-- Default profile that builds a platform-specific jar -->
     <profile>

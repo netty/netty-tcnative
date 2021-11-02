@@ -1,8 +1,6 @@
 FROM centos:6.10
 
 ENV SOURCE_DIR /root/source
-ENV WORKSPACE_DIR /root/workspace
-ENV PROJECT_DIR /root/workspace/project
 ENV CMAKE_VERSION_BASE 3.8
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
 ENV NINJA_VERSION 1.7.2
@@ -77,26 +75,3 @@ RUN mkdir ~/.include
 RUN echo '#include "/usr/include/assert.h"' >>  ~/.include/assert.h
 RUN echo '#define static_assert _Static_assert'  >>  ~/.include/assert.h
 RUN echo 'export C_INCLUDE_PATH="$HOME/.include/"' >>  ~/.bashrc
-
-RUN mkdir $WORKSPACE_DIR
-RUN mkdir $PROJECT_DIR
-WORKDIR $PROJECT_DIR
-
-# Copy all the pom.xml files so we can download dependencies etc.
-COPY ./boringssl-static/pom.xml $PROJECT_DIR/boringssl-static/pom.xml
-COPY ./libressl-static/pom.xml $PROJECT_DIR/libressl-static/pom.xml
-COPY ./openssl-dynamic/pom.xml $PROJECT_DIR/openssl-dynamic/pom.xml
-COPY ./openssl-static/pom.xml $PROJECT_DIR/openssl-static/pom.xml
-COPY ./pom.xml $PROJECT_DIR/pom.xml
-
-# Pre-build apr
-RUN /bin/bash -c 'source $HOME/.bashrc && mvn antrun:run@source-apr-linux-mac antrun:run@build-apr-linux-mac -DaprSourceDir=$WORKSPACE_DIR/apr-source -DaprHome=$WORKSPACE_DIR/apr -DlinkStatic=true'
-
-# Pre-build boringssl
-RUN /bin/bash -c 'source $HOME/.bashrc && mvn -pl boringssl-static scm:checkout@get-boringssl antrun:run@build-boringssl -DboringsslSourceDir=$WORKSPACE_DIR/boringssl-source -DboringsslHome=$WORKSPACE_DIR/boringssl -DlinkStatic=true'
-
-# Pre-build openssl
-RUN /bin/bash -c 'source $HOME/.bashrc && mvn -pl openssl-static antrun:run@source-openssl antrun:run@build-openssl -DopensslSourceDir=$WORKSPACE_DIR/openssl-source -DopensslHome=$WORKSPACE_DIR/openssl -DlinkStatic=true'
-
-# Pre-build libressl
-RUN /bin/bash -c 'source $HOME/.bashrc && mvn -pl libressl-static antrun:run@source-libressl-non-windows antrun:run@build-libressl-non-windows -DlibresslSourceDir=$WORKSPACE_DIR/libressl-source -DlibresslHome=$WORKSPACE_DIR/libressl -DlinkStatic=true'

@@ -748,6 +748,7 @@
       </build>
       <modules>
         <!-- When doing a release we only want to deploy dynamic openssl version and the static boring one. -->
+        <module>openssl-classes</module>
         <module>openssl-dynamic</module>
         <module>boringssl-static</module>
       </modules>
@@ -757,6 +758,7 @@
       <id>stage</id>
       <modules>
         <!-- When stage we only want to deploy dynamic openssl version and the static boring one. -->
+        <module>openssl-classes</module>
         <module>openssl-dynamic</module>
         <module>boringssl-static</module>
       </modules>
@@ -774,6 +776,7 @@
         </property>
       </activation>
       <modules>
+        <module>openssl-classes</module>
         <module>openssl-dynamic</module>
         <module>openssl-static</module>
         <module>boringssl-static</module>
