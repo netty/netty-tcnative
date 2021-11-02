@@ -84,8 +84,5 @@ COPY ./openssl-dynamic/pom.xml $PROJECT_DIR/openssl-dynamic/pom.xml
 COPY ./openssl-static/pom.xml $PROJECT_DIR/openssl-static/pom.xml
 COPY ./pom.xml $PROJECT_DIR/pom.xml
 
-# Download dependencies
-RUN /bin/bash -c 'source $HOME/.bashrc && mvn dependency:go-offline checkstyle:check animal-sniffer:check surefire:test -ntp'
-
 # Pre-build boringssl
 RUN /bin/bash -c 'source $HOME/.bashrc && mvn -Plinux-aarch64 -pl boringssl-static scm:checkout@get-boringssl antrun:run@build-boringssl -DboringsslSourceDir=$WORKSPACE_DIR/boringssl-source -DboringsslHome=$WORKSPACE_DIR/boringssl -DlinkStatic=true'

@@ -89,9 +89,6 @@ COPY ./openssl-dynamic/pom.xml $PROJECT_DIR/openssl-dynamic/pom.xml
 COPY ./openssl-static/pom.xml $PROJECT_DIR/openssl-static/pom.xml
 COPY ./pom.xml $PROJECT_DIR/pom.xml
 
-# Download dependencies
-RUN /bin/bash -c 'source $HOME/.bashrc && mvn dependency:go-offline checkstyle:check animal-sniffer:check surefire:test -ntp'
-
 # Pre-build apr
 RUN /bin/bash -c 'source $HOME/.bashrc && mvn antrun:run@source-apr-linux-mac antrun:run@build-apr-linux-mac -DaprSourceDir=$WORKSPACE_DIR/apr-source -DaprHome=$WORKSPACE_DIR/apr -DlinkStatic=true'
 
