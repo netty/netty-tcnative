@@ -85,7 +85,5 @@ COPY ./boringssl-static/pom.xml $PROJECT_DIR/boringssl-static/pom.xml
 COPY ./libressl-static/pom.xml $PROJECT_DIR/libressl-static/pom.xml
 COPY ./openssl-dynamic/pom.xml $PROJECT_DIR/openssl-dynamic/pom.xml
 COPY ./openssl-static/pom.xml $PROJECT_DIR/openssl-static/pom.xml
+COPY ./openssl-classes/pom.xml $PROJECT_DIR/openssl-classes/pom.xml
 COPY ./pom.xml $PROJECT_DIR/pom.xml
-
-# Download dependencies
-RUN /bin/bash -c 'source $HOME/.bashrc && mvn dependency:go-offline checkstyle:check animal-sniffer:check surefire:test -ntp'
