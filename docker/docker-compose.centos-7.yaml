@@ -24,8 +24,6 @@ services:
       - ~/.ssh:/root/.ssh:delegated
       - ~/.gnupg:/root/.gnupg:delegated
       - ~/.m2/repository:/root/.m2/repository
-      - ~/.gitconfig:/root/.gitconfig:delegated
-      - ~/.gitignore:/root/.gitignore:delegated
       - ..:/code:delegated
     working_dir: /code
 
@@ -42,7 +40,7 @@ services:
 
   cross-compile-aarch64-build:
     <<: *cross-compile-aarch64-common
-    command: /bin/bash -cl "mvn clean package -Plinux-aarch64 -am -pl openssl-dynamic -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share -DskipTests && popd && mvn clean package -Plinux-aarch64 -am -pl boringssl-static -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DskipTests && popd"
+    command: /bin/bash -cl "mvn clean package -Plinux-aarch64 -am -pl openssl-dynamic -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share -DskipTests && mvn clean package -Plinux-aarch64 -am -pl boringssl-static -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DskipTests"
 
   cross-compile-aarch64-deploy:
     <<: *cross-compile-aarch64-common
@@ -52,7 +50,7 @@ services:
       - ~/.m2/repository:/root/.m2/repository
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ..:/code
-    command: /bin/bash -cl "mvn clean deploy -Plinux-aarch64 -am -pl openssl-dynamic -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share -DskipTests && mvn clean deploy -Plinux-aarch64 -am -pl boringssl-static -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DskipTests && popd"
+    command: /bin/bash -cl "mvn clean deploy -Plinux-aarch64 -am -pl openssl-dynamic -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share -DskipTests && mvn clean deploy -Plinux-aarch64 -am -pl boringssl-static -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl -DskipTests"
 
   cross-compile-aarch64-stage-snapshot:
     <<: *cross-compile-aarch64-common
@@ -72,4 +70,4 @@ services:
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ~/local-staging:/root/local-staging
       - ..:/code
-    command: /bin/bash -cl "cat <(echo -e \"${GPG_PRIVATE_KEY}\") | gpg --batch --import && mvn -Plinux-aarch64 -am -pl openssl-dynamic -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share clean javadoc:jar package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEYNAME} && popd && mvn -Plinux-aarch64 -am -pl boringssl-static -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl clean javadoc:jar package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEYNAME}"
+    command: /bin/bash -cl "cat <(echo -e \"${GPG_PRIVATE_KEY}\") | gpg --batch --import && mvn -Plinux-aarch64 -am -pl openssl-dynamic -DaprArmHome=/opt/apr-$$APR_VERSION-share -DopensslArmHome=/opt/openssl-$$OPENSSL_VERSION-share clean javadoc:jar package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEYNAME} && mvn -Plinux-aarch64 -am -pl boringssl-static -DaprArmHome=/opt/apr-$$APR_VERSION-static -DboringsslSourceDir=/root/workspace/boringssl-source -DboringsslHome=/root/workspace/boringssl clean javadoc:jar package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=/root/local-staging -DskipRemoteStaging=true -DskipTests=true -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEYNAME}"
