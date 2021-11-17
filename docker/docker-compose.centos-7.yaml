@@ -24,8 +24,6 @@ services:
       - ~/.ssh:/root/.ssh:delegated
       - ~/.gnupg:/root/.gnupg:delegated
       - ~/.m2/repository:/root/.m2/repository
-      - ~/.gitconfig:/root/.gitconfig:delegated
-      - ~/.gitignore:/root/.gitignore:delegated
       - ..:/code:delegated
     working_dir: /code
 
