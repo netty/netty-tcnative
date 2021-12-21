@@ -38,6 +38,7 @@
     <compileLibrary>true</compileLibrary>
     <!-- Don't deploy this artifact to Maven Central -->
     <maven.deploy.skip>true</maven.deploy.skip>
+    <skipJapicmp>true</skipJapicmp>
   </properties>
 
   <build>
