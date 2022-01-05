@@ -37,6 +37,7 @@
 #include "ssl_private.h"
 #include <stdint.h>
 #include "sslcontext.h"
+#include "cert_compress.h"
 
 #define SSLCONTEXT_CLASSNAME "io/netty/internal/tcnative/SSLContext"
 
@@ -80,6 +81,24 @@ static apr_status_t ssl_context_cleanup(void *data)
                 (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
             }
             c->ssl_private_key_method = NULL;
+        }
+        if (c->ssl_cert_compression_zlib_algorithm != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zlib_algorithm);
+            }
+            c->ssl_cert_compression_zlib_algorithm = NULL;
+        }
+        if (c->ssl_cert_compression_brotli_algorithm != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_brotli_algorithm);
+            }
+            c->ssl_cert_compression_brotli_algorithm = NULL;
+        }
+        if (c->ssl_cert_compression_zstd_algorithm != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zstd_algorithm);
+            }
+            c->ssl_cert_compression_zstd_algorithm = NULL;
         }
 #endif // OPENSSL_IS_BORINGSSL
 
@@ -2647,6 +2666,88 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCurvesList0)(TCN_STDARGS, jlong ctx,
     return ret == 1 ? JNI_TRUE : JNI_FALSE;
 }
 
+TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_STDARGS, jlong ctx, jint direction, jint algorithmId, jobject algorithm) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    TCN_CHECK_NULL(c, ctx, 0);
+    if (algorithm == NULL) {
+        tcn_ThrowIllegalArgumentException(e, "Compression algorithm may not be null");
+    }
+    if (!(direction & SSL_CERT_COMPRESSION_DIRECTION_COMPRESS) && !(direction & SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS)) {
+        tcn_ThrowIllegalArgumentException(e, "Invalid direction specified");
+    }
+
+#ifdef OPENSSL_IS_BORINGSSL
+
+    jclass algorithmClass = (*e)->GetObjectClass(e, algorithm);
+    if (algorithmClass == NULL) {
+        tcn_Throw(e, "Unable to retrieve cert compression algorithm class");
+        return 0;
+    }
+
+    jmethodID compressMethod = (*e)->GetMethodID(e, algorithmClass, "compress", "(J[B)[B");
+    if (compressMethod == NULL) {
+        tcn_ThrowIllegalArgumentException(e, "Unable to retrieve compress method");
+        return 0;
+    }
+
+    jmethodID decompressMethod = (*e)->GetMethodID(e, algorithmClass, "decompress", "(JI[B)[B");
+    if (decompressMethod == NULL) {
+        tcn_ThrowIllegalArgumentException(e, "Unable to retrieve decompress method");
+        return 0;
+    }
+
+    jobject algoRef = (*e)->NewGlobalRef(e, algorithm);
+    if (algoRef == NULL) {
+        tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global cert compression algorithm reference");
+        return 0;
+    }
+
+    int result = 0;
+    switch (algorithmId) {
+        case TLSEXT_cert_compression_zlib:
+            result = SSL_CTX_add_cert_compression_alg(c->ctx, algorithmId,
+                direction & SSL_CERT_COMPRESSION_DIRECTION_COMPRESS ? zlib_compress_java : NULL,
+                direction & SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS ? zlib_decompress_java : NULL);
+            if (result) {
+                c->ssl_cert_compression_zlib_algorithm = algoRef;
+                c->ssl_cert_compression_zlib_compress_method = compressMethod;
+                c->ssl_cert_compression_zlib_decompress_method = decompressMethod;
+            }
+            break;
+        case TLSEXT_cert_compression_brotli:
+            result = SSL_CTX_add_cert_compression_alg(c->ctx, algorithmId,
+                direction & SSL_CERT_COMPRESSION_DIRECTION_COMPRESS ? brotli_compress_java : NULL,
+                direction & SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS ? brotli_decompress_java : NULL);
+            if (result) {
+                c->ssl_cert_compression_brotli_algorithm = algoRef;
+                c->ssl_cert_compression_brotli_compress_method = compressMethod;
+                c->ssl_cert_compression_brotli_decompress_method = decompressMethod;
+            }
+            break;
+        case TLSEXT_cert_compression_zstd:
+            result = SSL_CTX_add_cert_compression_alg(c->ctx, algorithmId,
+                direction & SSL_CERT_COMPRESSION_DIRECTION_COMPRESS ? zstd_compress_java : NULL,
+                direction & SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS ? zstd_decompress_java : NULL);
+            if (result) {
+                c->ssl_cert_compression_zstd_algorithm = algoRef;
+                c->ssl_cert_compression_zstd_compress_method = compressMethod;
+                c->ssl_cert_compression_zstd_decompress_method = decompressMethod;
+            }
+            break;
+        default:
+            tcn_ThrowException(e, "Unrecognized certificate compression algorithm");
+    }
+    if (!result) {
+        (*e)->DeleteGlobalRef(e, algoRef);
+        tcn_ThrowException(e, "Failed trying to add certificate compression algorithm");
+    }
+    return result;
+#else
+    tcn_Throw(e, "TLS Cert Compression only supported by BoringSSL");
+    return 0;
+#endif // OPENSSL_IS_BORINGSSL
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(make, (II)J, SSLContext) },
@@ -2705,12 +2806,14 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCurvesList0, (JLjava/lang/String;)Z, SSLContext) }
+
+  // addCertificateCompressionAlgorithm0 --> needs dynamic method table
 };
 
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
 
 static jint dynamicMethodsTableSize() {
-    return fixed_method_table_size + 6;
+    return fixed_method_table_size + 7;
 }
 
 static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
@@ -2764,6 +2867,13 @@ static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
     netty_jni_util_free_dynamic_name(&dynamicTypeName);
     dynamicMethod->name = "setSSLSessionCache";
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSSLSessionCache);
+
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 6];
+    NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateCompressionAlgo;)I", dynamicTypeName, error);
+    NETTY_JNI_UTIL_PREPEND("(JIIL", dynamicTypeName,  dynamicMethod->signature, error);
+    netty_jni_util_free_dynamic_name(&dynamicTypeName);
+    dynamicMethod->name = "addCertificateCompressionAlgorithm0";
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, addCertificateCompressionAlgorithm0);
 
     return dynamicMethods;
 error:

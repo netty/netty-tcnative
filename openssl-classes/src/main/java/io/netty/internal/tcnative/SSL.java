@@ -116,6 +116,10 @@ public final class SSL {
     public static final int SSL_RENEGOTIATE_IGNORE = sslRenegotiateIgnore();
     public static final int SSL_RENEGOTIATE_EXPLICIT = sslRenegotiateExplicit();
 
+    public static final int SSL_CERT_COMPRESSION_DIRECTION_COMPRESS = sslCertCompressionDirectionCompress();
+    public static final int SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS = sslCertCompressionDirectionDecompress();
+    public static final int SSL_CERT_COMPRESSION_DIRECTION_BOTH = sslCertCompressionDirectionBoth();
+
     /* Return OpenSSL version number */
     public static native int version();
 
