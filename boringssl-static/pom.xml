@@ -1003,10 +1003,16 @@
       <properties>
         <linkStatic>true</linkStatic>
         <osxCrossCompile>true</osxCrossCompile>
-        <macOsxDeploymentTarget />
-        <cmakeOsxDeploymentTarget />
-        <cflags>-target arm64-apple-macos11 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
-        <cppflags>-target arm64-apple-macos11 -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
+        <target>arm64-apple-macos11</target>
+        <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=11.0</macOsxDeploymentTarget>
+        <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0</cmakeOsxDeploymentTarget>
+        <!-- On *nix, add ASM flags to disable executable stack -->
+        <cmakeAsmFlags>-Wa,--noexecstack -target ${target}</cmakeAsmFlags>
+        <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
+        <cmakeCFlags>-O3 -fno-omit-frame-pointer -target ${target} -DOPENSSL_C11_ATOMIC</cmakeCFlags>
+        <cmakeCxxFlags>-O3 -fno-omit-frame-pointer -target ${target} -Wno-error=range-loop-analysis</cmakeCxxFlags>
+        <cflags>-target ${target} -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
+        <cppflags>-target ${target} -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
         <ldflags>-arch arm64 -L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch_64.jar</nativeJarFile>
@@ -1117,13 +1123,6 @@
                         </exec>
 
                         <mkdir dir="${boringsslHome}" />
-
-                        <!-- On *nix, add ASM flags to disable executable stack -->
-                        <property name="cmakeAsmFlags" value="-Wa,--noexecstack -target arm64-apple-macos11" />
-                        <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
-                        <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -target arm64-apple-macos11 -DOPENSSL_C11_ATOMIC" />
-                        <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -target arm64-apple-macos11 -Wno-error=range-loop-analysis" />
-
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
