@@ -22,18 +22,17 @@
 static int compress(jobject compression_algorithm, jmethodID compress_method, SSL* ssl, CBB* out,
     const uint8_t* in, size_t in_len) {
 
-    int ret = 0;
     JNIEnv *e = NULL;
     jbyteArray inputArray = NULL;
 
     if (compression_algorithm == NULL || compress_method == NULL) {
-        goto complete;
+        return 0;
     }
     if (tcn_get_java_env(&e) != JNI_OK) {
-        goto complete;
+        return 0;
     }
     if ((inputArray = (*e)->NewByteArray(e, in_len)) == NULL) {
-        goto complete;
+        return 0;
     }
 
     (*e)->SetByteArrayRegion(e, inputArray, 0, in_len, (jbyte*) in);
@@ -43,49 +42,40 @@ static int compress(jobject compression_algorithm, jmethodID compress_method, SS
 
     if ((*e)->ExceptionCheck(e) != JNI_FALSE) {
         (*e)->ExceptionClear(e);
-        goto complete; // Exception while calling into Java
+        return 0; // Exception while calling into Java
     }
     if (resultArray == NULL) {
-        goto complete; // Received NULL array from call to Java
+        return 0; // Received NULL array from call to Java
     }
 
     int resultLen = (*e)->GetArrayLength(e, resultArray);
     uint8_t* outData = NULL;
     if (!CBB_reserve(out, &outData, resultLen)) {
-        goto complete; // Unable to reserve space for compressed data
+        return 0; // Unable to reserve space for compressed data
     }
     jbyte* resultData = (*e)->GetByteArrayElements(e, resultArray, NULL);
     memcpy(outData, resultData, resultLen);
-    if (!CBB_did_write(out, resultLen)) {
-        goto complete; // Unable to advance bytes written to CBB
-    }
     (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
-    ret = 1; // Success
-    goto complete;
-
-complete:
-    // Free up any allocated memory and return.
-    if (inputArray != NULL) {
-        (*e)->DeleteLocalRef(e, inputArray);
+    if (!CBB_did_write(out, resultLen)) {
+        return 0; // Unable to advance bytes written to CBB
     }
-    return ret;
+    return 1; // Success
 }
 
 static int decompress(jobject compression_algorithm, jmethodID decompress_method, SSL* ssl, CRYPTO_BUFFER** out,
     size_t uncompressed_len, const uint8_t* in, size_t in_len) {
 
-    int ret = 0;
     JNIEnv* e = NULL;
     jbyteArray inputArray = NULL;
 
     if (compression_algorithm == NULL || decompress_method == NULL) {
-        goto complete;
+        return 0;
     }
     if (tcn_get_java_env(&e) != JNI_OK) {
-        goto complete;
+        return 0;
     }
     if ((inputArray = (*e)->NewByteArray(e, in_len)) == NULL) {
-        goto complete;
+        return 0;
     }
 
     (*e)->SetByteArrayRegion(e, inputArray, 0, in_len, (jbyte*) in);
@@ -97,31 +87,24 @@ static int decompress(jobject compression_algorithm, jmethodID decompress_method
 
     if ((*e)->ExceptionCheck(e) != JNI_FALSE) {
         (*e)->ExceptionClear(e);
-        goto complete; // Exception while calling into Java
+        return 0; // Exception while calling into Java
     }
     if (resultArray == NULL) {
-        goto complete; // Received NULL array from call to Java
+        return 0; // Received NULL array from call to Java
     }
 
     int resultLen = (*e)->GetArrayLength(e, resultArray);
     if (uncompressed_len != resultLen) {
-        goto complete; // Unexpected uncompressed length
+        return 0; // Unexpected uncompressed length
     }
     uint8_t* outData;
     if (!((*out) = CRYPTO_BUFFER_alloc(&outData, uncompressed_len))) {
-        goto complete; // Unable to allocate certificate decompression buffer
+        return 0; // Unable to allocate certificate decompression buffer
     }
     jbyte* resultData = (*e)->GetByteArrayElements(e, resultArray, NULL);
     memcpy(outData, resultData, uncompressed_len);
     (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
-    ret = 1; // Success
-
-complete:
-    // Free up any allocated memory and return.
-    if (inputArray != NULL) {
-        (*e)->DeleteLocalRef(e, inputArray);
-    }
-    return ret;
+    return 1; // Success
 
 }
 

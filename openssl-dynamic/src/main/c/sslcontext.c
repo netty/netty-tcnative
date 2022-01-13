@@ -2671,9 +2671,11 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
     TCN_CHECK_NULL(c, ctx, 0);
     if (algorithm == NULL) {
         tcn_ThrowIllegalArgumentException(e, "Compression algorithm may not be null");
+        return 0;
     }
     if (!(direction & SSL_CERT_COMPRESSION_DIRECTION_COMPRESS) && !(direction & SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS)) {
         tcn_ThrowIllegalArgumentException(e, "Invalid direction specified");
+        return 0;
     }
 
 #ifdef OPENSSL_IS_BORINGSSL
