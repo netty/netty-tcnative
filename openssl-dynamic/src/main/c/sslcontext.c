@@ -2709,6 +2709,9 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
                 direction & SSL_CERT_COMPRESSION_DIRECTION_COMPRESS ? zlib_compress_java : NULL,
                 direction & SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS ? zlib_decompress_java : NULL);
             if (result) {
+                if (c->ssl_cert_compression_zlib_algorithm != NULL) {
+                    (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zlib_algorithm);
+                }
                 c->ssl_cert_compression_zlib_algorithm = algoRef;
                 c->ssl_cert_compression_zlib_compress_method = compressMethod;
                 c->ssl_cert_compression_zlib_decompress_method = decompressMethod;
@@ -2719,6 +2722,9 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
                 direction & SSL_CERT_COMPRESSION_DIRECTION_COMPRESS ? brotli_compress_java : NULL,
                 direction & SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS ? brotli_decompress_java : NULL);
             if (result) {
+                if (c->ssl_cert_compression_brotli_algorithm != NULL) {
+                    (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_brotli_algorithm);
+                }
                 c->ssl_cert_compression_brotli_algorithm = algoRef;
                 c->ssl_cert_compression_brotli_compress_method = compressMethod;
                 c->ssl_cert_compression_brotli_decompress_method = decompressMethod;
@@ -2729,13 +2735,18 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
                 direction & SSL_CERT_COMPRESSION_DIRECTION_COMPRESS ? zstd_compress_java : NULL,
                 direction & SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS ? zstd_decompress_java : NULL);
             if (result) {
+                if (c->ssl_cert_compression_zstd_algorithm != NULL) {
+                    (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zstd_algorithm);
+                }
                 c->ssl_cert_compression_zstd_algorithm = algoRef;
                 c->ssl_cert_compression_zstd_compress_method = compressMethod;
                 c->ssl_cert_compression_zstd_decompress_method = decompressMethod;
             }
             break;
         default:
+             (*e)->DeleteGlobalRef(e, algoRef);
             tcn_ThrowException(e, "Unrecognized certificate compression algorithm");
+            return 0;
     }
     if (!result) {
         (*e)->DeleteGlobalRef(e, algoRef);
