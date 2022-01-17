@@ -170,6 +170,10 @@ extern const char* TCN_UNKNOWN_AUTH_METHOD;
 #define SSL_SESSION_TICKET_HMAC_KEY_LEN 16
 #define SSL_SESSION_TICKET_KEY_SIZE     48
 
+#define SSL_CERT_COMPRESSION_DIRECTION_COMPRESS     0x01
+#define SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS   0x02
+#define SSL_CERT_COMPRESSION_DIRECTION_BOTH         0x03
+
 extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 
 // HACK!
@@ -267,6 +271,21 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define SSL_ERROR_WANT_CERTIFICATE_VERIFY       -1
 #endif
 
+#ifndef TLSEXT_cert_compression_zlib
+// See https://datatracker.ietf.org/doc/html/rfc8879#section-3
+#define TLSEXT_cert_compression_zlib            1
+#endif
+
+#ifndef TLSEXT_cert_compression_brotli
+// See https://datatracker.ietf.org/doc/html/rfc8879#section-3
+#define TLSEXT_cert_compression_brotli          2
+#endif
+
+#ifndef TLSEXT_cert_compression_zstd
+// See https://datatracker.ietf.org/doc/html/rfc8879#section-3
+#define TLSEXT_cert_compression_zstd            3
+#endif
+
 typedef struct tcn_ssl_ctxt_t tcn_ssl_ctxt_t;
 
 typedef struct {
@@ -319,6 +338,18 @@ struct tcn_ssl_ctxt_t {
     jobject                  ssl_private_key_method;
     jmethodID                ssl_private_key_sign_method;
     jmethodID                ssl_private_key_decrypt_method;
+
+    jobject                  ssl_cert_compression_zlib_algorithm;
+    jmethodID                ssl_cert_compression_zlib_compress_method;
+    jmethodID                ssl_cert_compression_zlib_decompress_method;
+
+    jobject                  ssl_cert_compression_brotli_algorithm;
+    jmethodID                ssl_cert_compression_brotli_compress_method;
+    jmethodID                ssl_cert_compression_brotli_decompress_method;
+
+    jobject                  ssl_cert_compression_zstd_algorithm;
+    jmethodID                ssl_cert_compression_zstd_compress_method;
+    jmethodID                ssl_cert_compression_zstd_decompress_method;
 #endif // OPENSSL_IS_BORINGSSL
 
     tcn_ssl_verify_config_t  verify_config;

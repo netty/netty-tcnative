@@ -649,6 +649,35 @@ public final class SSLContext {
     public static native void setUseTasks(long ctx, boolean useTasks);
 
     /**
+     * Adds a certificate compression algorithm to the given {@link SSLContext} or throws an
+     * exception if certificate compression is not supported or the algorithm not recognized.
+     * For servers, algorithm preference order is dictated by the order of algorithm registration.
+     * Most preferred algorithm should be registered first.
+     *
+     * This method is currently only supported when {@code BoringSSL} is used.
+     *
+     * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#Certificate-compression">
+     *     SSL_CTX_add_cert_compression_alg</a>
+     * <a href="https://www.ietf.org/rfc/rfc8879.txt">rfc8879</a>
+     *
+     * @param ctx       context, to which, the algorithm should be added.
+     * @param direction indicates whether decompression support should be advertized, compression should be applied for
+     *                  peers which support it, or both. This allows the caller to support one way compression only.
+     * <PRE>
+     * {@link SSL#SSL_CERT_COMPRESSION_DIRECTION_COMPRESS}
+     * {@link SSL#SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS}
+     * {@link SSL#SSL_CERT_COMPRESSION_DIRECTION_BOTH}
+     * </PRE>
+     * @param algorithm implementation of the compression and or decompression algorithm as a {@link CertificateCompressionAlgo}
+     * @return one on success or zero on error
+     */
+    public static int addCertificateCompressionAlgorithm(long ctx, int direction, final CertificateCompressionAlgo algorithm) {
+        return addCertificateCompressionAlgorithm0(ctx, direction, algorithm.algorithmId(), algorithm);
+    }
+
+    private static native int addCertificateCompressionAlgorithm0(long ctx, int direction, int algorithmId, final CertificateCompressionAlgo algorithm);
+
+    /**
      * Set the {@link SSLPrivateKeyMethod} to use for the given {@link SSLContext}.
      * This allows to offload private key operations
      * if needed.
