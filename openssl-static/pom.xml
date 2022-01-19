@@ -50,6 +50,7 @@
             <archive>
               <manifestEntries>
                 <Automatic-Module-Name>io.netty.tcnative.openssl</Automatic-Module-Name>
+                <Fragment-Host>io.netty.tcnative-classes</Fragment-Host>
               </manifestEntries>
             </archive>
           </configuration>

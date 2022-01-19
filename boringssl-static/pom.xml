@@ -39,6 +39,7 @@
             <archive>
               <manifestEntries>
                 <Automatic-Module-Name>io.netty.tcnative.boringssl</Automatic-Module-Name>
+                <Fragment-Host>io.netty.tcnative-classes</Fragment-Host>
               </manifestEntries>
             </archive>
           </configuration>
