@@ -626,6 +626,56 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setNumTickets)(TCN_STDARGS, jlong ctx, 
 #endif
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, setSecurityLevel)(TCN_STDARGS, jlong ctx, jint level)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
+#if defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
+    // Not supported by BoringSSL and LibreSSL
+    tcn_Throw(e, "Not supported using BoringSSL/LibreSSL");
+    return;
+#else
+    // Only supported with GCC
+    #if defined(__GNUC__) || defined(__GNUG__)
+        if (!SSL_CTX_set_security_level) {
+            return;
+        }
+    #endif
+
+    // We can only support it when either use openssl version >= 1.1.0 or GCC as this way we can use weak linking
+    #if OPENSSL_VERSION_NUMBER >= 0x10100000L  || defined(__GNUC__) || defined(__GNUG__)
+        SSL_CTX_set_security_level(c->ctx, level);
+    #endif
+#endif
+}
+
+TCN_IMPLEMENT_CALL(jint, SSLContext, getSecurityLevel)(TCN_STDARGS, jlong ctx)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, 0);
+
+#if defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
+    // Not supported by BoringSSL and LibreSSL
+    tcn_Throw(e, "Not supported using BoringSSL/LibreSSL");
+    return -1;
+#else
+    // Only supported with GCC
+    #if defined(__GNUC__) || defined(__GNUG__)
+        if (!SSL_CTX_get_security_level) {
+            return -1;
+        }
+    #endif
+
+    // We can only support it when either use openssl version >= 1.1.0 or GCC as this way we can use weak linking
+    #if OPENSSL_VERSION_NUMBER >= 0x10100000L  || defined(__GNUC__) || defined(__GNUG__)
+        return SSL_CTX_get_security_level(c->ctx);
+    #endif
+#endif
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jint length)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -2818,6 +2868,8 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getSslCtx, (J)J, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setSecurityLevel, (JI)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(getSecurityLevel, (J)I, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCurvesList0, (JLjava/lang/String;)Z, SSLContext) }
 
   // addCertificateCompressionAlgorithm0 --> needs dynamic method table

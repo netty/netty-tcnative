@@ -725,6 +725,26 @@ public final class SSLContext {
     public static native boolean setNumTickets(long ctx, int tickets);
 
     /**
+     * Set the security level.<br>
+     * This method is currently only supported with OpenSSL version 1.1.0 and newer.<br>
+     * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_security_level.html">man SSL_CTX_set_security_level</a>
+     *
+     * @param ctx Server or Client context to use.
+     * @param level the security level
+     */
+    public static native void setSecurityLevel(long ctx, int level);
+
+    /**
+     * Get the current security level.<br>
+     * This method is currently only supported with OpenSSL version 1.1.0 and newer.<br>
+     * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_get_security_level.html">man SSL_CTX_get_security_level</a>
+     *
+     * @param ctx Server or Client context to use.
+     * @return the current security level
+     */
+    public static native int getSecurityLevel(long ctx);
+
+    /**
      * Sets the curves to use.
      *
      * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_CTX_set1_curves_list.html">SSL_CTX_set1_curves_list</a>.
