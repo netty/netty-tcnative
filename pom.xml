@@ -78,9 +78,9 @@
     -->
     <libresslSha256>bcce767a3fed252bfd1210f8a7e3505a2b54d3008f66e43d9b95e3f30c072931</libresslSha256>
     <opensslMinorVersion>1.1.1</opensslMinorVersion>
-    <opensslPatchVersion>l</opensslPatchVersion>
+    <opensslPatchVersion>m</opensslPatchVersion>
     <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
-    <opensslSha256>0b7a3e5e59c34827fe0c3a74b7ec8baef302b98fa80088d7f9153aa16fa76bd1</opensslSha256>
+    <opensslSha256>f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
     <aprPatchFile>r1871981-macos11.patch</aprPatchFile>
