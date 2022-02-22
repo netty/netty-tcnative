@@ -43,3 +43,6 @@ cmake-*
 */.docker-sync
 
 .vscode
+
+# exclude file created by the flatten plugin
+.flattened-pom.xml
