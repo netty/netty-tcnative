@@ -39,6 +39,8 @@
     <!-- Don't deploy this artifact to Maven Central -->
     <maven.deploy.skip>true</maven.deploy.skip>
     <skipJapicmp>true</skipJapicmp>
+    <!-- We need to use the same module name for all our "native" impls as only one should be loaded -->
+    <javaModuleName>io.netty.tcnative.openssl.${jniClassifier}</javaModuleName>
   </properties>
 
   <build>
@@ -50,7 +52,6 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Automatic-Module-Name>io.netty.tcnative.libressl</Automatic-Module-Name>
                 <Fragment-Host>io.netty.tcnative-classes</Fragment-Host>
               </manifestEntries>
             </archive>

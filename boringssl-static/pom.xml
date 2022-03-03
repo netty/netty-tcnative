@@ -38,7 +38,6 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Automatic-Module-Name>io.netty.tcnative.boringssl</Automatic-Module-Name>
                 <Fragment-Host>io.netty.tcnative-classes</Fragment-Host>
               </manifestEntries>
             </archive>
@@ -63,6 +62,8 @@
     <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
     <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
     <skipJapicmp>true</skipJapicmp>
+    <!-- We need to use the same module name for all our "native" impls as only one should be loaded -->
+    <javaModuleName>io.netty.tcnative.openssl.${jniClassifier}</javaModuleName>
   </properties>
 
   <dependencies>

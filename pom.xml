@@ -118,6 +118,7 @@
     <compileLibrary>false</compileLibrary>
     <jniUtilIncludeDir>${project.build.directory}/netty-jni-util/</jniUtilIncludeDir>
     <jniUtilVersion>0.0.3.Final</jniUtilVersion>
+    <javaModuleName>io.netty.internal.tcnative</javaModuleName>
   </properties>
 
   <build>
@@ -433,7 +434,7 @@
                   <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                 </manifest>
                 <manifestEntries>
-                  <Automatic-Module-Name>io.netty.internal.tcnative</Automatic-Module-Name>
+                  <Automatic-Module-Name>${javaModuleName}</Automatic-Module-Name>
                 </manifestEntries>
                 <index>true</index>
                 <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
