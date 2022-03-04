@@ -33,22 +33,6 @@
   <properties>
     <compileLibrary>true</compileLibrary>
     <linkStatic>false</linkStatic>
+    <javaModuleName>io.netty.tcnative.classes.openssl</javaModuleName>
   </properties>
-
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <artifactId>maven-jar-plugin</artifactId>
-          <configuration>
-            <archive>
-              <manifestEntries>
-                <Automatic-Module-Name>io.netty.tcnative.openssl.classes</Automatic-Module-Name>
-              </manifestEntries>
-            </archive>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
 </project>
