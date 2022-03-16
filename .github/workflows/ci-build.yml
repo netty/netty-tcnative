@@ -68,7 +68,7 @@ jobs:
 
 
   build-windows:
-    runs-on: windows-2016
+    runs-on: windows-2019
     name: windows-x86_64
     steps:
       - uses: actions/checkout@v2
