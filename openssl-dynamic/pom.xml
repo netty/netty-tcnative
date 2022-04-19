@@ -235,6 +235,7 @@
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
                     <configureArg>--with-apr=/usr/local/opt/apr/libexec/</configureArg>
+                    <configureArg>--with-ssl=/usr/local/opt/openssl@1.1/</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
