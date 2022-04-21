@@ -266,7 +266,7 @@ static void netty_internal_tcnative_Library_JNI_OnUnload(JNIEnv* env) {
     netty_internal_tcnative_SSL_JNI_OnUnLoad(env, staticPackagePrefix);
     netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env, staticPackagePrefix);
     netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env, staticPackagePrefix);
-    free(staticPackagePrefix);
+    free((void *) staticPackagePrefix);
     staticPackagePrefix = NULL;
 }
 
