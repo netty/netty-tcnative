@@ -117,7 +117,7 @@
     <skipJapicmp>false</skipJapicmp>
     <compileLibrary>false</compileLibrary>
     <jniUtilIncludeDir>${project.build.directory}/netty-jni-util/</jniUtilIncludeDir>
-    <jniUtilVersion>0.0.4.Final-SNAPSHOT</jniUtilVersion>
+    <jniUtilVersion>0.0.4.Final</jniUtilVersion>
     <javaModuleName>io.netty.internal.tcnative</javaModuleName>
   </properties>
 
