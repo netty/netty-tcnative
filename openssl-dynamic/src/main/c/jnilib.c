@@ -57,7 +57,7 @@ static jclass    jString_class;
 static jmethodID jString_init;
 static jmethodID jString_getBytes;
 static jclass    byteArrayClass;
-static char* staticPackagePrefix = NULL;
+static const char* staticPackagePrefix = NULL;
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 {
