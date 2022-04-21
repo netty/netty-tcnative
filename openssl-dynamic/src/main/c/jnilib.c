@@ -57,7 +57,7 @@ static jclass    jString_class;
 static jmethodID jString_init;
 static jmethodID jString_getBytes;
 static jclass    byteArrayClass;
-static const char* staticPackagePrefix = NULL;
+static char* const staticPackagePrefix = NULL;
 
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 {
@@ -150,7 +150,7 @@ static const jint method_table_size = sizeof(method_table) / sizeof(method_table
 
 // IMPORTANT: If you add any NETTY_JNI_UTIL_LOAD_CLASS or NETTY_JNI_UTIL_FIND_CLASS calls you also need to update
 //            Library to reflect that.
-static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, char const* packagePrefix) {
     int errorOnLoadCalled = 0;
     int bufferOnLoadCalled = 0;
     int jniMethodsOnLoadCalled = 0;
