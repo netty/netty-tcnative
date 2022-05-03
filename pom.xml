@@ -118,7 +118,10 @@
     <compileLibrary>false</compileLibrary>
     <jniUtilIncludeDir>${project.build.directory}/netty-jni-util/</jniUtilIncludeDir>
     <jniUtilVersion>0.0.5.Final</jniUtilVersion>
-    <javaModuleName>io.netty.internal.tcnative</javaModuleName>
+    <javaDefaultModuleName>io.netty.internal.tcnative</javaDefaultModuleName>
+    <javaModuleName>${javaDefaultModuleName}</javaModuleName>
+    <javaModuleNameClassifier>${os.detected.name}.${os.detected.arch}</javaModuleNameClassifier>
+    <javaModuleNameNative>${javaDefaultModuleName}.openssl.${javaModuleNameClassifier}</javaModuleNameNative>
   </properties>
 
   <build>
