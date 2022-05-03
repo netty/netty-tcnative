@@ -63,7 +63,7 @@
     <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
     <skipJapicmp>true</skipJapicmp>
     <!-- We need to use the same module name for all our "native" impls as only one should be loaded -->
-    <javaModuleName>io.netty.tcnative.openssl.${jniClassifier}</javaModuleName>
+    <javaModuleName>${javaModuleNameNative}</javaModuleName>
   </properties>
 
   <dependencies>
@@ -374,6 +374,7 @@
         <nativeLibOsParts>${os.detected.name}_aarch_64</nativeLibOsParts>
         <jniClassifier>${os.detected.name}-aarch_64</jniClassifier>
         <jniArch>aarch_64</jniArch>
+        <javaModuleNameClassifier>${os.detected.name}.aarch_64</javaModuleNameClassifier>
       </properties>
 
       <build>
@@ -888,6 +889,7 @@
         <nativeLibOsParts>${os.detected.name}_aarch_64</nativeLibOsParts>
         <jniClassifier>${os.detected.name}-aarch_64</jniClassifier>
         <jniArch>aarch_64</jniArch>
+        <javaModuleNameClassifier>${os.detected.name}.aarch_64</javaModuleNameClassifier>
       </properties>
       <build>
         <plugins>

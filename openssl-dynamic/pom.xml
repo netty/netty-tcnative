@@ -259,6 +259,7 @@
         <jniClassifier>${os.detected.name}-aarch_64</jniClassifier>
         <nativeLibOsParts>${os.detected.name}_aarch_64</nativeLibOsParts>
         <jniArch>aarch_64</jniArch>
+        <javaModuleNameClassifier>${os.detected.name}.aarch_64</javaModuleNameClassifier>
       </properties>
 
       <build>
