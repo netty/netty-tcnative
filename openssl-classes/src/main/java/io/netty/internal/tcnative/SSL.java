@@ -218,6 +218,13 @@ public final class SSL {
     public static native long bioNewByteBuffer(long ssl, int nonApplicationBufferSize);
 
     /**
+     * TBD
+     * @param ssl
+     * @param fd
+     */
+     public static native void bioSetFd(long ssl, int fd);
+
+    /**
      * Set the memory location which that OpenSSL's internal BIO will use to write encrypted data to, or read encrypted
      * data from.
      * <p>

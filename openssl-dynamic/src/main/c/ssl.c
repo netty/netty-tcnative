@@ -344,6 +344,11 @@ static long bio_java_bytebuffer_ctrl(BIO* bio, int cmd, long num, void* ptr) {
             return 1;
         case BIO_CTRL_FLUSH:
             return 1;
+#ifdef OPENSSL_IS_BORINGSSL
+        case BIO_C_SET_FD:
+            bio->num = *((int *)ptr);
+            return 1;
+#endif
         default:
             return 0;
     }
@@ -391,6 +396,23 @@ static int ssl_ui_writer(UI *ui, UI_STRING *uis)
   }
 }
 #endif // OPENSSL_NO_ENGINE
+
+TCN_IMPLEMENT_CALL(void, SSL, bioSetFd)(TCN_STDARGS, jlong ssl, jint fd) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+      tcn_ThrowException(e, "ssl pointer is null!");
+    }
+    BIO* bio = SSL_get_rbio(ssl_);
+
+    // We do not want to fd to be closed
+    int rc = BIO_set_fd(bio, fd, 0);
+    if (rc != 1) {
+      // Need to handle error
+      tcn_ThrowException(e, "Failed to set BIO fd");
+    }
+    return;
+}
 
 TCN_IMPLEMENT_CALL(jint, SSL, bioLengthByteBuffer)(TCN_STDARGS, jlong bioAddress) {
     BIO* bio = J2P(bioAddress, BIO*);
@@ -2657,7 +2679,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getShutdown, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setShutdown, (JI)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(freeSSL, (J)V, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(bioNewByteBuffer, (JI)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(bioSetFd, (JI)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(bioNewByteBuffer, (JI)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(freeBIO, (J)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(shutdownSSL, (J)I, SSL) },
