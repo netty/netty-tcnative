@@ -399,19 +399,15 @@ static int ssl_ui_writer(UI *ui, UI_STRING *uis)
 
 TCN_IMPLEMENT_CALL(void, SSL, bioSetFd)(TCN_STDARGS, jlong ssl, jint fd) {
     SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    if (ssl_ == NULL) {
-      tcn_ThrowException(e, "ssl pointer is null!");
-    }
     BIO* bio = SSL_get_rbio(ssl_);
 
-    // We do not want to fd to be closed
+    // We do not want the fd to be closed
     int rc = BIO_set_fd(bio, fd, 0);
     if (rc != 1) {
-      // Need to handle error
-      tcn_ThrowException(e, "Failed to set BIO fd");
+        tcn_ThrowException(e, "Failed to set BIO fd");
     }
-    return;
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, bioLengthByteBuffer)(TCN_STDARGS, jlong bioAddress) {
