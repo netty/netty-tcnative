@@ -344,11 +344,11 @@ static long bio_java_bytebuffer_ctrl(BIO* bio, int cmd, long num, void* ptr) {
             return 1;
         case BIO_CTRL_FLUSH:
             return 1;
-#ifdef OPENSSL_IS_BORINGSSL
         case BIO_C_SET_FD:
+#if defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
             bio->num = *((int *)ptr);
-            return 1;
 #endif
+            return 1;
         default:
             return 0;
     }
