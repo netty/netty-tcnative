@@ -218,8 +218,7 @@ public final class SSL {
     public static native long bioNewByteBuffer(long ssl, int nonApplicationBufferSize);
 
     /**
-     * Set the socket file descriptor of the rbio field inside the SSL struct (ssl->rbio->num). This is
-     * allows
+     * Sets the socket file descriptor of the rbio field inside the SSL struct (ssl->rbio->num)
      *
      * @param ssl the SSL instance (SSL *)
      * @param fd the file descriptor of the socket used for the given SSL connection
