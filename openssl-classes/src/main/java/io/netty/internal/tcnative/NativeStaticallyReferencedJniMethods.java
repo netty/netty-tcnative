@@ -42,6 +42,8 @@ final class NativeStaticallyReferencedJniMethods {
     static native int sslOpNoTLSv12();
     static native int sslOpNoTLSv13();
     static native int sslOpNoTicket();
+    static native int sslOpAllowUnsafeLegacyRenegotiation();
+    static native int sslOpLegacyServerConnect();
 
     /**
      * Options not defined in the OpenSSL docs but may impact security.

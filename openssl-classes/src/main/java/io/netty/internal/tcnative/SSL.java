@@ -74,6 +74,8 @@ public final class SSL {
     public static final int SSL_OP_NO_TICKET = sslOpNoTicket();
 
     public static final int SSL_OP_NO_COMPRESSION = sslOpNoCompression();
+    public static final int SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION = sslOpAllowUnsafeLegacyRenegotiation();
+    public static final int SSL_OP_LEGACY_SERVER_CONNECT = sslOpLegacyServerConnect();
 
     public static final int SSL_MODE_CLIENT         = 0;
     public static final int SSL_MODE_SERVER         = 1;

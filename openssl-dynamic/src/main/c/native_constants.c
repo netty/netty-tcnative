@@ -56,6 +56,14 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpNoCompressio
     return SSL_OP_NO_COMPRESSION;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpAllowUnsafeLegacyRenegotiation)(TCN_STDARGS) {
+    return SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpLegacyServerConnect)(TCN_STDARGS) {
+    return SSL_OP_LEGACY_SERVER_CONNECT;
+}
+
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSessCacheOff)(TCN_STDARGS) {
     return SSL_SESS_CACHE_OFF;
 }
@@ -635,6 +643,8 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv13, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpNoTicket, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpNoCompression, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpAllowUnsafeLegacyRenegotiation, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslOpLegacyServerConnect, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSessCacheOff, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSessCacheServer, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSessCacheClient, ()I, NativeStaticallyReferencedJniMethods) },
