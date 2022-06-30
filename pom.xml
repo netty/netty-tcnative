@@ -388,9 +388,13 @@
                   <equals arg1="${os.detected.name}" arg2="osx" />
                 </condition>
 
-                <!-- In OSGi specification, the alias of x86_32 is x86 -->
-                <condition property="nativeCode.processor" value="x86" else="${os.detected.arch}">
+                <!-- In OSGi specification, the alias of x86_32 is x86... -->
+                <condition property="nativeCode.processor" value="x86">
                   <equals arg1="${os.detected.arch}" arg2="x86_32" />
+                </condition>
+                <!-- ... and aarch_64 is aarch64 -->
+                <condition property="nativeCode.processor" value="aarch64" else="${os.detected.arch}">
+                  <equals arg1="${os.detected.arch}" arg2="aarch_64" />
                 </condition>
 
                 <property name="tcnativeManifest" value="META-INF/native/${tcnative.snippet};processor=${nativeCode.processor}" />
