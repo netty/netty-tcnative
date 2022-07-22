@@ -487,15 +487,15 @@
                         <mkdir dir="${opensslHome}" />
                         <if>
                           <equals arg1="${os.arch}" arg2="aarch64" />
+                          <!-- Don't try to compile the tests as this currently fails: https://github.com/openssl/openssl/issues/18720 -->
                           <then>
                             <exec executable="Configure" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
-                              <!-- Don't try to compile the tests as this currently fails: https://github.com/openssl/openssl/issues/18720 -->
                               <arg line="darwin64-arm64-cc no-tests -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${opensslHome} --openssldir=${opensslHome} ${macOsxDeploymentTarget}" />
                             </exec>
                           </then>
                           <else>
                             <exec executable="Configure" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
-                              <arg line="darwin64-x86_64-cc -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${opensslHome} --openssldir=${opensslHome} ${macOsxDeploymentTarget}" />
+                              <arg line="darwin64-x86_64-cc no-tests -O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${opensslHome} --openssldir=${opensslHome} ${macOsxDeploymentTarget}" />
                             </exec>
                           </else>
                         </if>
