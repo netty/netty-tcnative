@@ -212,10 +212,11 @@
 
     <!-- Make sure all required environment variables are present on Windows. -->
     <profile>
-      <id>osx</id>
+      <id>mac-x86_64</id>
       <activation>
         <os>
           <family>mac</family>
+          <arch>x86_64</arch>
         </os>
       </activation>
       <build>
@@ -234,7 +235,7 @@
                   <forceConfigure>${forceConfigure}</forceConfigure>
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
-                    <configureArg>--with-apr=/usr/local/opt/apr/libexec/</configureArg>
+                    <configureArg>--with-apr=/usr/local/opt/apr/</configureArg>
                     <configureArg>--with-ssl=/usr/local/opt/openssl@1.1/</configureArg>
                   </configureArgs>
                 </configuration>
@@ -249,7 +250,45 @@
         </plugins>
       </build>
     </profile>
-
+    <profile>
+      <id>mac-aarch64</id>
+      <activation>
+        <os>
+          <family>mac</family>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>maven-hawtjni-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <configuration>
+                  <name>netty_tcnative</name>
+                  <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
+                  <libDirectory>${nativeLibOnlyDir}</libDirectory>
+                  <forceAutogen>${forceAutogen}</forceAutogen>
+                  <forceConfigure>${forceConfigure}</forceConfigure>
+                  <configureArgs>
+                    <configureArg>${macOsxDeploymentTarget}</configureArg>
+                    <configureArg>--with-apr=/opt/homebrew/opt/apr/</configureArg>
+                    <configureArg>--with-ssl=/opt/homebrew/opt/openssl@1.1/</configureArg>
+                  </configureArgs>
+                </configuration>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>linux-aarch64</id>
 
