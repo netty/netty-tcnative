@@ -868,7 +868,7 @@
 
     <!-- Profile to cross-compile for mac m1 -->
     <profile>
-      <id>osx-m1-cross-compile</id>
+      <id>mac-m1-cross-compile</id>
 
       <properties>
         <linkStatic>true</linkStatic>
