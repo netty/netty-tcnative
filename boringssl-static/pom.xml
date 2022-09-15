@@ -1113,6 +1113,254 @@
         </plugins>
       </build>
     </profile>
+
+    <!-- Profile to cross-compile for mac intel -->
+    <profile>
+      <id>mac-intel-cross-compile</id>
+
+      <properties>
+        <linkStatic>true</linkStatic>
+        <osxCrossCompile>true</osxCrossCompile>
+        <target>x86_64-apple-macos10.12</target>
+        <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=10.12</macOsxDeploymentTarget>
+        <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12</cmakeOsxDeploymentTarget>
+        <!-- On *nix, add ASM flags to disable executable stack -->
+        <cmakeAsmFlags>-Wa,--noexecstack -target ${target}</cmakeAsmFlags>
+        <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
+        <cmakeCFlags>-O3 -fno-omit-frame-pointer -target ${target} -DOPENSSL_C11_ATOMIC</cmakeCFlags>
+        <cmakeCxxFlags>-O3 -fno-omit-frame-pointer -target ${target} -Wno-error=range-loop-analysis</cmakeCxxFlags>
+        <cflags>-target ${target} -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
+        <cppflags>-target ${target} -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
+        <ldflags>-arch arm64 -L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
+        <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
+        <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-osx_64.jar</nativeJarFile>
+        <nativeLibOsParts>${os.detected.name}_osx_64</nativeLibOsParts>
+        <jniClassifier>${os.detected.name}-osx_64</jniClassifier>
+        <jniArch>osx_64</jniArch>
+        <javaModuleNameClassifier>${os.detected.name}.osx_64</javaModuleNameClassifier>
+      </properties>
+      <build>
+        <plugins>
+          <!-- Download the BoringSSL source -->
+          <plugin>
+            <artifactId>maven-scm-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>get-boringssl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <checkoutDirectory>${boringsslSourceDir}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:git:${boringsslRepository}</developerConnectionUrl>
+                  <scmVersion>${boringsslBranch}</scmVersion>
+                  <scmVersionType>branch</scmVersionType>
+                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>${generatedSourcesDir}/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Add the commit ID and branch to the manifest. -->
+          <plugin>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>maven-bundle-plugin</artifactId>
+            <configuration>
+              <instructions>
+                <Apr-Version>${aprVersion}</Apr-Version>
+                <BoringSSL-Revision>${boringsslCommitSha}</BoringSSL-Revision>
+                <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
+              </instructions>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+
+              <!-- Only deploy to Maven Central if on centos (fedora). -->
+              <execution>
+                <id>skip-deploy</id>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <exportAntProperties>true</exportAntProperties>
+                  <target>
+                    <condition property="maven.deploy.skip" value="false" else="true">
+                      <isset property="os.detected.release.like.fedora" />
+                    </condition>
+                  </target>
+                </configuration>
+              </execution>
+
+              <!-- Build the BoringSSL static libs -->
+              <execution>
+                <id>build-boringssl</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                    <property environment="env" />
+                    <if>
+                      <available file="${boringsslHome}" />
+                      <then>
+                        <echo message="BoringSSL was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building BoringSSL" />
+
+                        <!-- Use the known SHA of the commit -->
+                        <exec executable="git" failonerror="true" dir="${boringsslSourceDir}" resolveexecutable="true">
+                          <arg value="checkout" />
+                          <arg value="${boringsslCommitSha}" />
+                        </exec>
+
+                        <mkdir dir="${boringsslHome}" />
+                        <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
+                          <arg value="-DCMAKE_SYSTEM_PROCESSOR=arm64" />
+                          <arg value="-DCMAKE_OSX_ARCHITECTURES=arm64" />
+                          <arg value="${cmakeOsxDeploymentTarget}" />
+                          <arg value="-GNinja" />
+                          <arg value="${boringsslSourceDir}" />
+                        </exec>
+                        <if>
+                          <!-- may be called ninja-build or ninja -->
+                          <!-- See https://github.com/netty/netty-tcnative/issues/475 -->
+                          <available file="ninja-build" filepath="${env.PATH}" />
+                          <then>
+                            <property name="ninjaExecutable" value="ninja-build" />
+                          </then>
+                          <else>
+                            <property name="ninjaExecutable" value="ninja" />
+                          </else>
+                        </if>
+                        <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslHome}" resolveexecutable="true" />
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+
+              <!-- Build the additional JAR that contains the native library. -->
+              <execution>
+                <id>native-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <copy todir="${nativeJarWorkdir}">
+                      <zipfileset src="${defaultJarFile}" />
+                    </copy>
+                    <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                      <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                      <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
+                    </copy>
+
+                    <!-- linux / osx -->
+                    <move todir="${nativeJarWorkdir}/META-INF/native/" flatten="true">
+                      <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
+                      <globmapper from="libnetty_tcnative.*" to="libnetty_tcnative_${os.detected.name}_${jniArch}.*" />
+                    </move>
+                    <!-- windows-->
+                    <move todir="${nativeJarWorkdir}/META-INF/native/" flatten="true">
+                      <fileset dir="${nativeJarWorkdir}/META-INF/native/" />
+                      <globmapper from="netty_tcnative.*" to="netty_tcnative_${os.detected.name}_${jniArch}.*" />
+                    </move>
+
+                    <!-- Copy license material for attribution-->
+                    <copy file="../NOTICE.txt" todir="${nativeJarWorkdir}/META-INF/" />
+                    <copy file="../LICENSE.txt" todir="${nativeJarWorkdir}/META-INF/" />
+                    <copy todir="${nativeJarWorkdir}/META-INF/license">
+                      <fileset dir="../license" />
+                    </copy>
+
+                    <!-- Append the Bundle-NativeCode section -->
+                    <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
+                      <attribute name="Bundle-NativeCode" value="${tcnativeManifest}" />
+                    </manifest>
+
+                    <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                    <attachartifact file="${nativeJarFile}" classifier="${os.detected.name}-osx_64" type="jar" />
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Configure the distribution statically linked against OpenSSL and APR -->
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>maven-hawtjni-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <name>netty_tcnative</name>
+                  <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
+                  <customPackageDirectory>${generatedSourcesDir}/native-package</customPackageDirectory>
+                  <libDirectory>${nativeLibOnlyDir}</libDirectory>
+                  <forceAutogen>${forceAutogen}</forceAutogen>
+                  <forceConfigure>${forceConfigure}</forceConfigure>
+                  <!-- <verbose>true</verbose> -->
+                  <configureArgs>
+                    <configureArg>--with-ssl=no</configureArg>
+                    <configureArg>--with-apr=${aprHome}</configureArg>
+                    <configureArg>--with-static-libs</configureArg>
+                    <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
+                    <configureArg>--host=x86_64-apple-darwin</configureArg>
+                    <configureArg>${macOsxDeploymentTarget}</configureArg>
+                    <configureArg>CFLAGS=${cflags}</configureArg>
+                    <configureArg>CPPFLAGS=${cppflags}</configureArg>
+                    <configureArg>LDFLAGS=${ldflags}</configureArg>
+                  </configureArgs>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>boringssl-static-asan</id>
       <properties>
