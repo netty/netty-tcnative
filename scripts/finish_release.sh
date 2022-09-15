@@ -7,6 +7,7 @@ if [ "$#" -ne 2 ]; then
 fi
 
 OS=$(uname)
+ARCH=$(uname -p)
 
 if [ "$OS" != "Darwin" ]; then
     echo "Needs to be executed on macOS"
@@ -22,7 +23,7 @@ fi
 
 CROSS_COMPILE_PROFILE="mac-m1-cross-compile"
 if [ "$ARCH" == "arm" ]; then
-    PROFILE="mac-intel-cross-compile"
+    CROSS_COMPILE_PROFILE="mac-intel-cross-compile"
 fi
 
 

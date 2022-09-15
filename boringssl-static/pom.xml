@@ -1133,11 +1133,11 @@
         <cppflags>-target ${target} -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
         <ldflags>-arch arm64 -L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
-        <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-osx_64.jar</nativeJarFile>
-        <nativeLibOsParts>${os.detected.name}_osx_64</nativeLibOsParts>
-        <jniClassifier>${os.detected.name}-osx_64</jniClassifier>
+        <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-osx_x86_64.jar</nativeJarFile>
+        <nativeLibOsParts>${os.detected.name}_osx_x86_64</nativeLibOsParts>
+        <jniClassifier>${os.detected.name}-osx_x86_64</jniClassifier>
         <jniArch>osx_64</jniArch>
-        <javaModuleNameClassifier>${os.detected.name}.osx_64</javaModuleNameClassifier>
+        <javaModuleNameClassifier>${os.detected.name}.osx_x86_64</javaModuleNameClassifier>
       </properties>
       <build>
         <plugins>
