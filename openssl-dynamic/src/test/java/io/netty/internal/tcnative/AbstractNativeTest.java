@@ -15,7 +15,8 @@
  */
 package io.netty.internal.tcnative;
 
-import org.junit.BeforeClass;
+
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.File;
 
@@ -25,7 +26,7 @@ import java.io.File;
  */
 public abstract class AbstractNativeTest {
 
-    @BeforeClass
+    @BeforeAll
     public static void loadNativeLib() throws Exception {
         String testClassesRoot =  AbstractNativeTest.class.getProtectionDomain().getCodeSource().getLocation().getFile();
         File[] directories = new File(testClassesRoot + File.separator + "META-INF" + File.separator + "native")

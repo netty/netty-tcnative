@@ -15,10 +15,13 @@
  */
 package io.netty.internal.tcnative;
 
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CertificateVerifierTest extends AbstractNativeTest {
 
@@ -28,14 +31,13 @@ public class CertificateVerifierTest extends AbstractNativeTest {
         for (Field field : fields) {
             if (field.isAccessible()) {
                 int errorCode = field.getInt(null);
-                Assert.assertTrue(
-                        "errorCode '" + errorCode + "' must be valid", CertificateVerifier.isValid(errorCode));
+                assertTrue(CertificateVerifier.isValid(errorCode), "errorCode '" + errorCode + "' must be valid");
             }
         }
     }
 
     @Test
     public void testNonValidErrorCode() {
-        Assert.assertFalse(CertificateVerifier.isValid(Integer.MIN_VALUE));
+        assertFalse(CertificateVerifier.isValid(Integer.MIN_VALUE));
     }
 }

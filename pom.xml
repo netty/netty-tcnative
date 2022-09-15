@@ -70,7 +70,8 @@
     <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
-    <netty.build.version>30</netty.build.version>
+    <netty.build.version>31</netty.build.version>
+    <junit.version>5.9.0</junit.version>
     <animal.sniffer.skip>true</animal.sniffer.skip>
     <forceAutogen>false</forceAutogen>
     <forceConfigure>false</forceConfigure>
@@ -245,12 +246,6 @@
             <exclude>**/*TestUtil*</exclude>
           </excludes>
           <runOrder>random</runOrder>
-          <properties>
-            <property>
-              <name>listener</name>
-              <value>io.netty.build.junit.TimedOutTestsListener</value>
-            </property>
-          </properties>
           <!-- Ensure the whole stacktrace is preserved when an exception is thrown. See https://issues.apache.org/jira/browse/SUREFIRE-1457 -->
           <trimStackTrace>false</trimStackTrace>
         </configuration>
@@ -475,6 +470,18 @@
       <groupId>io.netty</groupId>
       <artifactId>netty-build-common</artifactId>
       <version>${netty.build.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
