@@ -7,6 +7,7 @@ if [ "$#" -ne 2 ]; then
 fi
 
 OS=$(uname)
+ARCH=$(uname -p)
 
 if [ "$OS" != "Darwin" ]; then
     echo "Needs to be executed on macOS"
@@ -20,13 +21,19 @@ if git tag | grep -q "$2" ; then
     exit 1
 fi
 
+CROSS_COMPILE_PROFILE="mac-m1-cross-compile"
+if [ "$ARCH" == "arm" ]; then
+    CROSS_COMPILE_PROFILE="mac-intel-cross-compile"
+fi
+
+
 git fetch
 git checkout "$2"
 
 export JAVA_HOME="$JAVA8_HOME"
 
 ./mvnw -Psonatype-oss-release -am -pl openssl-dynamic,boringssl-static clean package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DstagingRepositoryId="$1" -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DskipTests=true
-./mvnw -Psonatype-oss-release,mac-m1-cross-compile -am -pl boringssl-static clean package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DstagingRepositoryId="$1" -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DskipTests=true
+./mvnw -Psonatype-oss-release,"$CROSS_COMPILE_PROFILE" -am -pl boringssl-static clean package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DstagingRepositoryId="$1" -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DskipTests=true
 ./mvnw -Psonatype-oss-release,uber-staging -pl boringssl-static clean package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DstagingRepositoryId="$1" -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DskipTests=true
 ./mvnw org.sonatype.plugins:nexus-staging-maven-plugin:rc-close org.sonatype.plugins:nexus-staging-maven-plugin:rc-release -DstagingRepositoryId="$1" -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DskipTests=true -DstagingProgressTimeoutMinutes=10
 
