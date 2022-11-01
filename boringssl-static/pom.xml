@@ -48,6 +48,262 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>fips-boringssl-static</id>
+      <properties>
+        <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}/boringssl</boringsslCheckoutDir>
+        <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
+        <boringsslBranch>ae223d6138807a13006342edfeef32e813246b39</boringsslBranch>
+        <linkStatic>true</linkStatic>
+        <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
+        <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
+        <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
+      </properties>
+
+      <build>
+        <plugins>
+          <!-- Download the BoringSSL source -->
+          <plugin>
+            <groupId>com.googlecode.maven-download-plugin</groupId>
+            <artifactId>download-maven-plugin</artifactId>
+            <version>1.6.8</version>
+            <executions>
+                <execution>
+                    <id>install-fips-boringssl</id>
+                    <phase>process-sources</phase>
+                    <goals>
+                        <goal>wget</goal>
+                    </goals>
+                </execution>
+            </executions>
+            <configuration>
+                <url>https://commondatastorage.googleapis.com/chromium-boringssl-fips/boringssl-ae223d6138807a13006342edfeef32e813246b39.tar.xz</url>
+                <unpack>true</unpack>
+                <outputDirectory>${project.build.directory}/boringssl-${boringsslBranch}</outputDirectory>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>${generatedSourcesDir}/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Add the commit ID and branch to the manifest. -->
+          <plugin>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>maven-bundle-plugin</artifactId>
+            <configuration>
+              <instructions>
+                <Apr-Version>${aprVersion}</Apr-Version>
+                <BoringSSL-Revision>${boringsslBuildNumber}</BoringSSL-Revision>
+                <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
+              </instructions>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+
+              <!-- Only deploy to Maven Central if on centos (fedora). -->
+              <execution>
+                <id>skip-deploy</id>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <exportAntProperties>true</exportAntProperties>
+                  <target>
+                    <condition property="maven.deploy.skip" value="false" else="true">
+                      <isset property="os.detected.release.like.fedora" />
+                    </condition>
+                  </target>
+                </configuration>
+              </execution>
+
+              <!-- Build the BoringSSL static libs -->
+              <execution>
+                <id>build-boringssl</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                    <property environment="env" />
+                    <if>
+                      <available file="${boringsslBuildDir}" />
+                      <then>
+                        <echo message="BoringSSL was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building BoringSSL" />
+
+                        <mkdir dir="${boringsslBuildDir}" />
+
+                        <if>
+                          <equals arg1="${os.detected.name}" arg2="windows" />
+                          <then>
+                            <!-- On Windows, build with /MT for static linking -->
+                            <property name="cmakeAsmFlags" value="" />
+                            <property name="cmakeCFlags" value="/MT" />
+                            <!-- Disable one warning to be able to build on windows -->
+                            <property name="cmakeCxxFlags" value="/MT /wd4091" />
+                          </then>
+                          <elseif>
+                            <equals arg1="${os.detected.name}" arg2="linux" />
+                            <then>
+                              <!-- On *nix, add ASM flags to disable executable stack -->
+                              <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
+                              <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                              <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
+                              <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
+                            </then>
+                          </elseif>
+                          <else>
+                            <!-- On *nix, add ASM flags to disable executable stack -->
+                            <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
+                            <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                            <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
+                          </else>
+                        </if>
+                        <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_C_COMPILER=clang" />
+                          <arg value="-DCMAKE_CXX_COMPILER=clang++" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
+                          <arg value="-DFIPS=1" />
+                          <arg value="-GNinja" />
+                          <arg value="${boringsslCheckoutDir}" />
+                        </exec>
+                         <if>
+                          <!-- may be called ninja-build or ninja -->
+                          <!-- See https://github.com/netty/netty-tcnative/issues/475 -->
+                          <available file="ninja-build" filepath="${env.PATH}" />
+                          <then>
+                            <property name="ninjaExecutable" value="ninja-build" />
+                          </then>
+                          <else>
+                            <property name="ninjaExecutable" value="ninja" />
+                          </else>
+                        </if>
+                        <if>
+                          <equals arg1="${os.detected.name}" arg2="linux" />
+                          <then>
+                            <!-- This is needed to generate bssl execute file to verify isfips property-->
+                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                            </exec>
+                            <!-- Run unit test-->
+                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                              <arg value="run_tests" />
+                            </exec>
+                          </then>
+                          <else>
+                            <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true" />
+                          </else>
+                        </if>
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+
+              <!-- Build the additional JAR that contains the native library. -->
+              <execution>
+                <id>native-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <!-- Strip on linux. See https://github.com/netty/netty-tcnative/issues/129 -->
+                    <if>
+                      <and>
+                        <equals arg1="${os.detected.name}" arg2="linux" />
+                        <equals arg1="${strip.skip}" arg2="false" />
+                      </and>
+                      <then>
+                        <exec executable="strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
+                          <arg value="--strip-debug" />
+                          <arg value="libnetty_tcnative.so" />
+                        </exec>
+                      </then>
+                    </if>
+
+                    <copy todir="${nativeJarWorkdir}">
+                      <zipfileset src="${defaultJarFile}" />
+                    </copy>
+                    <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                      <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                      <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
+                    </copy>
+                    <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                    <attachartifact file="${nativeJarFile}" classifier="${os.detected.classifier}" type="jar" />
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Configure the distribution statically linked against OpenSSL and APR -->
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>maven-hawtjni-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <name>netty_tcnative</name>
+                  <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
+                  <customPackageDirectory>${generatedSourcesDir}/native-package</customPackageDirectory>
+                  <libDirectory>${nativeLibOnlyDir}</libDirectory>
+                  <forceAutogen>${forceAutogen}</forceAutogen>
+                  <forceConfigure>${forceConfigure}</forceConfigure>
+                  <windowsBuildTool>msbuild</windowsBuildTool>
+                  <!-- <verbose>true</verbose> -->
+                  <configureArgs>
+                    <configureArg>--with-ssl=no</configureArg>
+                    <configureArg>--with-apr=${aprHome}</configureArg>
+                    <configureArg>--with-static-libs</configureArg>
+                    <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
+                    <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
+                    <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                  </configureArgs>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <!-- Default profile that builds a platform-specific jar -->
     <profile>
       <id>boringssl-static-default</id>
