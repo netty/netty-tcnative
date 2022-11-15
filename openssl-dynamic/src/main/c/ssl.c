@@ -1255,7 +1255,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS,
                                                          jlong ssl /* SSL * */) {
     // Use weak linking with GCC as this will alow us to run the same packaged version with multiple
     // version of openssl.
-    #if defined(__GNUC__) || defined(__GNUG__)
+    #if !defined(OPENSSL_IS_BORINGSSL) && (defined(__GNUC__) || defined(__GNUG__))
         if (!SSL_get0_alpn_selected) {
             return NULL;
         }

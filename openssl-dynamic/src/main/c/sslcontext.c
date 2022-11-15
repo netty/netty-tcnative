@@ -967,7 +967,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos0)(TCN_STDARGS, jlong ctx, jby
         jint selectorFailureBehavior)
 {
     // Only supported with GCC
-    #if defined(__GNUC__) || defined(__GNUG__)
+    #if !defined(OPENSSL_IS_BORINGSSL) && (defined(__GNUC__) || defined(__GNUG__))
         if (!SSL_CTX_set_alpn_protos || !SSL_CTX_set_alpn_select_cb) {
             return;
         }
@@ -2024,12 +2024,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
 
 // Use weak linking with GCC as this will alow us to run the same packaged version with multiple
 // version of openssl.
-#if defined(__GNUC__) || defined(__GNUG__)
+#if !defined(OPENSSL_IS_BORINGSSL) && (defined(__GNUC__) || defined(__GNUG__))
     if (!SSL_CTX_set_cert_cb) {
         tcn_ThrowException(e, "Requires OpenSSL 1.0.2+");
         return;
     }
-#endif // defined(__GNUC__) || defined(__GNUG__)
+#endif
 
 // We can only support it when either use openssl version >= 1.0.2 or GCC as this way we can use weak linking
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
