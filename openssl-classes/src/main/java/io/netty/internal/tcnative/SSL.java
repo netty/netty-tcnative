@@ -98,6 +98,8 @@ public final class SSL {
     public static final int SSL_MODE_RELEASE_BUFFERS                = sslModeReleaseBuffers();
     public static final int SSL_MODE_ENABLE_FALSE_START             = sslModeEnableFalseStart();
     public static final int SSL_MAX_PLAINTEXT_LENGTH = sslMaxPlaintextLength();
+    public static final int SSL_MAX_ENCRYPTED_LENGTH = sslMaxEncryptedLength();
+
     /**
      * The <a href="https://tools.ietf.org/html/rfc5246#section-6.2.1">TLS 1.2 RFC</a> defines the maximum length to be
      * {@link #SSL_MAX_PLAINTEXT_LENGTH}, but there are some implementations such as
