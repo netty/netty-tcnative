@@ -469,6 +469,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 
 #if defined(__GNUC__) || defined(__GNUG__)
     // only supported with GCC, this will be used to support different openssl versions at the same time.
+#ifndef OPENSSL_IS_BORINGSSL
     extern int SSL_CTX_set_alpn_protos(SSL_CTX *ctx, const unsigned char *protos,
            unsigned protos_len) __attribute__((weak));
     extern void SSL_CTX_set_alpn_select_cb(SSL_CTX *ctx, int (*cb) (SSL *ssl, const unsigned char **out,
@@ -476,8 +477,8 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
            void *arg), void *arg) __attribute__((weak));
     extern void SSL_get0_alpn_selected(const SSL *ssl, const unsigned char **data,
            unsigned *len) __attribute__((weak));
+    extern void SSL_CTX_set_cert_cb(SSL_CTX *c, int (*cert_cb)(SSL *ssl, void *arg), void *arg) __attribute__((weak));
 
-#ifndef OPENSSL_IS_BORINGSSL
     extern X509_VERIFY_PARAM *SSL_get0_param(SSL *ssl) __attribute__((weak));
     extern void X509_VERIFY_PARAM_set_hostflags(X509_VERIFY_PARAM *param, unsigned int flags) __attribute__((weak));
     extern int X509_VERIFY_PARAM_set1_host(X509_VERIFY_PARAM *param, const char *name, size_t namelen) __attribute__((weak));
@@ -486,7 +487,6 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 #endif // OPENSSL_IS_BORINGSSL
 
     extern int SSL_get_sigalgs(SSL *s, int idx, int *psign, int *phash, int *psignhash, unsigned char *rsig, unsigned char *rhash) __attribute__((weak));
-    extern void SSL_CTX_set_cert_cb(SSL_CTX *c, int (*cert_cb)(SSL *ssl, void *arg), void *arg) __attribute__((weak));
 #endif
 
 #ifdef OPENSSL_IS_BORINGSSL
