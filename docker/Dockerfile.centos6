@@ -23,6 +23,7 @@ RUN yum install -y \
  lsb-core \
  make \
  openssl-devel \
+ patch \
  perl \
  tar \
  unzip \

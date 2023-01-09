@@ -31,6 +31,7 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
  libc-bin=2.13-38+deb7u10 \
  libc6=2.13-38+deb7u10 libc6-dev \
  make \
+ patch \
  perl-base=5.14.2-21+deb7u3 \
  tar \
  unzip \
