@@ -27,6 +27,7 @@ RUN zypper install --force-resolution --no-recommends --no-confirm \
  lsb-release \
  make \
  ninja \
+ patch \
  perl \
  tar \
  unzip \

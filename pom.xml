@@ -679,6 +679,10 @@
                           </then>
                         </if>
 
+                        <echo message="Patching APR to not link against libcrypt" />
+                        <patch patchfile="../patches/apr_crypt.patch" strip="0" dir="${aprSourceDir}" />
+                        <exec executable="buildconf" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+
                         <if>
                           <equals arg1="${osxCrossCompile}" arg2="true" />
                           <then>
