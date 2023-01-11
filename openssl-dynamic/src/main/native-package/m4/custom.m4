@@ -17,17 +17,10 @@ dnl ---------------------------------------------------------------------------
 AC_DEFUN([CUSTOM_M4_SETUP],
 [
   dnl These macros were copied from tomcat-native/jni/native/build/
-  sinclude(m4/apr_common.m4)
-  sinclude(m4/find_apr.m4)
 
   dnl This macro was copied from tomcat-native/jni/native/build with slight modifications
   dnl - Fix autoconf warnings
-  dnl - Make TCN_FIND_APR try the system's APR installation
   sinclude(m4/tcnative.m4)
-
-  dnl Make sure Apache Portable Runtime is available in the system.
-  APR_PARSE_ARGUMENTS
-  TCN_FIND_APR
 
   dnl Enable OpenSSL OCSP verification support.
   AC_ARG_ENABLE(ocsp,
@@ -35,7 +28,7 @@ AC_DEFUN([CUSTOM_M4_SETUP],
   [
     case "${enableval}" in
       yes)
-         APR_ADDTO(CFLAGS, [-DHAVE_OPENSSL_OCSP])
+         TCN_ADDTO(CFLAGS, [-DHAVE_OPENSSL_OCSP])
          AC_MSG_RESULT([Enabling OCSP verification support...])
          ;;
     esac
@@ -49,10 +42,10 @@ AC_DEFUN([CUSTOM_M4_SETUP],
     TCN_CHECK_SSL_TOOLKIT
   fi
 
-  dnl Update the compiler/linker flags to add APR and OpenSSL to the build path.
-  CFLAGS="$CFLAGS $TCN_OPENSSL_INC $APR_INCLUDES -D_LARGEFILE64_SOURCE"
-  CXXFLAGS="$CXXFLAGS $TCN_OPENSSL_INC $APR_INCLUDES"
-  LDFLAGS="$LDFLAGS $TCN_OPENSSL_LIBS $APR_LIBS"
+  dnl Update the compiler/linker flags to add OpenSSL to the build path.
+  CFLAGS="$CFLAGS $TCN_OPENSSL_INC -D_LARGEFILE64_SOURCE"
+  CXXFLAGS="$CXXFLAGS $TCN_OPENSSL_INC"
+  LDFLAGS="$LDFLAGS $TCN_OPENSSL_LIBS"
   AC_SUBST(CFLAGS)
   AC_SUBST(CXXFLAGS)
   AC_SUBST(LDFLAGS)

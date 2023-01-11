@@ -31,11 +31,11 @@
 
 #include "tcn.h"
 
-#include "apr_thread_rwlock.h"
-#include "apr_atomic.h"
-
+#include "tcn_atomic.h"
+#include "tcn_lock_rw.h"
 #include "ssl_private.h"
 #include <stdint.h>
+#include <string.h>
 #include "sslcontext.h"
 #include "cert_compress.h"
 
@@ -62,11 +62,9 @@ static jmethodID sslPrivateKeyMethodDecryptTask_init;
 
 static const char* staticPackagePrefix = NULL;
 
-extern apr_pool_t *tcn_global_pool;
 
-static apr_status_t ssl_context_cleanup(void *data)
+static void ssl_context_cleanup(tcn_ssl_ctxt_t *c)
 {
-    tcn_ssl_ctxt_t *c = (tcn_ssl_ctxt_t *)data;
     JNIEnv *e = NULL;
 
     if (c != NULL) {
@@ -155,7 +153,12 @@ static apr_status_t ssl_context_cleanup(void *data)
         }
         c->alpn_proto_len = 0;
 
-        apr_thread_rwlock_destroy(c->mutex);
+        tcn_lock_rw_free(&c->ticket_keys_lock);
+
+        tcn_atomic_uint32_free(&c->ticket_keys_new);
+        tcn_atomic_uint32_free(&c->ticket_keys_resume);
+        tcn_atomic_uint32_free(&c->ticket_keys_renew);
+        tcn_atomic_uint32_free(&c->ticket_keys_fail);
 
         if (c->ticket_keys != NULL) {
             OPENSSL_free(c->ticket_keys);
@@ -169,13 +172,11 @@ static apr_status_t ssl_context_cleanup(void *data)
             c->password = NULL;
         }
     }
-    return APR_SUCCESS;
 }
 
 /* Initialize server context */
 TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mode)
 {
-    apr_pool_t *p = NULL;
     tcn_ssl_ctxt_t *c = NULL;
     SSL_CTX *ctx = NULL;
 
@@ -326,17 +327,17 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         goto cleanup;
     }
 
-    TCN_THROW_IF_ERR(apr_pool_create(&p, tcn_global_pool), p);
-
-    if ((c = apr_pcalloc(p, sizeof(tcn_ssl_ctxt_t))) == NULL) {
-        tcn_ThrowAPRException(e, apr_get_os_error());
+    if ((c = calloc(1, sizeof(tcn_ssl_ctxt_t))) == NULL) {
+        tcn_Throw(e, "Failed to calloc tcn_ssl_ctxt_t");
         goto cleanup;
     }
 
     c->protocol = protocol;
     c->mode     = mode;
     c->ctx      = ctx;
-    c->pool     = p;
+    c->ticket_keys_resume = tcn_atomic_uint32_new();
+    c->ticket_keys_renew = tcn_atomic_uint32_new();
+    c->ticket_keys_fail = tcn_atomic_uint32_new();
 
     if (!(protocol & SSL_PROTOCOL_SSLV2))
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv2);
@@ -417,20 +418,11 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         SSL_CTX_set_allow_unknown_alpn_protos(ctx, 1);
     }
 #endif
-    apr_thread_rwlock_create(&c->mutex, p);
-    /*
-     * Let us cleanup the ssl context when the pool is destroyed
-     */
-    apr_pool_cleanup_register(p, (const void *)c,
-                              ssl_context_cleanup,
-                              apr_pool_cleanup_null);
+    c->ticket_keys_lock = tcn_lock_rw_new();
 
     tcn_SSL_CTX_set_app_state(c->ctx, c);
     return P2J(c);
 cleanup:
-    if (p != NULL) {
-        apr_pool_destroy(p);
-    }
     SSL_CTX_free(ctx); // this function is safe to call with NULL.
     return 0;
 }
@@ -441,10 +433,8 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, free)(TCN_STDARGS, jlong ctx)
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    /* Run and destroy the cleanup callback */
-    int result = apr_pool_cleanup_run(c->pool, c, ssl_context_cleanup);
-    apr_pool_destroy(c->pool);
-    return result;
+    ssl_context_cleanup(c);
+    return 0;
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setContextId)(TCN_STDARGS, jlong ctx,
@@ -1187,8 +1177,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyNew)(TCN_STDARGS, jlong ct
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    jlong rv = apr_atomic_read32(&c->ticket_keys_new);
-    return rv;
+    return (jlong) tcn_atomic_uint32_get(c->ticket_keys_new);
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyResume)(TCN_STDARGS, jlong ctx)
@@ -1197,8 +1186,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyResume)(TCN_STDARGS, jlong
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    jlong rv = apr_atomic_read32(&c->ticket_keys_resume);
-    return rv;
+    return (jlong) tcn_atomic_uint32_get(c->ticket_keys_resume);
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyRenew)(TCN_STDARGS, jlong ctx)
@@ -1207,8 +1195,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyRenew)(TCN_STDARGS, jlong 
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    jlong rv = apr_atomic_read32(&c->ticket_keys_renew);
-    return rv;
+    return (jlong) tcn_atomic_uint32_get(c->ticket_keys_renew);
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyFail)(TCN_STDARGS, jlong ctx)
@@ -1217,18 +1204,17 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyFail)(TCN_STDARGS, jlong c
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    jlong rv = apr_atomic_read32(&c->ticket_keys_fail);
-    return rv;
+    return (jlong) tcn_atomic_uint32_get(c->ticket_keys_fail);
 }
 
 static int current_session_key(tcn_ssl_ctxt_t *c, tcn_ssl_ticket_key_t *key) {
     int result = JNI_FALSE;
-    apr_thread_rwlock_rdlock(c->mutex);
+    tcn_lock_r_t reader_lock = tcn_lock_r_acquire(c->ticket_keys_lock);
     if (c->ticket_keys_len > 0) {
         *key = c->ticket_keys[0];
         result = JNI_TRUE;
     }
-    apr_thread_rwlock_unlock(c->mutex);
+    tcn_lock_r_release(reader_lock);
     return result;
 }
 
@@ -1236,7 +1222,7 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
     int result = JNI_FALSE;
     int i;
 
-    apr_thread_rwlock_rdlock(c->mutex);
+    tcn_lock_r_t reader_lock = tcn_lock_r_acquire(c->ticket_keys_lock);
     for (i = 0; i < c->ticket_keys_len; ++i) {
         // Check if we have a match for tickets.
         if (memcmp(c->ticket_keys[i].key_name, key_name, 16) == 0) {
@@ -1246,7 +1232,7 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
             break;
         }
     }
-    apr_thread_rwlock_unlock(c->mutex);
+    tcn_lock_r_release(reader_lock);
     return result;
 }
 
@@ -1269,7 +1255,7 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
 
              EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
              HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
-             apr_atomic_inc32(&c->ticket_keys_new);
+             tcn_atomic_uint32_increment(&c->ticket_keys_new);
              return 1;
          }
          // No ticket configured
@@ -1281,15 +1267,15 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
              if (!is_current_key) {
                  // The ticket matched a key in the list, and we want to upgrade it to the current
                  // key.
-                 apr_atomic_inc32(&c->ticket_keys_renew);
+                 tcn_atomic_uint32_increment(&c->ticket_keys_renew);
                  return 2;
              }
              // The ticket matched the current key.
-             apr_atomic_inc32(&c->ticket_keys_resume);
+             tcn_atomic_uint32_increment(&c->ticket_keys_resume);
              return 1;
          }
          // No matching ticket.
-         apr_atomic_inc32(&c->ticket_keys_fail);
+         tcn_atomic_uint32_increment(&c->ticket_keys_fail);
          return 0;
      }
 }
@@ -1323,13 +1309,13 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
 
     (*e)->ReleaseByteArrayElements(e, keys, b, 0);
 
-    apr_thread_rwlock_wrlock(c->mutex);
+    tcn_lock_w_t writer_lock = tcn_lock_w_acquire(c->ticket_keys_lock);
     if (c->ticket_keys) {
         OPENSSL_free(c->ticket_keys);
     }
     c->ticket_keys_len = cnt;
     c->ticket_keys = ticket_keys;
-    apr_thread_rwlock_unlock(c->mutex);
+    tcn_lock_w_release(writer_lock);
 
     SSL_CTX_set_tlsext_ticket_key_cb(c->ctx, ssl_tlsext_ticket_key_cb);
 }

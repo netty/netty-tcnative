@@ -27,7 +27,7 @@
   <name>Netty/TomcatNative [BoringSSL - Static]</name>
   <description>
     A Mavenized fork of Tomcat Native which incorporates various patches. This artifact is statically linked
-    to BoringSSL and Apache APR.
+    to BoringSSL.
   </description>
 
   <build>
@@ -130,7 +130,6 @@
             <artifactId>maven-bundle-plugin</artifactId>
             <configuration>
               <instructions>
-                <Apr-Version>${aprVersion}</Apr-Version>
                 <BoringSSL-Revision>${boringsslCommitSha}</BoringSSL-Revision>
                 <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
               </instructions>
@@ -320,7 +319,7 @@
             </executions>
           </plugin>
 
-          <!-- Configure the distribution statically linked against OpenSSL and APR -->
+          <!-- Configure the distribution statically linked against OpenSSL -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
             <artifactId>maven-hawtjni-plugin</artifactId>
@@ -343,7 +342,6 @@
                   <!-- <verbose>true</verbose> -->
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
-                    <configureArg>--with-apr=${aprHome}</configureArg>
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
@@ -421,10 +419,6 @@
                       </files>
                       <content>release 7.6</content>
                     </requireFilesContent>
-                    <requireProperty>
-                      <property>aprArmHome</property>
-                      <message>The folder of APR for aarch64 must be specified by hand. Please try -DaprArmHome=</message>
-                    </requireProperty>
                   </rules>
                   <ignoreCache>true</ignoreCache>
                 </configuration>
@@ -477,7 +471,6 @@
             <artifactId>maven-bundle-plugin</artifactId>
             <configuration>
               <instructions>
-                <Apr-Version>${aprVersion}</Apr-Version>
                 <BoringSSL-Revision>${boringsslCommitSha}</BoringSSL-Revision>
                 <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
               </instructions>
@@ -655,7 +648,7 @@
             </executions>
           </plugin>
 
-          <!-- Configure the distribution statically linked against OpenSSL and APR -->
+          <!-- Configure the distribution statically linked against OpenSSL -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
             <artifactId>maven-hawtjni-plugin</artifactId>
@@ -678,7 +671,6 @@
                   <!-- <verbose>true</verbose> -->
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
-                    <configureArg>--with-apr=${aprArmHome}</configureArg>
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
@@ -686,6 +678,7 @@
                     <configureArg>LDFLAGS=-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
                     <configureArg>CC=aarch64-none-linux-gnu-gcc</configureArg>
+                    <configureArg>CXX=aarch64-none-linux-gnu-g++</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
@@ -939,7 +932,6 @@
             <artifactId>maven-bundle-plugin</artifactId>
             <configuration>
               <instructions>
-                <Apr-Version>${aprVersion}</Apr-Version>
                 <BoringSSL-Revision>${boringsslCommitSha}</BoringSSL-Revision>
                 <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
               </instructions>
@@ -1075,7 +1067,7 @@
             </executions>
           </plugin>
 
-          <!-- Configure the distribution statically linked against OpenSSL and APR -->
+          <!-- Configure the distribution statically linked against OpenSSL -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
             <artifactId>maven-hawtjni-plugin</artifactId>
@@ -1097,7 +1089,6 @@
                   <!-- <verbose>true</verbose> -->
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
-                    <configureArg>--with-apr=${aprHome}</configureArg>
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>--host=aarch64-apple-darwin</configureArg>
@@ -1187,7 +1178,6 @@
             <artifactId>maven-bundle-plugin</artifactId>
             <configuration>
               <instructions>
-                <Apr-Version>${aprVersion}</Apr-Version>
                 <BoringSSL-Revision>${boringsslCommitSha}</BoringSSL-Revision>
                 <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
               </instructions>
@@ -1323,7 +1313,7 @@
             </executions>
           </plugin>
 
-          <!-- Configure the distribution statically linked against OpenSSL and APR -->
+          <!-- Configure the distribution statically linked against OpenSSL -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
             <artifactId>maven-hawtjni-plugin</artifactId>
@@ -1345,7 +1335,6 @@
                   <!-- <verbose>true</verbose> -->
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
-                    <configureArg>--with-apr=${aprHome}</configureArg>
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>--host=x86_64-apple-darwin</configureArg>

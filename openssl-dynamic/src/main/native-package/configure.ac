@@ -29,12 +29,14 @@ AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
 
 ${CFLAGS="-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -Wno-deprecated-declarations"}
-${CXXFLAGS="-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value"}
+# Ensure we support c++14 for atomics etc
+${CXXFLAGS="-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -std=c++14"}
 
 ## -----------------------------------------------
 ## Application Checks
 ## -----------------------------------------------
 AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_INSTALL
 # Make AM_PROG_AR work before automake 1.12
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])

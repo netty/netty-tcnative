@@ -24,7 +24,6 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
  git \
  gnupg \
  g++ \
- libapr1-dev \
  libssl1.0.0=1.0.1e-2+deb7u20 \
  libssl-dev \
  libtool \

@@ -79,11 +79,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;@APR_INCLUDE_DIR@;@APR_INCLUDE_DIR@\arch\win32;@SSL_INCLUDE_DIRS@;$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;@SSL_INCLUDE_DIRS@;$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>APR_DECLARE_STATIC;WIN32_LEAN_AND_MEAN;WIN32;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -96,8 +96,8 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>@SSL_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -107,11 +107,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;@APR_INCLUDE_DIR@;@APR_INCLUDE_DIR@\arch\win32;@SSL_INCLUDE_DIRS@;$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;@SSL_INCLUDE_DIRS@;$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>APR_DECLARE_STATIC;WIN32_LEAN_AND_MEAN;WIN64;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN64;NDEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -124,8 +124,8 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>@SSL_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -135,10 +135,10 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;@APR_INCLUDE_DIR@;@APR_INCLUDE_DIR@\arch\win32;@SSL_INCLUDE_DIRS@;$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;@SSL_INCLUDE_DIRS@;$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>APR_DECLARE_STATIC;WIN32_LEAN_AND_MEAN;WIN32;_DEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;_DEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -152,8 +152,8 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>@SSL_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
@@ -161,10 +161,10 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;@APR_INCLUDE_DIR@;@APR_INCLUDE_DIR@\arch\win32;@SSL_INCLUDE_DIRS@;$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;@SSL_INCLUDE_DIRS@;$(ProjectDir)\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>APR_DECLARE_STATIC;WIN32_LEAN_AND_MEAN;WIN64;_DEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN64;_DEBUG;_WINDOWS;HAVE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -178,8 +178,8 @@
       <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;apr-1.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>@SSL_LIB_DIR@;@APR_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mswsock.lib;ws2_32.lib;rpcrt4.lib;shlwapi.lib;psapi.lib;@SSL_LIBS@;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>@SSL_LIB_DIR@;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -196,6 +196,10 @@
     <ClCompile Include=".\src\sslcontext.c" />
     <ClCompile Include=".\src\sslsession.c" />
     <ClCompile Include=".\src\sslutils.c" />
+    <ClCompile Include=".\src\tcn_atomic.cpp" />
+    <ClCompile Include=".\src\tcn_lock.cpp" />
+    <ClCompile Include=".\src\tcn_lock_rw.cpp" />
+    <ClCompile Include=".\src\tcn_thread.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
