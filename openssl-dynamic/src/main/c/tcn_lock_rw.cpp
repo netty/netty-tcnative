@@ -17,12 +17,12 @@
 #include <shared_mutex>
 #include <mutex>
 
-tcn_lock_rw_t tcn_lock_rw_new() {
+tcn_lock_rw_t tcn_lock_rw_create() {
     // Once we switch to c++17 we should use std::shared_mutex
     return (tcn_lock_rw_t) new std::shared_timed_mutex;
 }
 
-void tcn_lock_rw_free(tcn_lock_rw_t* lock) {
+void tcn_lock_rw_destroy(tcn_lock_rw_t* lock) {
     delete (std::shared_timed_mutex *) *lock;
     *lock = nullptr;
 }

@@ -153,12 +153,12 @@ static void ssl_context_cleanup(tcn_ssl_ctxt_t *c)
         }
         c->alpn_proto_len = 0;
 
-        tcn_lock_rw_free(&c->ticket_keys_lock);
+        tcn_lock_rw_destroy(&c->ticket_keys_lock);
 
-        tcn_atomic_uint32_free(&c->ticket_keys_new);
-        tcn_atomic_uint32_free(&c->ticket_keys_resume);
-        tcn_atomic_uint32_free(&c->ticket_keys_renew);
-        tcn_atomic_uint32_free(&c->ticket_keys_fail);
+        tcn_atomic_uint32_destroy(&c->ticket_keys_new);
+        tcn_atomic_uint32_destroy(&c->ticket_keys_resume);
+        tcn_atomic_uint32_destroy(&c->ticket_keys_renew);
+        tcn_atomic_uint32_destroy(&c->ticket_keys_fail);
 
         if (c->ticket_keys != NULL) {
             OPENSSL_free(c->ticket_keys);
@@ -335,9 +335,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     c->protocol = protocol;
     c->mode     = mode;
     c->ctx      = ctx;
-    c->ticket_keys_resume = tcn_atomic_uint32_new();
-    c->ticket_keys_renew = tcn_atomic_uint32_new();
-    c->ticket_keys_fail = tcn_atomic_uint32_new();
+    c->ticket_keys_resume = tcn_atomic_uint32_create();
+    c->ticket_keys_renew = tcn_atomic_uint32_create();
+    c->ticket_keys_fail = tcn_atomic_uint32_create();
 
     if (!(protocol & SSL_PROTOCOL_SSLV2))
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv2);
@@ -418,7 +418,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         SSL_CTX_set_allow_unknown_alpn_protos(ctx, 1);
     }
 #endif
-    c->ticket_keys_lock = tcn_lock_rw_new();
+    c->ticket_keys_lock = tcn_lock_rw_create();
 
     tcn_SSL_CTX_set_app_state(c->ctx, c);
     return P2J(c);

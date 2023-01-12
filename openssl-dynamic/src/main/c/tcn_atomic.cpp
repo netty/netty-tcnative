@@ -16,11 +16,11 @@
 #include "tcn_atomic.h"
 #include <atomic>
 
-tcn_atomic_uint32_t tcn_atomic_uint32_new() {
+tcn_atomic_uint32_t tcn_atomic_uint32_create() {
     return (tcn_atomic_uint32_t) new std::atomic<uint32_t>(0);
 }
 
-void tcn_atomic_uint32_free(tcn_atomic_uint32_t* atomic) {
+void tcn_atomic_uint32_destroy(tcn_atomic_uint32_t* atomic) {
     delete (std::atomic<uint32_t> *) *atomic;
     *atomic = nullptr;
 }

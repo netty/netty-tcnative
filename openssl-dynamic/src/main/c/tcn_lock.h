@@ -22,9 +22,9 @@ extern "C" {
 
 typedef void* tcn_lock_t;
 
-tcn_lock_t tcn_lock_new();
+tcn_lock_t tcn_lock_create();
 
-void tcn_lock_free(tcn_lock_t* lock);
+void tcn_lock_destroy(tcn_lock_t* lock);
 
 void tcn_lock_acquire(tcn_lock_t lock);
 

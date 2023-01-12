@@ -25,9 +25,9 @@ extern "C" {
 
 typedef void* tcn_atomic_uint32_t;
 
-tcn_atomic_uint32_t tcn_atomic_uint32_new();
+tcn_atomic_uint32_t tcn_atomic_uint32_create();
 
-void tcn_atomic_uint32_free(tcn_atomic_uint32_t* atomic);
+void tcn_atomic_uint32_destroy(tcn_atomic_uint32_t* atomic);
 
 uint32_t tcn_atomic_uint32_get(tcn_atomic_uint32_t atomic);
 

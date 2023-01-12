@@ -639,7 +639,7 @@ static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
        using our own pool. */
     value->file = strdup(file);
     value->line = line;
-    value->mutex = tcn_lock_new();
+    value->mutex = tcn_lock_create();
     return value;
 }
 
@@ -662,7 +662,7 @@ static void ssl_dyn_lock_function(int mode, struct CRYPTO_dynlock_value *l,
 static void ssl_dyn_destroy_function(struct CRYPTO_dynlock_value *l,
                           const char *file, int line)
 {
-    tcn_lock_free(&l->mutex);
+    tcn_lock_destroy(&l->mutex);
     free(l->file);
     free(l);
 }
@@ -675,7 +675,7 @@ static void ssl_thread_setup()
     ssl_lock_cs = OPENSSL_malloc(ssl_lock_num_locks * sizeof(*ssl_lock_cs));
 
     for (i = 0; i < ssl_lock_num_locks; i++) {
-        ssl_lock_cs[i] = tcn_lock_new();
+        ssl_lock_cs[i] = tcn_lock_create();
     }
 
     CRYPTO_THREADID_set_callback(ssl_set_thread_id);

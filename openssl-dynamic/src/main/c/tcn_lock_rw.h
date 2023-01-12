@@ -24,9 +24,9 @@ typedef void* tcn_lock_rw_t;
 typedef void* tcn_lock_w_t;
 typedef void* tcn_lock_r_t;
 
-tcn_lock_rw_t tcn_lock_rw_new();
+tcn_lock_rw_t tcn_lock_rw_create();
 
-void tcn_lock_rw_free(tcn_lock_rw_t* lock);
+void tcn_lock_rw_destroy(tcn_lock_rw_t* lock);
 
 tcn_lock_w_t tcn_lock_w_acquire(tcn_lock_rw_t lock);
 
