@@ -275,7 +275,21 @@ AC_DEFUN([TCN_CHECK_STATIC],[
           LD_FLAGS_STATIC="-Wl,-exported_symbol,_JNI_*"
           ;;
       *linux*)
-          LD_FLAGS_STATIC="-Wl,--exclude-libs,ALL"
+          dnl On linux we also statically link libstdc++ etc to make it as backward / forward compatible as possible.
+          LD_FLAGS_STATIC="-static-libstdc++ -static-libgcc -l:libgcc.a -l:libstdc++.a -Wl,--exclude-libs,ALL"
+
+          dnl Cleanup libtool postdeps so it will not link against libtdc++ dynamically.
+          AC_MSG_NOTICE([Cleanup libtool C++ postdeps: $postdeps_CXX])
+          tmppostdeps=;
+          for x in ${postdeps_CXX};
+          do
+              case $x in
+                  -lstdc++) true; ;;
+                  -lgcc_s) true; ;;
+                  *) tmppostdeps=${tmppostdeps}${tmppostdeps:+ }$x; ;;
+              esac;
+          done;
+          postdeps_CXX="${tmppostdeps}";
           ;;
       *)
           LD_FLAGS_STATIC=""
