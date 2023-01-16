@@ -163,8 +163,8 @@
         </plugin>
         <plugin>
           <groupId>org.fusesource.hawtjni</groupId>
-          <artifactId>maven-hawtjni-plugin</artifactId>
-          <version>1.11</version>
+          <artifactId>hawtjni-maven-plugin</artifactId>
+          <version>1.18</version>
         </plugin>
         <plugin>
           <artifactId>maven-scm-plugin</artifactId>
