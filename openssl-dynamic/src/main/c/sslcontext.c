@@ -636,7 +636,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
             SSL_CTX_set_tmp_dh_callback(c->ctx, tcn_SSL_callback_tmp_DH_4096);
             return;
         default:
-            tcn_Throw(e, "Unsupported length %s", length);
+            tcn_Throw(e, "Unsupported length %d", length);
             return;
     }
 }
