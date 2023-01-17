@@ -11,14 +11,12 @@ RUN sed -i -e 's/^mirrorlist/#mirrorlist/g' -e 's/^#baseurl=http:\/\/mirror.cent
 
 # install dependencies
 RUN yum install -y \
- apr-devel \
  autoconf \
  automake \
  bzip2 \
  git \
  glibc-devel \
  gnupg \
- libapr1-dev \
  libtool \
  lsb-core \
  make \

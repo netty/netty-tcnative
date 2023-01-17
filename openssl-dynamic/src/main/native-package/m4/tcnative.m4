@@ -16,46 +16,30 @@
 #
 
 dnl
-dnl TCN_FIND_APR: figure out where APR is located
+dnl TCN_ADDTO(variable, value)
 dnl
-AC_DEFUN([TCN_FIND_APR],[
-
-  dnl use the find_apr.m4 script to locate APR. sets apr_found and apr_config
-  APR_FIND_APR(,,[1],[1])
-  if test "$apr_found" = "no"; then
-    AC_MSG_ERROR(APR could not be located. Please use the --with-apr option.)
-  fi
-
-  sapr_pversion="`$apr_config --version`"
-  if test -z "$sapr_pversion"; then
-    AC_MSG_ERROR(APR config could not be located. Please use the --with-apr option.)
-  fi
-  sapr_version="`echo $sapr_pversion|sed -e 's/\([a-z]*\)$/.\1/'`"
-  tc_save_IFS=$IFS; IFS=.; set $sapr_version; IFS=$tc_save_IFS
-  if test "${1}" -lt "1"; then
-    AC_MSG_ERROR(You need APR version 1.2.1 or newer installed. For optimal performance version 1.3.0 or newer is needed.)
+dnl  Add value to variable
+dnl
+AC_DEFUN([TCN_ADDTO], [
+  if test "x$$1" = "x"; then
+    test "x$silent" != "xyes" && echo "  setting $1 to \"$2\""
+    $1="$2"
   else
-    if test "${2}" -lt "2"; then
-      AC_MSG_ERROR(You need APR version 1.2.1 or newer installed. For optimal performance version 1.3.0 or newer is needed.)
-    elif test "${2}" -lt "3"; then
-      AC_MSG_WARN(For optimal performance you need APR version 1.3.0 or newer installed.)
-    fi
+    tcn_addto_bugger="$2"
+    for i in $tcn_addto_bugger; do
+      tcn_addto_duplicate="0"
+      for j in $$1; do
+        if test "x$i" = "x$j"; then
+          tcn_addto_duplicate="1"
+          break
+        fi
+      done
+      if test $tcn_addto_duplicate = "0"; then
+        test "x$silent" != "xyes" && echo "  adding \"$i\" to $1"
+        $1="$$1 $i"
+      fi
+    done
   fi
-
-  APR_BUILD_DIR="`$apr_config --installbuilddir`"
-
-  dnl make APR_BUILD_DIR an absolute directory (we'll need it in the
-  dnl sub-projects in some cases)
-  APR_BUILD_DIR="`cd $APR_BUILD_DIR && pwd`"
-
-  APR_INCLUDES="`$apr_config --includes`"
-  APR_LIBS="`$apr_config --link-libtool --libs`"
-  APR_SO_EXT="`$apr_config --apr-so-ext`"
-  APR_LIB_TARGET="`$apr_config --apr-lib-target`"
-
-  AC_SUBST(APR_INCLUDES)
-  AC_SUBST(APR_LIBS)
-  AC_SUBST(APR_BUILD_DIR)
 ])
 
 dnl --------------------------------------------------------------------------
@@ -277,7 +261,7 @@ AC_DEFUN([TCN_HELP_STRING],[ifelse(regexp(AC_ACVERSION, 2\.1), -1, AC_HELP_STRIN
 
 dnl
 dnl TCN_CHECK_STATIC
-dnl Will prepare more LDFLAGS that should be set to ensure we do not export any functions from the static compiled APR / OpenSSL libs.
+dnl Will prepare more LDFLAGS that should be set to ensure we do not export any functions from the static compiled OpenSSL libs.
 dnl
 AC_DEFUN([TCN_CHECK_STATIC],[
     LD_FLAGS_STATIC=""
@@ -291,7 +275,21 @@ AC_DEFUN([TCN_CHECK_STATIC],[
           LD_FLAGS_STATIC="-Wl,-exported_symbol,_JNI_*"
           ;;
       *linux*)
-          LD_FLAGS_STATIC="-Wl,--exclude-libs,ALL"
+          dnl On linux we also statically link libstdc++ etc to make it as backward / forward compatible as possible.
+          LD_FLAGS_STATIC="-static-libstdc++ -static-libgcc -l:libgcc.a -l:libstdc++.a -Wl,--exclude-libs,ALL"
+
+          dnl Cleanup libtool postdeps so it will not link against libtdc++ dynamically.
+          AC_MSG_NOTICE([Cleanup libtool C++ postdeps: $postdeps_CXX])
+          tmppostdeps=;
+          for x in ${postdeps_CXX};
+          do
+              case $x in
+                  -lstdc++) true; ;;
+                  -lgcc_s) true; ;;
+                  *) tmppostdeps=${tmppostdeps}${tmppostdeps:+ }$x; ;;
+              esac;
+          done;
+          postdeps_CXX="${tmppostdeps}";
           ;;
       *)
           LD_FLAGS_STATIC=""
@@ -432,10 +430,10 @@ esac
 esac
 if test "x$USE_OPENSSL" != "x"
 then
-    APR_ADDTO(TCNATIVE_PRIV_INCLUDES, [$TCN_OPENSSL_INC])
-    APR_ADDTO(TCNATIVE_LDFLAGS, [$TCN_OPENSSL_LIBS])
-    APR_ADDTO(CFLAGS, [-DHAVE_OPENSSL])
+    TCN_ADDTO(TCNATIVE_PRIV_INCLUDES, [$TCN_OPENSSL_INC])
+    TCN_ADDTO(TCNATIVE_LDFLAGS, [$TCN_OPENSSL_LIBS])
+    TCN_ADDTO(CFLAGS, [-DHAVE_OPENSSL])
 fi
 
-APR_ADDTO(LDFLAGS, [$LD_FLAGS_STATIC])
+TCN_ADDTO(LDFLAGS, [$LD_FLAGS_STATIC])
 ])

@@ -27,7 +27,7 @@
   <name>Netty/TomcatNative [OpenSSL - Classes]</name>
   <description>
     A Mavenized fork of Tomcat Native which incorporates various patches. This artifact is dynamically linked
-    to OpenSSL and Apache APR.
+    to OpenSSL.
   </description>
 
   <properties>
