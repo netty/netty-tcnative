@@ -129,7 +129,7 @@
       <!-- Generate the .so/.dynlib/.dll as part of the build. -->
       <plugin>
         <groupId>org.fusesource.hawtjni</groupId>
-        <artifactId>maven-hawtjni-plugin</artifactId>
+        <artifactId>hawtjni-maven-plugin</artifactId>
         <executions>
           <execution>
             <id>build-native-lib</id>
@@ -233,7 +233,7 @@
         <plugins>
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
-            <artifactId>maven-hawtjni-plugin</artifactId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>build-native-lib</id>
@@ -272,7 +272,7 @@
         <plugins>
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
-            <artifactId>maven-hawtjni-plugin</artifactId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>build-native-lib</id>
@@ -384,7 +384,7 @@
           <!-- Generate the .so/.dynlib/.dll as part of the build. -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
-            <artifactId>maven-hawtjni-plugin</artifactId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>build-native-lib</id>

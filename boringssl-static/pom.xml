@@ -323,7 +323,7 @@
           <!-- Configure the distribution statically linked against OpenSSL and APR -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
-            <artifactId>maven-hawtjni-plugin</artifactId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>build-native-lib</id>
@@ -658,7 +658,7 @@
           <!-- Configure the distribution statically linked against OpenSSL and APR -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
-            <artifactId>maven-hawtjni-plugin</artifactId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>build-native-lib</id>
@@ -1078,7 +1078,7 @@
           <!-- Configure the distribution statically linked against OpenSSL and APR -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
-            <artifactId>maven-hawtjni-plugin</artifactId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>build-native-lib</id>
@@ -1326,7 +1326,7 @@
           <!-- Configure the distribution statically linked against OpenSSL and APR -->
           <plugin>
             <groupId>org.fusesource.hawtjni</groupId>
-            <artifactId>maven-hawtjni-plugin</artifactId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
             <executions>
               <execution>
                 <id>build-native-lib</id>
