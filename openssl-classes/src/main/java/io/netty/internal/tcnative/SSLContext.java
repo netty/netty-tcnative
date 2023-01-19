@@ -68,7 +68,7 @@ public final class SSLContext {
     /**
      * Free the resources used by the Context
      * @param ctx Server or Client context to free.
-     * @return APR Status code.
+     * @return {@code 0} on success.
      */
     public static native int free(long ctx);
 

@@ -9,7 +9,6 @@ ENV JAVA_VERSION $java_version
 # install dependencies
 # use openSSL 1.0.x for now, for highest compatibility
 RUN zypper install --force-resolution --no-recommends --no-confirm \
- apr-devel \
  autoconf \
  automake \
  bzip2 \

@@ -40,9 +40,6 @@
 #endif
 
 #include "tcn.h"
-#include "apr_version.h"
-#include "apr_atomic.h"
-#include "apr_strings.h"
 #include "bb.h"
 #include "native_constants.h"
 #include "ssl.h"
@@ -50,7 +47,6 @@
 #include "sslsession.h"
 #include "error.h"
 
-apr_pool_t *tcn_global_pool = NULL;
 static JavaVM     *tcn_global_vm = NULL;
 
 static jclass    jString_class;
@@ -87,40 +83,6 @@ jstring tcn_new_string(JNIEnv *env, const char *str)
         return (*env)->NewStringUTF(env, str);
 }
 
-TCN_IMPLEMENT_CALL(jboolean, Library, initialize0)(TCN_STDARGS)
-{
-
-    if (!tcn_global_pool) {
-        apr_initialize();
-        if (apr_pool_create(&tcn_global_pool, NULL) != APR_SUCCESS) {
-            return JNI_FALSE;
-        }
-        apr_atomic_init(tcn_global_pool);
-    }
-    return JNI_TRUE;
-}
-
-TCN_IMPLEMENT_CALL(jint, Library, aprMajorVersion)(TCN_STDARGS)
-{
-    apr_version_t apv;
-
-    apr_version(&apv);
-    return apv.major;
-}
-
-TCN_IMPLEMENT_CALL(jstring, Library, aprVersionString)(TCN_STDARGS)
-{
-    return AJP_TO_JSTRING(apr_version_string());
-}
-
-TCN_IMPLEMENT_CALL(jboolean, Library, aprHasThreads)(TCN_STDARGS)
-{
-#if APR_HAS_THREADS
-    return JNI_TRUE;
-#else
-    return JNI_FALSE;
-#endif
-}
 
 jclass tcn_get_string_class()
 {
@@ -137,17 +99,6 @@ jint tcn_get_java_env(JNIEnv **env)
     return (*tcn_global_vm)->GetEnv(tcn_global_vm, (void **)env, NETTY_JNI_UTIL_JNI_VERSION);
 }
 
-// JNI Method Registration Table Begin
-static const JNINativeMethod method_table[] = {
-  { TCN_METHOD_TABLE_ENTRY(initialize0, ()Z, Library) },
-  { TCN_METHOD_TABLE_ENTRY(aprMajorVersion, ()I, Library) },
-  { TCN_METHOD_TABLE_ENTRY(aprVersionString, ()Ljava/lang/String;, Library) },
-  { TCN_METHOD_TABLE_ENTRY(aprHasThreads, ()Z, Library) },
-};
-
-static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
-// JNI Method Registration Table End
-
 // IMPORTANT: If you add any NETTY_JNI_UTIL_LOAD_CLASS or NETTY_JNI_UTIL_FIND_CLASS calls you also need to update
 //            Library to reflect that.
 static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, char const* packagePrefix) {
@@ -157,10 +108,6 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, char const* 
     int sessionOnLoadCalled = 0;
     int sslOnLoadCalled = 0;
     int contextOnLoadCalled = 0;
-
-    if (netty_jni_util_register_natives(env, packagePrefix, LIBRARY_CLASSNAME, method_table, method_table_size) != 0) {
-        goto error;
-    }
 
     // Load all c modules that we depend upon
     if (netty_internal_tcnative_Error_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
@@ -193,21 +140,6 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, char const* 
     }
     sessionOnLoadCalled = 1;
 
-    apr_version_t apv;
-    int apvn;
-
-    /* Before doing anything else check if we have a valid
-     * APR version.
-     */
-    apr_version(&apv);
-    apvn = apv.major * 1000 + apv.minor * 100 + apv.patch;
-    if (apvn < 1201) {
-        tcn_Throw(env, "Unsupported APR version (%s)",
-                  apr_version_string());
-        goto error;
-    }
-
-
     /* Initialize global java.lang.String class */
     NETTY_JNI_UTIL_LOAD_CLASS(env, jString_class, "java/lang/String", error);
 
@@ -220,11 +152,7 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, char const* 
     staticPackagePrefix = packagePrefix;
     return NETTY_JNI_UTIL_JNI_VERSION;
 error:
-    if (tcn_global_pool != NULL) {
-        NETTY_JNI_UTIL_UNLOAD_CLASS(env, jString_class);
-        apr_terminate();
-        tcn_global_pool = NULL;
-    }
+    NETTY_JNI_UTIL_UNLOAD_CLASS(env, jString_class);
 
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, byteArrayClass);
 
@@ -253,12 +181,7 @@ error:
 }
 
 static void netty_internal_tcnative_Library_JNI_OnUnload(JNIEnv* env) {
-    if (tcn_global_pool != NULL) {
-        NETTY_JNI_UTIL_UNLOAD_CLASS(env, jString_class);
-        apr_terminate();
-        tcn_global_pool = NULL;
-    }
-
+    NETTY_JNI_UTIL_UNLOAD_CLASS(env, jString_class);
     NETTY_JNI_UTIL_UNLOAD_CLASS(env, byteArrayClass);
     netty_internal_tcnative_Error_JNI_OnUnLoad(env, staticPackagePrefix);
     netty_internal_tcnative_Buffer_JNI_OnUnLoad(env, staticPackagePrefix);
