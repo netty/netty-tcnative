@@ -60,8 +60,9 @@ jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
     jstring result = NULL;
     jbyteArray bytes = 0;
 
-    if (!str)
+    if (!str) {
         return NULL;
+    }
     if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
         return NULL; /* out of memory error */
     }
@@ -77,10 +78,10 @@ jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
 
 jstring tcn_new_string(JNIEnv *env, const char *str)
 {
-    if (!str)
+    if (!str) {
         return NULL;
-    else
-        return (*env)->NewStringUTF(env, str);
+    }
+    return (*env)->NewStringUTF(env, str);
 }
 
 
