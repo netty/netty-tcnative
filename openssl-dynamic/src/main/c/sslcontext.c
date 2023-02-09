@@ -335,6 +335,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     c->protocol = protocol;
     c->mode     = mode;
     c->ctx      = ctx;
+    c->ticket_keys_new = tcn_atomic_uint32_create();
     c->ticket_keys_resume = tcn_atomic_uint32_create();
     c->ticket_keys_renew = tcn_atomic_uint32_create();
     c->ticket_keys_fail = tcn_atomic_uint32_create();
