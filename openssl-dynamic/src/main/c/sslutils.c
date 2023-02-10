@@ -197,7 +197,6 @@ void *tcn_SSL_get_app_state(const SSL *ssl)
 void tcn_SSL_set_app_state(SSL *ssl, void *arg)
 {
     SSL_set_ex_data(ssl, tcn_SSL_app_state_idx, (char *)arg);
-    return;
 }
 
 void *tcn_SSL_CTX_get_app_state(const SSL_CTX *ctx)
@@ -208,7 +207,6 @@ void *tcn_SSL_CTX_get_app_state(const SSL_CTX *ctx)
 void tcn_SSL_CTX_set_app_state(SSL_CTX *ctx, void *arg)
 {
     SSL_CTX_set_ex_data(ctx, tcn_SSL_CTX_app_state_idx, (char *)arg);
-    return;
 }
 
 
@@ -217,8 +215,9 @@ int tcn_SSL_password_callback(char *buf, int bufsiz, int verify,
 {
     char *password = (char *) cb;
 
-    if (buf == NULL || password == NULL)
+    if (buf == NULL || password == NULL) {
         return 0;
+    }
     *buf = '\0';
 
     if (password[0]) {
@@ -378,16 +377,17 @@ DH *tcn_SSL_dh_get_tmp_param(int key_len)
 {
     DH *dh = NULL;
 
-    if (key_len == 512)
+    if (key_len == 512) {
         dh = get_dh(SSL_TMP_KEY_DH_512);
-    else if (key_len == 1024)
+    } else if (key_len == 1024) {
         dh = get_dh(SSL_TMP_KEY_DH_1024);
-    else if (key_len == 2048)
+    } else if (key_len == 2048) {
         dh = get_dh(SSL_TMP_KEY_DH_2048);
-    else if (key_len == 4096)
+    } else if (key_len == 4096) {
         dh = get_dh(SSL_TMP_KEY_DH_4096);
-    else
+    } else {
         dh = get_dh(SSL_TMP_KEY_DH_1024);
+    }
     return dh;
 }
 
@@ -445,8 +445,9 @@ int tcn_SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipf
     BIO *bio = NULL;
     int n;
 
-    if ((bio = BIO_new(BIO_s_file())) == NULL)
+    if ((bio = BIO_new(BIO_s_file())) == NULL) {
         return -1;
+    }
     if (BIO_read_filename(bio, file) <= 0) {
         BIO_free(bio);
         return -1;

@@ -207,111 +207,122 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     switch (protocol) {
     case SSL_PROTOCOL_TLS:
     case SSL_PROTOCOL_ALL:
-        if (mode == SSL_MODE_CLIENT)
+        if (mode == SSL_MODE_CLIENT) {
             ctx = SSL_CTX_new(SSLv23_client_method());
-        else if (mode == SSL_MODE_SERVER)
+        } else if (mode == SSL_MODE_SERVER) {
             ctx = SSL_CTX_new(SSLv23_server_method());
-        else
+        } else {
             ctx = SSL_CTX_new(SSLv23_method());
+        }
         break;
     case SSL_PROTOCOL_TLSV1_2:
 #ifndef OPENSSL_NO_TLS1
-        if (mode == SSL_MODE_CLIENT)
+        if (mode == SSL_MODE_CLIENT) {
             ctx = SSL_CTX_new(TLSv1_2_client_method());
-        else if (mode == SSL_MODE_SERVER)
+        } else if (mode == SSL_MODE_SERVER) {
             ctx = SSL_CTX_new(TLSv1_2_server_method());
-        else
+        } else {
             ctx = SSL_CTX_new(TLSv1_2_method());
+        }
 #endif
         break;
     case SSL_PROTOCOL_TLSV1_1:
 #ifndef OPENSSL_NO_TLS1
-        if (mode == SSL_MODE_CLIENT)
+        if (mode == SSL_MODE_CLIENT) {
             ctx = SSL_CTX_new(TLSv1_1_client_method());
-        else if (mode == SSL_MODE_SERVER)
+        } else if (mode == SSL_MODE_SERVER) {
             ctx = SSL_CTX_new(TLSv1_1_server_method());
-        else
+        } else {
             ctx = SSL_CTX_new(TLSv1_1_method());
+        }
 #endif
         break;
     case SSL_PROTOCOL_TLSV1:
 #ifndef OPENSSL_NO_TLS1
-        if (mode == SSL_MODE_CLIENT)
+        if (mode == SSL_MODE_CLIENT) {
             ctx = SSL_CTX_new(TLSv1_client_method());
-        else if (mode == SSL_MODE_SERVER)
+        } else if (mode == SSL_MODE_SERVER) {
             ctx = SSL_CTX_new(TLSv1_server_method());
-        else
+        } else {
             ctx = SSL_CTX_new(TLSv1_method());
+        }
 #endif
         break;
     case SSL_PROTOCOL_SSLV3:
 #ifndef OPENSSL_NO_SSL3
-        if (mode == SSL_MODE_CLIENT)
+        if (mode == SSL_MODE_CLIENT) {
             ctx = SSL_CTX_new(SSLv3_client_method());
-        else if (mode == SSL_MODE_SERVER)
+        } else if (mode == SSL_MODE_SERVER) {
             ctx = SSL_CTX_new(SSLv3_server_method());
-        else
+        } else {
             ctx = SSL_CTX_new(SSLv3_method());
+        }
 #endif
         break;
     case SSL_PROTOCOL_SSLV2:
 #ifndef OPENSSL_NO_SSL2
-        if (mode == SSL_MODE_CLIENT)
+        if (mode == SSL_MODE_CLIENT) {
             ctx = SSL_CTX_new(SSLv2_client_method());
-        else if (mode == SSL_MODE_SERVER)
+        } else if (mode == SSL_MODE_SERVER) {
             ctx = SSL_CTX_new(SSLv2_server_method());
-        else
+        } else {
             ctx = SSL_CTX_new(SSLv2_method());
+        }
 #endif
         break;
     default:
         // Try to give the user the highest supported protocol.
 #ifndef OPENSSL_NO_TLS1
         if (protocol & SSL_PROTOCOL_TLSV1_2) {
-            if (mode == SSL_MODE_CLIENT)
+            if (mode == SSL_MODE_CLIENT) {
                 ctx = SSL_CTX_new(TLSv1_2_client_method());
-            else if (mode == SSL_MODE_SERVER)
+            } else if (mode == SSL_MODE_SERVER) {
                 ctx = SSL_CTX_new(TLSv1_2_server_method());
-            else
+            } else {
                 ctx = SSL_CTX_new(TLSv1_2_method());
+            }
             break;
         } else if (protocol & SSL_PROTOCOL_TLSV1_1) {
-            if (mode == SSL_MODE_CLIENT)
+            if (mode == SSL_MODE_CLIENT) {
                 ctx = SSL_CTX_new(TLSv1_1_client_method());
-            else if (mode == SSL_MODE_SERVER)
+            } else if (mode == SSL_MODE_SERVER) {
                 ctx = SSL_CTX_new(TLSv1_1_server_method());
-            else
+            } else {
                 ctx = SSL_CTX_new(TLSv1_1_method());
+            }
             break;
         } else if (protocol & SSL_PROTOCOL_TLSV1) {
-            if (mode == SSL_MODE_CLIENT)
+            if (mode == SSL_MODE_CLIENT) {
                 ctx = SSL_CTX_new(TLSv1_client_method());
-            else if (mode == SSL_MODE_SERVER)
+            } else if (mode == SSL_MODE_SERVER) {
                 ctx = SSL_CTX_new(TLSv1_server_method());
-            else
+            } else {
                 ctx = SSL_CTX_new(TLSv1_method());
+            }
             break;
         }
 #endif
 #ifndef OPENSSL_NO_SSL3
         if (protocol & SSL_PROTOCOL_SSLV3) {
-            if (mode == SSL_MODE_CLIENT)
+            if (mode == SSL_MODE_CLIENT) {
                 ctx = SSL_CTX_new(SSLv3_client_method());
-            else if (mode == SSL_MODE_SERVER)
+            } else if (mode == SSL_MODE_SERVER) {
                 ctx = SSL_CTX_new(SSLv3_server_method());
-            else
+            } else {
                 ctx = SSL_CTX_new(SSLv3_method());
+            }
             break;
         }
 #endif
 #ifndef OPENSSL_NO_SSL2
         if (protocol & SSL_PROTOCOL_SSLV2) {
-            if (mode == SSL_MODE_CLIENT)
+            if (mode == SSL_MODE_CLIENT) {
                 ctx = SSL_CTX_new(SSLv2_client_method());
-            else if (mode == SSL_MODE_SERVER)
+            } else if (mode == SSL_MODE_SERVER) {
                 ctx = SSL_CTX_new(SSLv2_server_method());
-            else
+            } else {
                 ctx = SSL_CTX_new(SSLv2_method());
+            }
             break;
         }
 #endif
@@ -340,19 +351,24 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     c->ticket_keys_renew = tcn_atomic_uint32_create();
     c->ticket_keys_fail = tcn_atomic_uint32_create();
 
-    if (!(protocol & SSL_PROTOCOL_SSLV2))
+    if (!(protocol & SSL_PROTOCOL_SSLV2)) {
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv2);
-    if (!(protocol & SSL_PROTOCOL_SSLV3))
+    }
+    if (!(protocol & SSL_PROTOCOL_SSLV3)) {
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv3);
-    if (!(protocol & SSL_PROTOCOL_TLSV1))
+    }
+    if (!(protocol & SSL_PROTOCOL_TLSV1)) {
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_TLSv1);
+    }
 #ifdef SSL_OP_NO_TLSv1_1
-    if (!(protocol & SSL_PROTOCOL_TLSV1_1))
+    if (!(protocol & SSL_PROTOCOL_TLSV1_1)) {
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_TLSv1_1);
+    }
 #endif
 #ifdef SSL_OP_NO_TLSv1_2
-    if (!(protocol & SSL_PROTOCOL_TLSV1_2))
+    if (!(protocol & SSL_PROTOCOL_TLSV1_2)) {
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_TLSv1_2);
+    }
 #endif
     /*
      * Configure additional context ingredients
@@ -548,10 +564,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
 
     TCN_ALLOC_CSTRING(file);
 
-    if (!J2S(file))
+    if (!J2S(file)) {
         return JNI_FALSE;
-    if (tcn_SSL_CTX_use_certificate_chain(c->ctx, J2S(file), skipfirst) > 0)
+    }
+    if (tcn_SSL_CTX_use_certificate_chain(c->ctx, J2S(file), skipfirst) > 0) {
         rv = JNI_TRUE;
+    }
     TCN_FREE_CSTRING(file);
     return rv;
 #endif // OPENSSL_IS_BORINGSSL
@@ -570,8 +588,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jl
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
 
-    if (b == NULL)
+    if (b == NULL) {
         return JNI_FALSE;
+    }
     if (tcn_SSL_CTX_use_certificate_chain_bio(c->ctx, b, skipfirst) > 0)  {
         return JNI_TRUE;
     }
@@ -696,8 +715,9 @@ static int ssl_load_pkcs12(tcn_ssl_ctxt_t *c, const char *file,
     PKCS12     *p12 = NULL;
     BIO        *in = NULL;
 
-    if ((in = BIO_new(BIO_s_file())) == 0)
+    if ((in = BIO_new(BIO_s_file())) == 0) {
         return 0;
+    }
     if (BIO_read_filename(in, file) <= 0) {
         BIO_free(in);
         return 0;
@@ -710,8 +730,7 @@ static int ssl_load_pkcs12(tcn_ssl_ctxt_t *c, const char *file,
     /* See if an empty password will do */
     if (PKCS12_verify_mac(p12, "", 0) || PKCS12_verify_mac(p12, 0, 0)) {
         pass = "";
-    }
-    else {
+    } else {
         len = tcn_SSL_password_callback(buff, PEM_BUFSIZE, 0, (void *) c->password);
         if (len < 0) {
             /* Passpharse callback error */
@@ -725,8 +744,9 @@ static int ssl_load_pkcs12(tcn_ssl_ctxt_t *c, const char *file,
     }
     rc = PKCS12_parse(p12, pass, pkey, cert, ca);
 cleanup:
-    if (p12 != 0)
+    if (p12 != 0) {
         PKCS12_free(p12);
+    }
     BIO_free(in);
     return rc;
 }
@@ -781,8 +801,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     }
     key_file  = J2S(key);
     cert_file = J2S(cert);
-    if (!key_file)
+    if (!key_file) {
         key_file = cert_file;
+    }
     if (!key_file || !cert_file) {
         tcn_Throw(e, "No Certificate file specified or invalid file format");
         rv = JNI_FALSE;
@@ -796,8 +817,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
             rv = JNI_FALSE;
             goto cleanup;
         }
-    }
-    else {
+    } else {
         if ((pkey = load_pem_key(c, key_file)) == NULL) {
             ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
             tcn_Throw(e, "Unable to load certificate key %s (%s)",
@@ -875,8 +895,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
         }
     }
 
-    if (!key)
+    if (!key) {
         key = cert;
+    }
     if (!cert || !key) {
         tcn_Throw(e, "No Certificate file specified or invalid file format");
         rv = JNI_FALSE;
@@ -1492,7 +1513,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         goto complete;
     }
 
-    // Create the byte[][] array that holds all the certs
+    // Create the byte[][] array that holds all the certs
     if ((array = get_certs(e, ssl, sk)) == NULL) {
         goto complete;
     }

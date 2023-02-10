@@ -493,8 +493,9 @@ TCN_IMPLEMENT_CALL(jstring, SSL, versionString)(TCN_STDARGS)
  */
 void ssl_init_cleanup()
 {
-    if (!ssl_initialized)
+    if (!ssl_initialized) {
         return;
+    }
     ssl_initialized = 0;
 
     SSL_TMP_KEYS_FREE(DH);
@@ -590,8 +591,7 @@ static void ssl_thread_lock(int mode, int type,
     if (type < ssl_lock_num_locks) {
         if (mode & CRYPTO_LOCK) {
             tcn_lock_acquire(ssl_lock_cs[type]);
-        }
-        else {
+        } else {
             tcn_lock_release(ssl_lock_cs[type]);
         }
     }
@@ -734,21 +734,22 @@ TCN_IMPLEMENT_CALL(void, SSL, initialize)(TCN_STDARGS, jstring engine)
         ENGINE_load_builtin_engines();
         if(strcmp(J2S(engine), "auto") == 0) {
             ENGINE_register_all_complete();
-        }
-        else {
+        } else {
 
             // ssl_init_cleanup will take care of free the engine (tcn_ssl_engine) if needed.
 
             if ((tcn_ssl_engine = ENGINE_by_id(J2S(engine))) == NULL
-                && (tcn_ssl_engine = ssl_try_load_engine(J2S(engine))) == NULL)
+                && (tcn_ssl_engine = ssl_try_load_engine(J2S(engine))) == NULL) {
                 goto error;
-            else {
+            } else {
 #ifdef ENGINE_CTRL_CHIL_SET_FORKCHECK
-                if (strcmp(J2S(engine), "chil") == 0)
+                if (strcmp(J2S(engine), "chil") == 0) {
                     ENGINE_ctrl(tcn_ssl_engine, ENGINE_CTRL_CHIL_SET_FORKCHECK, 1, 0, 0);
+                }
 #endif
-                if (!ENGINE_set_default(tcn_ssl_engine, ENGINE_METHOD_ALL))
+                if (!ENGINE_set_default(tcn_ssl_engine, ENGINE_METHOD_ALL)) {
                     goto error;
+                }
             }
 
             // This code is based on libcurl:
