@@ -662,7 +662,7 @@ static void ssl_dyn_lock_function(int mode, struct CRYPTO_dynlock_value *l,
 static void ssl_dyn_destroy_function(struct CRYPTO_dynlock_value *l,
                           const char *file, int line)
 {
-    tcn_lock_destroy(&l->mutex);
+    tcn_lock_destroy(l->mutex);
     free(l->file);
     free(l);
 }

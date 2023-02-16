@@ -20,9 +20,8 @@ tcn_atomic_uint32_t tcn_atomic_uint32_create() {
     return (tcn_atomic_uint32_t) new std::atomic<uint32_t>(0);
 }
 
-void tcn_atomic_uint32_destroy(tcn_atomic_uint32_t* atomic) {
-    delete (std::atomic<uint32_t> *) *atomic;
-    *atomic = nullptr;
+void tcn_atomic_uint32_destroy(tcn_atomic_uint32_t atomic) {
+    delete (std::atomic<uint32_t> *) atomic;
 }
 
 uint32_t tcn_atomic_uint32_get(tcn_atomic_uint32_t atomic) {

@@ -153,12 +153,27 @@ static void ssl_context_cleanup(tcn_ssl_ctxt_t *c)
         }
         c->alpn_proto_len = 0;
 
-        tcn_lock_rw_destroy(&c->ticket_keys_lock);
+        if (c->ticket_keys_lock) {
+            tcn_lock_rw_destroy(c->ticket_keys_lock);
+            c->ticket_keys_lock = NULL;
+        }
 
-        tcn_atomic_uint32_destroy(&c->ticket_keys_new);
-        tcn_atomic_uint32_destroy(&c->ticket_keys_resume);
-        tcn_atomic_uint32_destroy(&c->ticket_keys_renew);
-        tcn_atomic_uint32_destroy(&c->ticket_keys_fail);
+        if (c->ticket_keys_new != NULL) {
+            tcn_atomic_uint32_destroy(c->ticket_keys_new);
+            c->ticket_keys_new = NULL;
+        }
+        if (c->ticket_keys_resume != NULL) {
+            tcn_atomic_uint32_destroy(c->ticket_keys_resume);
+            c->ticket_keys_resume = NULL;
+        }
+        if (c->ticket_keys_renew != NULL) {
+            tcn_atomic_uint32_destroy(c->ticket_keys_renew);
+            c->ticket_keys_renew = NULL;
+        }
+        if (c->ticket_keys_fail != NULL) {
+            tcn_atomic_uint32_destroy(c->ticket_keys_fail);
+            c->ticket_keys_fail = NULL;
+        }
 
         if (c->ticket_keys != NULL) {
             OPENSSL_free(c->ticket_keys);
@@ -1277,7 +1292,9 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
 
              EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
              HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
-             tcn_atomic_uint32_increment(&c->ticket_keys_new);
+             if (c->ticket_keys_new != NULL) {
+                 tcn_atomic_uint32_increment(c->ticket_keys_new);
+             }
              return 1;
          }
          // No ticket configured
@@ -1289,15 +1306,21 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
              if (!is_current_key) {
                  // The ticket matched a key in the list, and we want to upgrade it to the current
                  // key.
-                 tcn_atomic_uint32_increment(&c->ticket_keys_renew);
+                 if (c->ticket_keys_renew != NULL) {
+                     tcn_atomic_uint32_increment(c->ticket_keys_renew);
+                 }
                  return 2;
              }
              // The ticket matched the current key.
-             tcn_atomic_uint32_increment(&c->ticket_keys_resume);
+             if (c->ticket_keys_resume != NULL) {
+                tcn_atomic_uint32_increment(c->ticket_keys_resume);
+             }
              return 1;
          }
          // No matching ticket.
-         tcn_atomic_uint32_increment(&c->ticket_keys_fail);
+         if (c->ticket_keys_fail != NULL) {
+             tcn_atomic_uint32_increment(c->ticket_keys_fail);
+         }
          return 0;
      }
 }

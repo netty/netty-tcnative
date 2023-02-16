@@ -20,9 +20,8 @@ tcn_lock_t tcn_lock_create() {
     return (tcn_lock_t) new std::mutex;
 }
 
-void tcn_lock_destroy(tcn_lock_t* lock) {
-    delete (std::mutex *) *lock;
-    *lock = nullptr;
+void tcn_lock_destroy(tcn_lock_t lock) {
+    delete (std::mutex *) lock;
 }
 
 void tcn_lock_acquire(tcn_lock_t lock) {

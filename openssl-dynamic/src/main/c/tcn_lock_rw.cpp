@@ -22,9 +22,8 @@ tcn_lock_rw_t tcn_lock_rw_create() {
     return (tcn_lock_rw_t) new std::shared_timed_mutex;
 }
 
-void tcn_lock_rw_destroy(tcn_lock_rw_t* lock) {
-    delete (std::shared_timed_mutex *) *lock;
-    *lock = nullptr;
+void tcn_lock_rw_destroy(tcn_lock_rw_t lock) {
+    delete (std::shared_timed_mutex *) lock;
 }
 
 tcn_lock_w_t tcn_lock_w_acquire(tcn_lock_rw_t lock) {
