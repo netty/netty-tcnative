@@ -5,6 +5,7 @@ ARG openssl_version=1_1_1d
 ENV SOURCE_DIR /root/source
 ENV GCC_VERSION $gcc_version
 ENV OPENSSL_VERSION $openssl_version
+ENV MAVEN_VERSION 3.9.1
 
 # We want to have git 2.x for the maven scm plugin and also for boringssl
 RUN yum install -y http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
@@ -12,7 +13,7 @@ RUN yum install -y http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-g
 # Install requirements
 RUN  set -x && \
   yum -y install epel-release && \
-  yum -y install wget tar git make autoconf automake libtool openssl-devel ninja-build gcc-c++ patch
+  yum -y install wget tar git make autoconf automake libtool openssl-devel ninja-build gcc-c++ patch unzip zip
 
 # Install Java
 RUN yum install -y java-1.8.0-openjdk-devel golang
@@ -36,9 +37,14 @@ RUN set -x && \
   make && make install && \
   popd
 
-WORKDIR /opt
-RUN curl https://downloads.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz | tar -xz
-RUN echo 'PATH=/opt/apache-maven-3.8.7/bin/:$PATH' >> ~/.bashrc
+# Downloading and installing SDKMAN!
+RUN curl -s "https://get.sdkman.io" | bash
+
+# Installing Java and Maven, removing some unnecessary SDKMAN files
+RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
+    yes | sdk install maven $MAVEN_VERSION && \
+    rm -rf $HOME/.sdkman/archives/* && \
+    rm -rf $HOME/.sdkman/tmp/*"
 
 # Prepare our own build
-ENV PATH /opt/apache-maven-3.8.7/bin/:$PATH
+ENV PATH /root/.sdkman/candidates/maven/current:$PATH
