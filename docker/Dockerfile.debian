@@ -9,7 +9,6 @@ ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
 ENV NINJA_VERSION 1.7.2
 ENV GO_VERSION 1.9.3
 ENV GCC_VERSION 4.9.4
-ENV MAVEN_VERSION 3.9.1
 
 # install dependencies
 RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > /etc/apt/sources.list && \
@@ -61,7 +60,6 @@ ENV JAVA_VERSION $java_version
 # Installing Java removing some unnecessary SDKMAN files
 RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
     yes | sdk install java $JAVA_VERSION && \
-    yes | sdk install maven $MAVEN_VERSION && \
     rm -rf $HOME/.sdkman/archives/* && \
     rm -rf $HOME/.sdkman/tmp/*"
 
@@ -69,5 +67,4 @@ RUN echo 'export JAVA_HOME="/root/.sdkman/candidates/java/current"' >> ~/.bashrc
 RUN echo 'PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
 
 # Prepare our own build
-ENV PATH /root/.sdkman/candidates/maven/current:$PATH
 ENV JAVA_HOME /jdk/
