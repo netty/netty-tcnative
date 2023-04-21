@@ -750,4 +750,14 @@ public final class SSLContext {
     }
 
     private static native boolean setCurvesList0(long ctx, String curves);
+
+    /**
+     * Set the maximum number of bytes for the certificate chain during handshake.
+     * See
+     * <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_max_cert_list.html">SSL_CTX_set_max_cert_list</a>
+     * for more details.
+     * @param ctx context to use
+     * @param size the maximum number of bbytes
+     */
+    public static native void setMaxCertList(long ctx, long size);
 }
