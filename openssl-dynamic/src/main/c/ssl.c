@@ -2077,7 +2077,6 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 
     char err[ERR_LEN];
     unsigned long error;
-    int n = 0;
 
     TCN_CHECK_NULL(cert_bio, x509ChainBio, 0);
 
@@ -2108,7 +2107,6 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 #ifndef OPENSSL_IS_BORINGSSL
         cert = NULL;
 #endif // OPENSSL_IS_BORINGSSL
-        n++;
     }
 
     // ensure that if we have an error its just for EOL.
