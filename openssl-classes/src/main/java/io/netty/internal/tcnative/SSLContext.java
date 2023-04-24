@@ -757,7 +757,7 @@ public final class SSLContext {
      * <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_max_cert_list.html">SSL_CTX_set_max_cert_list</a>
      * for more details.
      * @param ctx context to use
-     * @param size the maximum number of bbytes
+     * @param size the maximum number of bytes
      */
-    public static native void setMaxCertList(long ctx, long size);
+    public static native void setMaxCertList(long ctx, int size);
 }
