@@ -62,133 +62,6 @@ static jmethodID sslPrivateKeyMethodDecryptTask_init;
 
 static const char* staticPackagePrefix = NULL;
 
-
-static void ssl_context_cleanup(tcn_ssl_ctxt_t *c)
-{
-    JNIEnv *e = NULL;
-
-    if (c != NULL) {
-        SSL_CTX_free(c->ctx); // this function is safe to call with NULL
-        c->ctx = NULL;
-
-        tcn_get_java_env(&e);
-
-#ifdef OPENSSL_IS_BORINGSSL
-        if (c->ssl_private_key_method != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
-            }
-            c->ssl_private_key_method = NULL;
-        }
-        if (c->ssl_cert_compression_zlib_algorithm != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zlib_algorithm);
-            }
-            c->ssl_cert_compression_zlib_algorithm = NULL;
-        }
-        if (c->ssl_cert_compression_brotli_algorithm != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_brotli_algorithm);
-            }
-            c->ssl_cert_compression_brotli_algorithm = NULL;
-        }
-        if (c->ssl_cert_compression_zstd_algorithm != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zstd_algorithm);
-            }
-            c->ssl_cert_compression_zstd_algorithm = NULL;
-        }
-#endif // OPENSSL_IS_BORINGSSL
-
-        if (c->ssl_session_cache != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->ssl_session_cache);
-            }
-            c->ssl_session_cache = NULL;
-        }
-        c->ssl_session_cache_creation_method = NULL;
-        c->ssl_session_cache_get_method = NULL;
-
-        if (c->verifier != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->verifier);
-            }
-            c->verifier = NULL;
-        }
-        c->verifier_method = NULL;
-
-        if (c->cert_requested_callback != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->cert_requested_callback);
-            }
-            c->cert_requested_callback = NULL;
-        }
-        c->cert_requested_callback_method = NULL;
-
-        if (c->certificate_callback != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->certificate_callback);
-            }
-            c->certificate_callback = NULL;
-        }
-        c->certificate_callback_method = NULL;
-
-        if (c->sni_hostname_matcher != NULL) {
-            if (e != NULL) {
-                (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
-            }
-            c->sni_hostname_matcher = NULL;
-        }
-        c->sni_hostname_matcher_method = NULL;
-
-        if (c->next_proto_data != NULL) {
-            OPENSSL_free(c->next_proto_data);
-            c->next_proto_data = NULL;
-        }
-        c->next_proto_len = 0;
-
-        if (c->alpn_proto_data != NULL) {
-            OPENSSL_free(c->alpn_proto_data);
-            c->alpn_proto_data = NULL;
-        }
-        c->alpn_proto_len = 0;
-
-        if (c->ticket_keys_lock) {
-            tcn_lock_rw_destroy(c->ticket_keys_lock);
-            c->ticket_keys_lock = NULL;
-        }
-
-        if (c->ticket_keys_new != NULL) {
-            tcn_atomic_uint32_destroy(c->ticket_keys_new);
-            c->ticket_keys_new = NULL;
-        }
-        if (c->ticket_keys_resume != NULL) {
-            tcn_atomic_uint32_destroy(c->ticket_keys_resume);
-            c->ticket_keys_resume = NULL;
-        }
-        if (c->ticket_keys_renew != NULL) {
-            tcn_atomic_uint32_destroy(c->ticket_keys_renew);
-            c->ticket_keys_renew = NULL;
-        }
-        if (c->ticket_keys_fail != NULL) {
-            tcn_atomic_uint32_destroy(c->ticket_keys_fail);
-            c->ticket_keys_fail = NULL;
-        }
-
-        if (c->ticket_keys != NULL) {
-            OPENSSL_free(c->ticket_keys);
-            c->ticket_keys = NULL;
-        }
-        c->ticket_keys_len = 0;
-
-        if (c->password != NULL) {
-            // Just use free(...) as we used strdup(...) to create the stored password.
-            free(c->password);
-            c->password = NULL;
-        }
-    }
-}
-
 /* Initialize server context */
 TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mode)
 {
@@ -465,7 +338,107 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, free)(TCN_STDARGS, jlong ctx)
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    ssl_context_cleanup(c);
+    SSL_CTX_free(c->ctx); // this function is safe to call with NULL
+    c->ctx = NULL;
+
+#ifdef OPENSSL_IS_BORINGSSL
+    if (c->ssl_private_key_method != NULL) {
+        (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
+        c->ssl_private_key_method = NULL;
+    }
+    if (c->ssl_cert_compression_zlib_algorithm != NULL) {
+        (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zlib_algorithm);
+        c->ssl_cert_compression_zlib_algorithm = NULL;
+    }
+    if (c->ssl_cert_compression_brotli_algorithm != NULL) {
+        (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_brotli_algorithm);
+        c->ssl_cert_compression_brotli_algorithm = NULL;
+    }
+    if (c->ssl_cert_compression_zstd_algorithm != NULL) {
+        (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zstd_algorithm);
+        c->ssl_cert_compression_zstd_algorithm = NULL;
+    }
+#endif // OPENSSL_IS_BORINGSSL
+
+    if (c->ssl_session_cache != NULL) {
+        (*e)->DeleteGlobalRef(e, c->ssl_session_cache);
+        c->ssl_session_cache = NULL;
+    }
+    c->ssl_session_cache_creation_method = NULL;
+    c->ssl_session_cache_get_method = NULL;
+
+    if (c->verifier != NULL) {
+        (*e)->DeleteGlobalRef(e, c->verifier);
+        c->verifier = NULL;
+    }
+    c->verifier_method = NULL;
+
+    if (c->cert_requested_callback != NULL) {
+        (*e)->DeleteGlobalRef(e, c->cert_requested_callback);
+        c->cert_requested_callback = NULL;
+    }
+    c->cert_requested_callback_method = NULL;
+
+    if (c->certificate_callback != NULL) {
+        (*e)->DeleteGlobalRef(e, c->certificate_callback);
+        c->certificate_callback = NULL;
+    }
+    c->certificate_callback_method = NULL;
+
+    if (c->sni_hostname_matcher != NULL) {
+        (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
+        c->sni_hostname_matcher = NULL;
+    }
+    c->sni_hostname_matcher_method = NULL;
+
+    if (c->next_proto_data != NULL) {
+        OPENSSL_free(c->next_proto_data);
+        c->next_proto_data = NULL;
+    }
+    c->next_proto_len = 0;
+
+    if (c->alpn_proto_data != NULL) {
+        OPENSSL_free(c->alpn_proto_data);
+        c->alpn_proto_data = NULL;
+    }
+    c->alpn_proto_len = 0;
+
+    if (c->ticket_keys_lock != NULL) {
+        tcn_lock_rw_destroy(c->ticket_keys_lock);
+        c->ticket_keys_lock = NULL;
+    }
+
+    if (c->ticket_keys_new != NULL) {
+        tcn_atomic_uint32_destroy(c->ticket_keys_new);
+        c->ticket_keys_new = NULL;
+    }
+    if (c->ticket_keys_resume != NULL) {
+        tcn_atomic_uint32_destroy(c->ticket_keys_resume);
+        c->ticket_keys_resume = NULL;
+    }
+    if (c->ticket_keys_renew != NULL) {
+        tcn_atomic_uint32_destroy(c->ticket_keys_renew);
+        c->ticket_keys_renew = NULL;
+    }
+    if (c->ticket_keys_fail != NULL) {
+        tcn_atomic_uint32_destroy(c->ticket_keys_fail);
+        c->ticket_keys_fail = NULL;
+    }
+
+    if (c->ticket_keys != NULL) {
+        OPENSSL_free(c->ticket_keys);
+        c->ticket_keys = NULL;
+    }
+    c->ticket_keys_len = 0;
+
+    if (c->password != NULL) {
+        // Just use free(...) as we used strdup(...) to create the stored password.
+        free(c->password);
+        c->password = NULL;
+    }
+
+    // Use free as we used calloc(...) to allocate
+    free(c);
     return 0;
 }
 
