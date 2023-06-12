@@ -1311,20 +1311,18 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     int cnt;
 
     cnt = (*e)->GetArrayLength(e, keys) / SSL_SESSION_TICKET_KEY_SIZE;
-    b = (*e)->GetByteArrayElements(e, keys, NULL);
-
     if ((ticket_keys = OPENSSL_malloc(sizeof(tcn_ssl_ticket_key_t) * cnt)) == NULL) {
         tcn_ThrowException(e, "OPENSSL_malloc() returned null");
         return;
     }
-    
+
+    b = (*e)->GetByteArrayElements(e, keys, NULL);
     for (i = 0; i < cnt; ++i) {
         key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
         memcpy(ticket_keys[i].key_name, key, 16);
         memcpy(ticket_keys[i].hmac_key, key + 16, 16);
         memcpy(ticket_keys[i].aes_key, key + 32, 16);
     }
-
     (*e)->ReleaseByteArrayElements(e, keys, b, 0);
 
     tcn_lock_w_t writer_lock = tcn_lock_w_acquire(c->ticket_keys_lock);
