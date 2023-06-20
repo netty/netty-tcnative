@@ -788,6 +788,24 @@
       </modules>
     </profile>
 
+
+    <profile>
+      <id>windows-compile-static-only</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <properties>
+        <moduleSelector>none</moduleSelector>
+      </properties>
+      <modules>
+        <!-- Ony Windows we only support boringssl-static -->
+        <module>openssl-classes</module>
+        <module>boringssl-static</module>
+      </modules>
+    </profile>
+
     <!--
       Profile for building all modules. This is enabled by default so if any profile is manually specified,
       this will be disabled automatically.
