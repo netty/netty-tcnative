@@ -60,9 +60,13 @@ public final class SSL {
      * Define the SSL verify levels
      */
     public static final int SSL_CVERIFY_IGNORED            = -1;
-    public static final int SSL_CVERIFY_NONE               = 0;
-    public static final int SSL_CVERIFY_OPTIONAL           = 1;
-    public static final int SSL_CVERIFY_REQUIRED           = 2;
+    public static final int SSL_CVERIFY_NONE               = sslVerifyNone();
+    public static final int SSL_CVERIFY_OPTIONAL           = sslVerifyPeer();
+    /**
+     * <a href="https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html">This flag must be used together with
+     * SSL_VERIFY_PEER.</a>
+     */
+    public static final int SSL_CVERIFY_REQUIRED           = sslVerifyPeer() | sslVerifyIfNoPeerCert();
 
     public static final int SSL_OP_CIPHER_SERVER_PREFERENCE = sslOpCipherServerPreference();
     public static final int SSL_OP_NO_SSLv2 = sslOpNoSSLv2();

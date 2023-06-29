@@ -50,6 +50,10 @@ final class NativeStaticallyReferencedJniMethods {
      */
     static native int sslOpNoCompression();
 
+    static native int sslVerifyNone();
+    static native int sslVerifyPeer();
+    static native int sslVerifyIfNoPeerCert();
+
     static native int sslSessCacheOff();
     static native int sslSessCacheServer();
     static native int sslSessCacheClient();

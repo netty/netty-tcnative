@@ -56,6 +56,18 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpNoCompressio
     return SSL_OP_NO_COMPRESSION;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslVerifyNone)(TCN_STDARGS) {
+    return SSL_VERIFY_NONE;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslVerifyPeer)(TCN_STDARGS) {
+    return SSL_VERIFY_PEER;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslVerifyIfNoPeerCert)(TCN_STDARGS) {
+    return SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+}
+
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslOpAllowUnsafeLegacyRenegotiation)(TCN_STDARGS) {
     return SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION;
 }
@@ -647,6 +659,9 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslOpNoTLSv13, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpNoTicket, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpNoCompression, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslVerifyNone, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslVerifyPeer, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslVerifyIfNoPeerCert, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpAllowUnsafeLegacyRenegotiation, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslOpLegacyServerConnect, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSessCacheOff, ()I, NativeStaticallyReferencedJniMethods) },
