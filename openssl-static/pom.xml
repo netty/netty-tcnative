@@ -387,7 +387,7 @@
                         <echo message="Building OpenSSL" />
                         <mkdir dir="${opensslHome}" />
                         <exec executable="config" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
-                          <arg line="-O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${opensslHome} --openssldir=${opensslHome}" />
+                          <arg line="-O3 -fno-omit-frame-pointer -fPIC no-ssl2 no-ssl3 no-shared no-comp -DOPENSSL_NO_HEARTBEATS --prefix=${opensslHome} --openssldir=${opensslHome} --libdir=lib" />
                         </exec>
                         <exec executable="make" failonerror="true" dir="${opensslSourceDir}" resolveexecutable="true">
                           <arg value="depend" />
