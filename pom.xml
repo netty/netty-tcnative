@@ -92,10 +92,10 @@
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
     -->
     <libresslSha256>ff88bffe354818b3ccf545e3cafe454c5031c7a77217074f533271d63c37f08d</libresslSha256>
-    <opensslMinorVersion>3.0.8</opensslMinorVersion>
+    <opensslMinorVersion>3.1.2</opensslMinorVersion>
     <opensslPatchVersion></opensslPatchVersion>
     <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
-    <opensslSha256>6c13d2bf38fdf31eac3ce2a347073673f5d63263398f1f69d0df4a41253e4b3e</opensslSha256>
+    <opensslSha256>a0ce69b8b97ea6a35b96875235aa453b966ba3cba8af2de23657d8b6767d6539</opensslSha256>
     <archBits>64</archBits>
     <linkStatic>false</linkStatic>
     <osxCrossCompile>false</osxCrossCompile>
