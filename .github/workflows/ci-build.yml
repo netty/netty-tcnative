@@ -38,6 +38,7 @@ jobs:
 
       # Cache .m2/repository
       - uses: actions/cache@v3
+        continue-on-error: true
         with:
           path: ~/.m2/repository
           key: build-${{ matrix.setup }}-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
@@ -45,7 +46,7 @@ jobs:
             build-${{ matrix.setup }}-m2-repository-cache-
 
       # Enable caching of Docker layers
-      - uses: satackey/action-docker-layer-caching@v0.0.11
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1
         continue-on-error: true
         with:
           key: build-${{ matrix.setup }}-docker-cache-{hash}
@@ -97,6 +98,7 @@ jobs:
 
       # Cache .m2/repository
       - uses: actions/cache@v3
+        continue-on-error: true
         with:
           path: ~/.m2/repository
           key: build-windows-m2-repository-cache-${{ hashFiles('**/pom.xml') }}

@@ -40,6 +40,7 @@ jobs:
 
       # Cache .m2/repository
       - uses: actions/cache@v3
+        continue-on-error: true
         with:
           path: ~/.m2/repository
           key: prepare-release-cache-m2-repository-${{ hashFiles('**/pom.xml') }}
@@ -109,6 +110,7 @@ jobs:
 
       # Cache .m2/repository
       - uses: actions/cache@v3
+        continue-on-error: true
         with:
           path: ~/.m2/repository
           key: stage-release-linux-${{ matrix.setup }}-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
@@ -116,7 +118,7 @@ jobs:
             stage-release-linux-${{ matrix.setup }}-m2-repository-cache-
 
       # Enable caching of Docker layers
-      - uses: satackey/action-docker-layer-caching@v0.0.11
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1
         env:
           docker-cache-name: staging-${{ matrix.setup }}-cache-docker
         continue-on-error: true
@@ -214,6 +216,7 @@ jobs:
 
       # Cache .m2/repository
       - uses: actions/cache@v3
+        continue-on-error: true
         with:
           path: ~/.m2/repository
           key: staging-release-cache-windows-m2-repository-${{ hashFiles('**/pom.xml') }}
@@ -313,6 +316,7 @@ jobs:
 
       # Cache .m2/repository
       - uses: actions/cache@v3
+        continue-on-error: true
         with:
           path: ~/.m2/repository
           key: deploy-staged-release-cache-m2-repository-${{ hashFiles('**/pom.xml') }}
