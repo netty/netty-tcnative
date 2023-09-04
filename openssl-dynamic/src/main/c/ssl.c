@@ -1297,7 +1297,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
-        (*e)->DeleteLocalRef(e, bArray);
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, bArray);
     }
     return array;
 }
