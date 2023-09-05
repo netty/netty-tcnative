@@ -36,16 +36,16 @@ jobs:
     name: stage-snapshot-${{ matrix.setup }}
     steps:
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@76866dbe54312617f00798d1762df7f43def6e5c # v1.2.0
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
           tool-cache: false
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       # Cache .m2/repository
-      - uses: actions/cache@v3
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         continue-on-error: true
         with:
           path: ~/.m2/repository
@@ -54,7 +54,7 @@ jobs:
             stage-snapshot-${{ matrix.setup }}-m2-repository-cache-
 
       # Enable caching of Docker layers
-      - uses: jpribyl/action-docker-layer-caching@v0.1.1
+      - uses: jpribyl/action-docker-layer-caching@c632825d12ec837065f49726ea27ddd40bcc7894 # v0.1.1
         env:
           docker-cache-name: staging-${{ matrix.setup }}-cache-docker
         continue-on-error: true
@@ -73,7 +73,7 @@ jobs:
         run: docker-compose ${{ matrix.docker-compose-run }}
 
       - name: Upload local staging directory
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: ${{ matrix.setup }}-local-staging
           path: ~/local-staging
@@ -84,32 +84,32 @@ jobs:
     runs-on: windows-2019
     name: stage-snapshot-windows-x86_64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - name: Create local staging directory
         run: mkdir local-staging
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@cd89f46ac9d01407894225f350157564c9c7cee2 # v3.12.0
         with:
           java-version: 8
           distribution: zulu
 
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c # v1.3.1
 
       - name: Configuring Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@7315a94840631165970262a99c72cfb48a65d25d # v1.12.0
         with:
           arch: x86_amd64
 
       - name: Install tools
-        uses: crazy-max/ghaction-chocolatey@v1
+        uses: crazy-max/ghaction-chocolatey@834401ba518bc98bb1bb936e421d37ae96c1a8a0 # v2.3.0
         with:
           args: install ninja nasm
 
       # Cache .m2/repository
-      - uses: actions/cache@v3
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         continue-on-error: true
         with:
           path: ~/.m2/repository
@@ -121,7 +121,7 @@ jobs:
         run: ./mvnw.cmd --file pom.xml -am -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=local-staging -DskipRemoteStaging=true -DskipTests=true
 
       - name: Upload local staging directory
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: windows-x86_64-local-staging
           path: boringssl-static/local-staging
@@ -132,10 +132,10 @@ jobs:
     # Wait until we have staged everything
     needs: [stage-snapshot, stage-snapshot-windows]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@cd89f46ac9d01407894225f350157564c9c7cee2 # v3.12.0
         with:
           java-version: 8
           distribution: zulu
@@ -148,25 +148,25 @@ jobs:
       # Hardcode the staging artifacts that need to be downloaded.
       # These must match the matrix setups and windows build. There is currently no way to pull this out of the config.
       - name: Download windows_x86_64 staging directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: windows-x86_64-local-staging
           path: ~/windows-x86_64-local-staging
 
       - name: Download centos7-aarch64 staging directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: centos7-aarch64-local-staging
           path: ~/centos7-aarch64-local-staging
 
       - name: Download debian7-x86_64 staging directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: debian7-x86_64-local-staging
           path: ~/debian7-x86_64-local-staging
 
       - name: Download centos6-x86_64 staging directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: centos6-x86_64-local-staging
           path: ~/centos6-x86_64-local-staging
@@ -184,7 +184,7 @@ jobs:
           cp -r ~/centos6-x86_64-local-staging/deferred/* ~/local-staging/deferred/
 
       # Cache .m2/repository
-      - uses: actions/cache@v3
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         continue-on-error: true
         with:
           path: ~/.m2/repository
@@ -193,7 +193,7 @@ jobs:
             deploy-stage-snapshot-m2-repository-cache-
 
 
-      - uses: s4u/maven-settings-action@v2.2.0
+      - uses: s4u/maven-settings-action@60912582505985be4cc55d2b890eb32767f8de5f # v2.8.0
         with:
           servers: |
             [{

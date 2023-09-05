@@ -32,16 +32,16 @@ jobs:
     name: ${{ matrix.setup }}
     steps:
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@76866dbe54312617f00798d1762df7f43def6e5c # v1.2.0
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
           tool-cache: false
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       # Enable caching of Docker layers
-      - uses: jpribyl/action-docker-layer-caching@v0.1.1
+      - uses: jpribyl/action-docker-layer-caching@c632825d12ec837065f49726ea27ddd40bcc7894 # v0.1.1
         continue-on-error: true
         with:
           key: pr-${{ matrix.setup }}-docker-cache-{hash}
@@ -49,7 +49,7 @@ jobs:
             pr-${{ matrix.setup }}-docker-cache-
 
       # Cache .m2/repository
-      - uses: actions/cache@v3
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         continue-on-error: true
         with:
           path: ~/.m2/repository
@@ -66,7 +66,7 @@ jobs:
       - name: Checking for test failures
         run: ./.github/scripts/check_build_result.sh build.output
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: ${{ failure() }}
         with:
           name: build-pr-${{ matrix.setup }}-target
@@ -78,29 +78,29 @@ jobs:
     runs-on: windows-2019
     name: windows-x86_64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@cd89f46ac9d01407894225f350157564c9c7cee2 # v3.12.0
         with:
           java-version: 8
           distribution: zulu
 
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c # v1.3.1
 
       - name: Configuring Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@7315a94840631165970262a99c72cfb48a65d25d # v1.12.0
         with:
           arch: x86_amd64
 
       - name: Install tools
-        uses: crazy-max/ghaction-chocolatey@v1
+        uses: crazy-max/ghaction-chocolatey@834401ba518bc98bb1bb936e421d37ae96c1a8a0 # v2.3.0
         with:
           args: install ninja nasm
 
       # Cache .m2/repository
-      - uses: actions/cache@v3
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         continue-on-error: true
         with:
           path: ~/.m2/repository
@@ -111,7 +111,7 @@ jobs:
       - name: Build netty-tcnative-boringssl-static
         run: ./mvnw.cmd --file pom.xml -am -pl boringssl-static clean package
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: ${{ failure() }}
         with:
           name: build-pr-windows-target
