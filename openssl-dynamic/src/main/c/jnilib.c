@@ -70,7 +70,7 @@ jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
     if (bytes != NULL) {
         (*env)->SetByteArrayRegion(env, bytes, 0, l, (jbyte *)str);
         result = (*env)->NewObject(env, jString_class, jString_init, bytes);
-        (*env)->DeleteLocalRef(env, bytes);
+        NETTY_JNI_UTIL_DELETE_LOCAL(env, bytes);
         return result;
     } /* else fall through */
     return NULL;

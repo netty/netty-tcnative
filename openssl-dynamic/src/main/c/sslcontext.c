@@ -41,23 +41,23 @@
 
 #define SSLCONTEXT_CLASSNAME "io/netty/internal/tcnative/SSLContext"
 
-static jclass    sslTask_class;
+static jweak    sslTask_class_weak;
 static jfieldID  sslTask_returnValue;
 static jfieldID  sslTask_complete;
 
-static jclass    certificateCallbackTask_class;
+static jweak    certificateCallbackTask_class_weak;
 static jmethodID certificateCallbackTask_init;
 
-static jclass    certificateVerifierTask_class;
+static jweak    certificateVerifierTask_class_weak;
 static jmethodID certificateVerifierTask_init;
 
-static jclass    sslPrivateKeyMethodTask_class;
+static jweak    sslPrivateKeyMethodTask_class_weak;
 static jfieldID  sslPrivateKeyMethodTask_resultBytes;
 
-static jclass    sslPrivateKeyMethodSignTask_class;
+static jweak    sslPrivateKeyMethodSignTask_class_weak;
 static jmethodID sslPrivateKeyMethodSignTask_init;
 
-static jclass    sslPrivateKeyMethodDecryptTask_class;
+static jweak    sslPrivateKeyMethodDecryptTask_class_weak;
 static jmethodID sslPrivateKeyMethodDecryptTask_init;
 
 static const char* staticPackagePrefix = NULL;
@@ -1440,7 +1440,7 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
 #endif // OPENSSL_IS_BORINGSSL
 
         if (length <= 0 || (bArray = (*e)->NewByteArray(e, length)) == NULL ) {
-            (*e)->DeleteLocalRef(e, array);
+            NETTY_JNI_UTIL_DELETE_LOCAL(e, array);
             array = NULL;
             goto complete;
         }
@@ -1457,7 +1457,7 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
-        (*e)->DeleteLocalRef(e, bArray);
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, bArray);
         bArray = NULL;
     }
 
@@ -1468,11 +1468,9 @@ complete:
     OPENSSL_free(buf);
 #endif // OPENSSL_IS_BORINGSSL
 
-    if (bArray != NULL) {
-        // Delete the local reference as we not know how long the chain is and local references are otherwise
-        // only freed once jni method returns.
-        (*e)->DeleteLocalRef(e, bArray);
-    }
+    // Delete the local reference as we not know how long the chain is and local references are otherwise
+    // only freed once jni method returns.
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, bArray);
     return array;
 }
 
@@ -1552,12 +1550,8 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 
 complete:
     // We need to delete the local references so we not leak memory as this method is called via callback.
-    if (authMethodString != NULL) {
-        (*e)->DeleteLocalRef(e, authMethodString);
-    }
-    if (array != NULL) {
-        (*e)->DeleteLocalRef(e, array);
-    }
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, authMethodString);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, array);
 
     X509_STORE_CTX_set_error(ctx, result);
 
@@ -1574,6 +1568,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     jint result = X509_V_ERR_UNSPECIFIED;
     jint len = 0;
     jbyteArray array = NULL;
+    jclass certificateVerifierTask_class = NULL;
     JNIEnv *e = NULL;
 
     if (state == NULL || state->ctx == NULL) {
@@ -1637,6 +1632,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     if (state->ctx->use_tasks != 0) {
         // Lets create the CertificateCallbackTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
+        NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(e, certificateVerifierTask_class, certificateVerifierTask_class_weak, complete);
         jobject task = (*e)->NewObject(e, certificateVerifierTask_class, certificateVerifierTask_init, P2J(ssl), array, authMethodString, state->ctx->verifier);
 
         if ((state->ssl_task = tcn_ssl_task_new(e, task)) == NULL) {
@@ -1667,12 +1663,9 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 complete:
 
     // We need to delete the local references so we not leak memory as this method is called via callback.
-    if (authMethodString != NULL) {
-        (*e)->DeleteLocalRef(e, authMethodString);
-    }
-    if (array != NULL) {
-        (*e)->DeleteLocalRef(e, array);
-    }
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, authMethodString);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, array);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, certificateVerifierTask_class);
 
     if (ret != ssl_verify_retry) {
         if (result == X509_V_OK) {
@@ -1845,7 +1838,7 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
-        (*e)->DeleteLocalRef(e, bArray);
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, bArray);
     }
 
     return array;
@@ -1947,6 +1940,7 @@ static int certificate_cb(SSL* ssl, void* arg) {
     jobjectArray issuers = NULL;
     JNIEnv *e = NULL;
     jbyteArray types = NULL;
+    jclass certificateCallbackTask_class = NULL;
 
     if (tcn_get_java_env(&e) != JNI_OK) {
         return 0;
@@ -1985,32 +1979,33 @@ static int certificate_cb(SSL* ssl, void* arg) {
 #endif // OPENSSL_IS_BORINGSSL
     }
 
+    int ret = 0;
     // Let's check if we should provide the certificate callback as task that can be run on another Thread.
     if (state->ctx->use_tasks != 0) {
         // Lets create the CertificateCallbackTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
+        NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(e, certificateCallbackTask_class, certificateCallbackTask_class_weak, complete);
         jobject task = (*e)->NewObject(e, certificateCallbackTask_class, certificateCallbackTask_init, P2J(ssl), types, issuers, state->ctx->certificate_callback);
 
-        if ((state->ssl_task = tcn_ssl_task_new(e, task)) == NULL) {
-            return 0;
+        if ((state->ssl_task = tcn_ssl_task_new(e, task)) != NULL) {
+            // Signal back that we want to suspend the handshake.
+            ret = -1;
         }
-
-        // Signal back that we want to suspend the handshake.
-        return -1;
     } else {
         // Execute the java callback
         (*e)->CallVoidMethod(e, state->ctx->certificate_callback, state->ctx->certificate_callback_method,
                  P2J(ssl), types, issuers);
 
         // Check if java threw an exception and if so signal back that we should not continue with the handshake.
-        if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
-            return 0;
+        if ((*e)->ExceptionCheck(e) != JNI_TRUE) {
+            // Everything good...
+            ret = -1;
         }
-
-        // Everything good...
-        return 1;
     }
 
+complete:
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, certificateCallbackTask_class);
+    return ret;
 }
 #endif // LIBRESSL_VERSION_NUMBER
 
@@ -2085,6 +2080,7 @@ static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t
     jbyteArray resultBytes = NULL;
     jbyteArray inputArray = NULL;
     jbyte* b = NULL;
+    jclass sslPrivateKeyMethodSignTask_class = NULL;
     int arrayLen = 0;
     JNIEnv *e = NULL;
 
@@ -2104,6 +2100,7 @@ static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t
     if (state->ctx->use_tasks) {
         // Lets create the SSLPrivateKeyMethodSignTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
+        NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(e, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_class_weak, complete);
         jobject task = (*e)->NewObject(e, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init, P2J(ssl),
                 signature_algorithm, inputArray, state->ctx->ssl_private_key_method);
         if ((state->ssl_task = tcn_ssl_task_new(e, task)) == NULL) {
@@ -2135,9 +2132,9 @@ static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t
     }
 complete:
     // Free up any allocated memory and return.
-    if (inputArray != NULL) {
-        (*e)->DeleteLocalRef(e, inputArray);
-    }
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, inputArray);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, sslPrivateKeyMethodSignTask_class);
+
     return ret;
 }
 
@@ -2148,6 +2145,7 @@ static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint
     jbyteArray inArray = NULL;
     jbyte* b = NULL;
     int arrayLen = 0;
+    jclass sslPrivateKeyMethodDecryptTask_class = NULL;
     JNIEnv *e = NULL;
 
     if (state == NULL || state->ctx->ssl_private_key_method == NULL) {
@@ -2166,6 +2164,7 @@ static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint
     if (state->ctx->use_tasks) {
         // Lets create the SSLPrivateKeyMethodDecryptTask and store it on the SSL object. We then later retrieve it via
         // SSL.getTask(ssl) and run it.
+        NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(e, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_class_weak, complete);
         jobject task = (*e)->NewObject(e, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_init,
                 P2J(ssl), inArray, state->ctx->ssl_private_key_method);
 
@@ -2198,9 +2197,8 @@ static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint
 
 complete:
     // Delete the local reference as this is executed by a callback.
-    if (inArray != NULL) {
-        (*e)->DeleteLocalRef(e, inArray);
-    }
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, inArray);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, sslPrivateKeyMethodDecryptTask_class);
     return ret;
 }
 
@@ -2464,14 +2462,13 @@ static int ssl_servername_cb(SSL *ssl, int *ad, void *arg)
         }
         result = (*e)->CallBooleanMethod(e, c->sni_hostname_matcher, c->sni_hostname_matcher_method, P2J(ssl), servername_str);
 
+        // We need to delete the local references so we not leak memory as this method is called via callback.
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, servername_str);
+
         // Check if java threw an exception.
         if ((*e)->ExceptionCheck(e)) {
-            // We need to delete the local references so we not leak memory as this method is called via callback.
-            (*e)->DeleteLocalRef(e, servername_str);
             return SSL_TLSEXT_ERR_ALERT_FATAL;
         }
-        // We need to delete the local references so we not leak memory as this method is called via callback.
-        (*e)->DeleteLocalRef(e, servername_str);
 
         return result == JNI_FALSE ? SSL_TLSEXT_ERR_ALERT_FATAL : SSL_TLSEXT_ERR_OK;
     }
@@ -2912,6 +2909,12 @@ error:
 jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
     char* name = NULL;
     char* combinedName = NULL;
+    jclass sslTask_class = NULL;
+    jclass certificateCallbackTask_class = NULL;
+    jclass certificateVerifierTask_class = NULL;
+    jclass sslPrivateKeyMethodTask_class = NULL;
+    jclass sslPrivateKeyMethodSignTask_class = NULL;
+    jclass sslPrivateKeyMethodDecryptTask_class = NULL;
     JNINativeMethod* dynamicMethods = createDynamicMethodsTable(packagePrefix);
     if (dynamicMethods == NULL) {
         goto error;
@@ -2925,12 +2928,15 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     }
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLTask", name, error);
-    NETTY_JNI_UTIL_LOAD_CLASS(env, sslTask_class, name, error);
+
+    NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslTask_class_weak, name, error);
+    NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslTask_class, sslTask_class_weak, error);
     NETTY_JNI_UTIL_GET_FIELD(env, sslTask_class, sslTask_returnValue, "returnValue", "I", error);
     NETTY_JNI_UTIL_GET_FIELD(env, sslTask_class, sslTask_complete, "complete", "Z", error);
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateCallbackTask", name, error);
-    NETTY_JNI_UTIL_LOAD_CLASS(env, certificateCallbackTask_class, name, error);
+    NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, certificateCallbackTask_class_weak, name, error);
+    NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, certificateCallbackTask_class, certificateCallbackTask_class_weak, error);
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateCallback;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[B[[BL", name, combinedName, error);
@@ -2938,19 +2944,22 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     NETTY_JNI_UTIL_GET_METHOD(env, certificateCallbackTask_class, certificateCallbackTask_init, "<init>", name, error);
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateVerifierTask", name, error);
-    NETTY_JNI_UTIL_LOAD_CLASS(env, certificateVerifierTask_class, name, error);
-  
+    NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, certificateVerifierTask_class_weak, name, error);
+    NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, certificateVerifierTask_class, certificateVerifierTask_class_weak, error);
+
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateVerifier;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[[BLjava/lang/String;L", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, certificateVerifierTask_class, certificateVerifierTask_init, "<init>", name, error);
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodTask", name, error);
-    NETTY_JNI_UTIL_LOAD_CLASS(env, sslPrivateKeyMethodTask_class, name, error);
+    NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodTask_class_weak, name, error);
+    NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTask_class_weak, error);
     NETTY_JNI_UTIL_GET_FIELD(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTask_resultBytes, "resultBytes", "[B", error);
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodSignTask", name, error);
-    NETTY_JNI_UTIL_LOAD_CLASS(env, sslPrivateKeyMethodSignTask_class, name, error);
+    NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodSignTask_class_weak, name, error);
+    NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_class_weak, error);
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(JI[BL", name, combinedName, error);
@@ -2958,7 +2967,8 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     NETTY_JNI_UTIL_GET_METHOD(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init, "<init>", name, error);
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodDecryptTask", name, error);
-    NETTY_JNI_UTIL_LOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class, name, error);
+    NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodDecryptTask_class_weak, name, error);
+    NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_class_weak, error);
 
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[BL", name, combinedName, error);
@@ -2974,16 +2984,22 @@ error:
     free(combinedName);
     netty_jni_util_free_dynamic_methods_table(dynamicMethods, fixed_method_table_size, dynamicMethodsTableSize());
 
+    NETTY_JNI_UTIL_DELETE_LOCAL(env, sslTask_class);
+    NETTY_JNI_UTIL_DELETE_LOCAL(env, certificateCallbackTask_class);
+    NETTY_JNI_UTIL_DELETE_LOCAL(env, certificateVerifierTask_class);
+    NETTY_JNI_UTIL_DELETE_LOCAL(env, sslPrivateKeyMethodTask_class);
+    NETTY_JNI_UTIL_DELETE_LOCAL(env, sslPrivateKeyMethodSignTask_class);
+    NETTY_JNI_UTIL_DELETE_LOCAL(env, sslPrivateKeyMethodDecryptTask_class);
     return JNI_ERR;
 }
 
 void netty_internal_tcnative_SSLContext_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix) {
-    NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslTask_class);
-    NETTY_JNI_UTIL_UNLOAD_CLASS(env, certificateCallbackTask_class);
-    NETTY_JNI_UTIL_UNLOAD_CLASS(env, certificateVerifierTask_class);
-    NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodTask_class);
-    NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodSignTask_class);
-    NETTY_JNI_UTIL_UNLOAD_CLASS(env, sslPrivateKeyMethodDecryptTask_class);
+    NETTY_JNI_UTIL_UNLOAD_CLASS_WEAK(env, sslTask_class_weak);
+    NETTY_JNI_UTIL_UNLOAD_CLASS_WEAK(env, certificateCallbackTask_class_weak);
+    NETTY_JNI_UTIL_UNLOAD_CLASS_WEAK(env, certificateVerifierTask_class_weak);
+    NETTY_JNI_UTIL_UNLOAD_CLASS_WEAK(env, sslPrivateKeyMethodTask_class_weak);
+    NETTY_JNI_UTIL_UNLOAD_CLASS_WEAK(env, sslPrivateKeyMethodSignTask_class_weak);
+    NETTY_JNI_UTIL_UNLOAD_CLASS_WEAK(env, sslPrivateKeyMethodDecryptTask_class_weak);
 
     free((void*) staticPackagePrefix);
     staticPackagePrefix = NULL;
