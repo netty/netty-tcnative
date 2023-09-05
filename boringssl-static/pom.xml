@@ -199,8 +199,7 @@
                             <then>
                               <!-- On *nix, add ASM flags to disable executable stack -->
                               <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                              <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
-                              <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -DOPENSSL_C11_ATOMIC -Wno-error=stringop-overflow" />
+                              <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=stringop-overflow" />
                               <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
                               <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
                             </then>
@@ -208,8 +207,7 @@
                           <else>
                             <!-- On *nix, add ASM flags to disable executable stack -->
                             <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                            <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
-                            <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -DOPENSSL_C11_ATOMIC" />
+                            <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer" />
                             <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=range-loop-analysis" />
                           </else>
                         </if>
@@ -540,8 +538,7 @@
                             <then>
                               <!-- On *nix, add ASM flags to disable executable stack -->
                               <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                              <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
-                              <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -DOPENSSL_C11_ATOMIC" />
+                              <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer" />
                               <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
                               <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -Wno-error=shadow -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
                             </then>
@@ -871,8 +868,7 @@
         <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0</cmakeOsxDeploymentTarget>
         <!-- On *nix, add ASM flags to disable executable stack -->
         <cmakeAsmFlags>-Wa,--noexecstack -target ${target}</cmakeAsmFlags>
-        <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
-        <cmakeCFlags>-O3 -fno-omit-frame-pointer -target ${target} -DOPENSSL_C11_ATOMIC</cmakeCFlags>
+        <cmakeCFlags>-O3 -fno-omit-frame-pointer -target ${target}</cmakeCFlags>
         <cmakeCxxFlags>-O3 -fno-omit-frame-pointer -target ${target} -Wno-error=range-loop-analysis</cmakeCxxFlags>
         <cflags>-target ${target} -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
         <cppflags>-target ${target} -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
@@ -1117,8 +1113,7 @@
         <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12</cmakeOsxDeploymentTarget>
         <!-- On *nix, add ASM flags to disable executable stack -->
         <cmakeAsmFlags>-Wa,--noexecstack -target ${target}</cmakeAsmFlags>
-        <!-- Use -DOPENSSL_C11_ATOMIC so we replace most of the locking code with atomics-->
-        <cmakeCFlags>-O3 -fno-omit-frame-pointer -target ${target} -DOPENSSL_C11_ATOMIC</cmakeCFlags>
+        <cmakeCFlags>-O3 -fno-omit-frame-pointer -target ${target}</cmakeCFlags>
         <cmakeCxxFlags>-O3 -fno-omit-frame-pointer -target ${target} -Wno-error=range-loop-analysis</cmakeCxxFlags>
         <cflags>-target ${target} -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
         <cppflags>-target ${target} -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
