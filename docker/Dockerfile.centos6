@@ -75,7 +75,7 @@ RUN echo 'PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
 ENV PATH /root/.sdkman/candidates/maven/current:$PATH
 ENV JAVA_HOME /jdk/
 
-# This is workaround to be able to compile boringssl with -DOPENSSL_C11_ATOMIC as while we use a recent gcc installation it still needs some
+# This is workaround to be able to compile boringssl with atomics as while we use a recent gcc installation it still needs some
 # help to define static_assert(...) as otherwise the compilation will fail due the system installed assert.h which missed this definition.
 RUN mkdir ~/.include
 RUN echo '#include "/usr/include/assert.h"' >>  ~/.include/assert.h
