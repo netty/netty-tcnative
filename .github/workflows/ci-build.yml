@@ -52,14 +52,6 @@ jobs:
           restore-keys: |
             build-${{ matrix.setup }}-m2-repository-cache-
 
-      # Enable caching of Docker layers
-      - uses: jpribyl/action-docker-layer-caching@v0.1.1
-        continue-on-error: true
-        with:
-          key: build-${{ matrix.setup }}-docker-cache-{hash}
-          restore-keys: |
-            build-${{ matrix.setup }}-docker-cache-
-
       - name: Build docker image
         run: docker-compose ${{ matrix.docker-compose-build }}
 

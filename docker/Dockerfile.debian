@@ -68,3 +68,6 @@ RUN echo 'PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
 
 # Prepare our own build
 ENV JAVA_HOME /jdk/
+
+## Cleanup
+RUN apt-get clean

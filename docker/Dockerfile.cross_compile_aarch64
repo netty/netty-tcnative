@@ -7,6 +7,9 @@ ENV GCC_VERSION $gcc_version
 ENV OPENSSL_VERSION $openssl_version
 ENV MAVEN_VERSION 3.9.1
 
+RUN mkdir $SOURCE_DIR
+WORKDIR $SOURCE_DIR
+
 # We want to have git 2.x for the maven scm plugin and also for boringssl
 RUN yum install -y http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
 
@@ -48,3 +51,9 @@ RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
 
 # Prepare our own build
 ENV PATH /root/.sdkman/candidates/maven/current:$PATH
+
+
+# Cleanup
+RUN rm -rf $SOURCE_DIR
+RUN yum clean all && \
+    rm -rf /var/cache/yum
