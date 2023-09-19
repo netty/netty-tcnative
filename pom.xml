@@ -82,8 +82,8 @@
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
     <nativeLibOsParts>${os.detected.name}_${os.detected.arch}</nativeLibOsParts>
-    <aprVersion>1.7.0</aprVersion>
-    <aprSha256>48e9dbf45ae3fdc7b491259ffb6ccf7d63049ffacbc1c0977cced095e4c2d5a2</aprSha256>
+    <aprVersion>1.7.4</aprVersion>
+    <aprSha256>fc648de983f3a2a6c9e78dea1f180639bd2fad6c06d556d4367a701fe5c35577</aprSha256>
     <boringsslBranch>chromium-stable</boringsslBranch>
     <!--
       See https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable for the latest commit

@@ -2,7 +2,7 @@ FROM centos:7.6.1810
 
 ARG gcc_version=10.2-2020.11
 ARG openssl_version=1_1_1d
-ARG apr_version=1.6.5
+ARG apr_version=1.7.4
 ENV SOURCE_DIR /root/source
 ENV GCC_VERSION $gcc_version
 ENV OPENSSL_VERSION $openssl_version
