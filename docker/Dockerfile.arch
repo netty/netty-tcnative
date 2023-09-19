@@ -6,6 +6,7 @@ ENV JAVA_VERSION $java_version
 # install dependencies
 # use openSSL 1.0.x for now, for highest compatibility
 RUN pacman -Sy --noconfirm --needed \
+ apr \
  autoconf \
  automake \
  bzip2 \

@@ -82,6 +82,8 @@
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
     <nativeLibOsParts>${os.detected.name}_${os.detected.arch}</nativeLibOsParts>
+    <aprVersion>1.7.0</aprVersion>
+    <aprSha256>48e9dbf45ae3fdc7b491259ffb6ccf7d63049ffacbc1c0977cced095e4c2d5a2</aprSha256>
     <boringsslBranch>chromium-stable</boringsslBranch>
     <!--
       See https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable for the latest commit
@@ -96,6 +98,10 @@
     <opensslPatchVersion></opensslPatchVersion>
     <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
     <opensslSha256>a0ce69b8b97ea6a35b96875235aa453b966ba3cba8af2de23657d8b6767d6539</opensslSha256>
+    <aprHome>${project.build.directory}/apr</aprHome>
+    <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
+    <aprPatchFile>r1871981-macos11.patch</aprPatchFile>
+    <aprPatchFileSha256>8754b8089d0eb53a7c4fd435c9a9300560b675a8ff2c32315a5e9303408447fe</aprPatchFileSha256>
     <archBits>64</archBits>
     <linkStatic>false</linkStatic>
     <osxCrossCompile>false</osxCrossCompile>
@@ -326,18 +332,27 @@
               <target if="${linkStatic}">
 
                 <!-- Convert the paths to windows format -->
+                <pathconvert property="aprHomeWindowsPath" targetos="windows">
+                  <path location="${aprHome}" />
+                </pathconvert>
                 <pathconvert property="sslIncludeDirsWindowsPath" targetos="windows">
                   <path location="${msvcSslIncludeDirs}" />
                 </pathconvert>
                 <pathconvert property="sslLibDirsWindowsPath" targetos="windows">
                   <path location="${msvcSslLibDirs}" />
                 </pathconvert>
+                <property name="aprIncludeDir" value="${aprHomeWindowsPath}\include" />
+                <property name="aprLibDir" value="${aprHomeWindowsPath}\lib" />
 
+                <echo message="Setting APR_INCLUDE_DIR=${aprIncludeDir}" />
+                <echo message="Setting APR_LIB_DIR=${aprLibDir}" />
                 <echo message="Setting SSL_INCLUDE_DIRS=${sslIncludeDirsWindowsPath}" />
                 <echo message="Setting SSL_LIB_DIRS=${sslLibDirsWindowsPath}" />
                 <echo message="Setting SSL_LIBS=${msvcSslLibs}" />
 
                 <!-- Copy and filter the template MSVC project -->
+                <filter token="APR_INCLUDE_DIR" value="${aprIncludeDir}" />
+                <filter token="APR_LIB_DIR" value="${aprLibDir}" />
                 <filter token="SSL_INCLUDE_DIRS" value="${sslIncludeDirsWindowsPath}" />
                 <filter token="SSL_LIB_DIR" value="${sslLibDirsWindowsPath}" />
                 <filter token="SSL_LIBS" value="${msvcSslLibs}" />
@@ -480,6 +495,240 @@
       </activation>
     </profile>
 
+    <!-- Build the static APR library -->
+    <profile>
+      <id>build-apr-windows</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <properties>
+        <!--
+          We use APR 1.6.5 on windows as 1.7.0 doesn't compile anymore on the platforms we support
+          See also https://programmersought.com/article/94732742066/
+        -->
+        <aprVersion>1.6.5</aprVersion>
+        <aprSha256>70dcf9102066a2ff2ffc47e93c289c8e54c95d8dda23b503f9e61bb0cbd2d105</aprSha256>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>source-apr</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target if="${linkStatic}">
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${aprSourceDir}" />
+                      <then>
+                        <echo message="APR was already downloaded, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Downloading APR" />
+
+                        <property name="aprArchiveFile" value="apr-${aprVersion}-win32-src.zip" />
+                        <get src="https://archive.apache.org/dist/apr/${aprArchiveFile}" dest="${project.build.directory}/${aprArchiveFile}" verbose="on" />
+                        <unzip src="${project.build.directory}/${aprArchiveFile}" dest="${project.build.directory}" />
+                        <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
+                          <equals arg1="${archBits}" arg2="32" />
+                        </condition>
+                        <move file="${project.build.directory}/apr-${aprVersion}" tofile="${aprSourceDir}" />
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>build-apr</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target if="${linkStatic}">
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${aprHome}" />
+                      <then>
+                        <echo message="APR was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building APR" />
+
+                        <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
+                          <equals arg1="${archBits}" arg2="32" />
+                        </condition>
+                        <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
+                        <!-- On Windows, force building APR with /MT for static linking -->
+                        <replace dir="${aprSourceDir}" token="/MD" value="/MT">
+                          <include name="*.mak" />
+                        </replace>
+                        <retry retrycount="3">
+                          <exec executable="nmake" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                            <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />
+                          </exec>
+                        </retry>
+                        <copy todir="${aprHome}/include">
+                          <fileset dir="${aprSourceDir}/include/arch/win32" includes="*.h" />
+                        </copy>
+                        <copy todir="${aprHome}">
+                          <fileset dir="${aprSourceDir}/include/arch" includes="*.h" />
+                        </copy>
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>build-apr-linux-mac</id>
+      <activation>
+        <os>
+          <family>!windows</family>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>source-apr-linux-mac</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target if="${linkStatic}">
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${aprSourceDir}" />
+                      <then>
+                        <echo message="APR was already downloaded, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Downloading and unpacking APR" />
+
+                        <property name="aprTarGzFile" value="apr-${aprVersion}.tar.gz" />
+                        <property name="aprTarFile" value="apr-${aprVersion}.tar" />
+                        <get src="https://archive.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
+                        <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="SHA-256" property="${aprSha256}" verifyProperty="isEqual" />
+                        <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
+                        <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
+                        <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
+                          <arg line="xfvz ${aprTarGzFile}" />
+                        </exec>
+                        <move file="${project.build.directory}/apr-${aprVersion}" tofile="${aprSourceDir}" />
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>build-apr-linux-mac</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target if="${linkStatic}">
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+
+                    <if>
+                      <available file="${aprHome}" />
+                      <then>
+                        <echo message="APR was already build, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building APR" />
+                        <mkdir dir="${aprHome}" />
+
+                        <!-- 
+                          We need to patch APR on macOS to be able to compile it on macOS 11 as well. 
+                          Let's just re-use the same patch that homebrew is using
+                          https://github.com/Homebrew/homebrew-core/pull/56849 
+
+                          This should be removed again once apr 1.7.1 was released with the fix included.
+                        -->
+                        <if>
+                          <equals arg1="${os.detected.name}" arg2="osx" />
+                          <then>
+                             <echo message="Patching APR to make it's build scripts work on macOS 11" />
+                             <get src="https://raw.githubusercontent.com/Homebrew/formula-patches/7e2246542543bbd3111a4ec29f801e6e4d538f88/apr/${aprPatchFile}" dest="${project.build.directory}/${aprPatchFile}" verbose="on" />
+                             <checksum file="${project.build.directory}/${aprPatchFile}" algorithm="SHA-256" property="${aprPatchFileSha256}" verifyProperty="isEqual" />
+                             <patch patchfile="${project.build.directory}/${aprPatchFile}" strip="0" dir="${aprSourceDir}" />
+                             <exec executable="buildconf" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+                          </then>
+                        </if>
+
+                        <echo message="Patching APR to not link against libcrypt" />
+                        <patch patchfile="../patches/apr_crypt.patch" strip="0" dir="${aprSourceDir}" />
+                        <exec executable="buildconf" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+
+                        <if>
+                          <equals arg1="${osxCrossCompile}" arg2="true" />
+                          <then>
+                            <!--
++                             We need to set some extra variables as otherwise the configure of apr will fail when trying to cross-compile.
++                             See https://stackoverflow.com/a/1605497/1074097
++                           -->
+                            <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC -target arm64-apple-macos11' --host=aarch64-apple-darwin ${macOsxDeploymentTarget} ac_cv_file__dev_zero=yes apr_cv_process_shared_works=yes apr_cv_mutex_robust_shared=no apr_cv_tcp_nodelay_with_cork=yes ${macOsxDeploymentTarget}" />
+                            </exec>
+                            <!--
+                              Make will fail when it tries to use the gen_test_char program.
+                              We work around this by compile gen_test_char separate, execute and than rerun make.
+                              See https://stackoverflow.com/a/56262330/1074097
+                            -->
+                            <exec executable="make" failonerror="false" dir="${aprSourceDir}" resolveexecutable="true" />
+                            <exec executable="gcc" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="-Wall -O2 -DCROSS_COMPILE tools/gen_test_char.c -o tools/gen_test_char" />
+                            </exec>
+                            <exec executable="tools/gen_test_char" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" output="${aprSourceDir}/include/private/apr_escape_test_char.h" />
+                            <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+                            <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="install" />
+                            </exec>
+                          </then>
+                          <else>
+                            <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget}" />
+                            </exec>
+                            <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+                            <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                              <arg line="install" />
+                            </exec>
+                          </else>
+                        </if>
+
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
 
     <!--
       netty-tcnative must be released from RHEL 6.6 x86_64 or compatible so that:

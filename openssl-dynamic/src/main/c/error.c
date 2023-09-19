@@ -30,6 +30,7 @@
  */
 
 #include "tcn.h"
+#include "apr_strings.h"
 
 static jclass exceptionClass;
 static jclass nullPointerExceptionClass;
@@ -61,9 +62,17 @@ void tcn_Throw(JNIEnv *env, const char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    vsnprintf(msg, TCN_BUFFER_SZ, fmt, ap);
+    apr_vsnprintf(msg, TCN_BUFFER_SZ, fmt, ap);
     tcn_ThrowException(env, msg);
     va_end(ap);
+}
+
+void tcn_ThrowAPRException(JNIEnv *e, apr_status_t err)
+{
+    char serr[512] = {0};
+
+    apr_strerror(err, serr, 512);
+    tcn_ThrowException(e, serr);
 }
 
 void tcn_throwOutOfMemoryError(JNIEnv* env, const char *msg)

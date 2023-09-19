@@ -36,6 +36,13 @@
 #include <jni.h>
 #include "netty_jni_util.h"
 
+#include "apr.h"
+#include "apr_pools.h"
+
+#ifndef APR_HAS_THREADS
+#error "Missing APR_HAS_THREADS support from APR."
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -79,6 +86,7 @@ void            tcn_Throw(JNIEnv *, const char *, ...);
 void            tcn_ThrowException(JNIEnv *, const char *);
 void            tcn_ThrowNullPointerException(JNIEnv *, const char *);
 void            tcn_ThrowIllegalArgumentException(JNIEnv *, const char *);
+void            tcn_ThrowAPRException(JNIEnv *, apr_status_t);
 void            tcn_throwOutOfMemoryError(JNIEnv *, const char *);
 
 jstring         tcn_new_string(JNIEnv *, const char *);
@@ -109,6 +117,15 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
             free(c##V);          \
     NETTY_JNI_UTIL_END_MACRO
 
+#define TCN_THROW_IF_ERR(x, r)                  \
+    NETTY_JNI_UTIL_BEGIN_MACRO                  \
+        apr_status_t R = (x);                   \
+        if (R != APR_SUCCESS) {                 \
+            tcn_ThrowAPRException(e, R);        \
+            (r) = 0;                            \
+            goto cleanup;                       \
+        }                                       \
+    NETTY_JNI_UTIL_END_MACRO
 
 #define TCN_MIN(a, b) ((a) < (b) ? (a) : (b))
 

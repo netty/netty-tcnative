@@ -48,8 +48,8 @@
 #define OPENSSL_NO_RC5
 #endif
 
-#include "tcn_atomic.h"
-#include "tcn_lock_rw.h"
+#include "apr_thread_rwlock.h"
+#include "apr_atomic.h"
 #include <stdbool.h>
 
 /* OpenSSL headers */
@@ -114,6 +114,8 @@
 #define SSL_CVERIFY_NONE                (0)
 #define SSL_CVERIFY_OPTIONAL            (1)
 #define SSL_CVERIFY_REQUIRED            (2)
+
+#define SSL_TO_APR_ERROR(X)         (APR_OS_START_USERERR + 1000 + X)
 
 extern const char* TCN_UNKNOWN_AUTH_METHOD;
 
@@ -302,6 +304,7 @@ extern const SSL_PRIVATE_KEY_METHOD private_key_method;
 #endif // OPENSSL_IS_BORINGSSL
 
 struct tcn_ssl_ctxt_t {
+    apr_pool_t*              pool;
     SSL_CTX*                 ctx;
 
     /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
@@ -311,7 +314,7 @@ struct tcn_ssl_ctxt_t {
     /* for client or downstream server authentication */
     char*                    password;
 
-    tcn_lock_rw_t            ticket_keys_lock; // Session ticket lock
+    apr_thread_rwlock_t*     mutex; // Session ticket mutext
     tcn_ssl_ticket_key_t*    ticket_keys;
 
     /* certificate verifier callback */
@@ -367,13 +370,13 @@ struct tcn_ssl_ctxt_t {
     /* TLS ticket key session resumption statistics */
 
     // The client did not present a ticket and we issued a new one.
-    tcn_atomic_uint32_t      ticket_keys_new;
+    apr_uint32_t             ticket_keys_new;
     // The client presented a ticket derived from the primary key
-    tcn_atomic_uint32_t      ticket_keys_resume;
+    apr_uint32_t             ticket_keys_resume;
     // The client presented a ticket derived from an older key, and we upgraded to the primary key.
-    tcn_atomic_uint32_t      ticket_keys_renew;
+    apr_uint32_t             ticket_keys_renew;
     // The client presented a ticket that did not match any key in the list.
-    tcn_atomic_uint32_t      ticket_keys_fail;
+    apr_uint32_t             ticket_keys_fail;
 
     unsigned char            context_id[SHA_DIGEST_LENGTH];
 

@@ -27,7 +27,7 @@
   <name>Netty/TomcatNative [LibreSSL - Static]</name>
   <description>
     A Mavenized fork of Tomcat Native which incorporates various patches. This artifact is statically linked
-    to LibreSSL.
+    to LibreSSL and Apache APR.
   </description>
 
   <properties>
@@ -61,12 +61,14 @@
     </pluginManagement>
 
     <plugins>
+
       <!-- Add the LibreSSL version to the manifest. -->
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
+            <Apr-Version>${aprVersion}</Apr-Version>
             <LibreSSL-Version>${libresslVersion}</LibreSSL-Version>
           </instructions>
         </configuration>
@@ -159,7 +161,7 @@
         </executions>
       </plugin>
 
-      <!-- Configure the distribution statically linked against OpenSSL -->
+      <!-- Configure the distribution statically linked against OpenSSL and APR -->
       <plugin>
         <groupId>org.fusesource.hawtjni</groupId>
         <artifactId>hawtjni-maven-plugin</artifactId>
@@ -181,6 +183,7 @@
               <windowsBuildTool>msbuild</windowsBuildTool>
               <configureArgs>
                 <configureArg>--with-ssl=no</configureArg>
+                <configureArg>--with-apr=${aprHome}</configureArg>
                 <configureArg>--with-static-libs</configureArg>
                 <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                 <configureArg>${macOsxDeploymentTarget}</configureArg>

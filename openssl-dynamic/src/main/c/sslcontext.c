@@ -31,11 +31,11 @@
 
 #include "tcn.h"
 
-#include "tcn_atomic.h"
-#include "tcn_lock_rw.h"
+#include "apr_thread_rwlock.h"
+#include "apr_atomic.h"
+
 #include "ssl_private.h"
 #include <stdint.h>
-#include <string.h>
 #include "sslcontext.h"
 #include "cert_compress.h"
 
@@ -62,9 +62,120 @@ static jmethodID sslPrivateKeyMethodDecryptTask_init;
 
 static const char* staticPackagePrefix = NULL;
 
+extern apr_pool_t *tcn_global_pool;
+
+static apr_status_t ssl_context_cleanup(void *data)
+{
+    tcn_ssl_ctxt_t *c = (tcn_ssl_ctxt_t *)data;
+    JNIEnv *e = NULL;
+
+    if (c != NULL) {
+        SSL_CTX_free(c->ctx); // this function is safe to call with NULL
+        c->ctx = NULL;
+
+        tcn_get_java_env(&e);
+
+#ifdef OPENSSL_IS_BORINGSSL
+        if (c->ssl_private_key_method != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
+            }
+            c->ssl_private_key_method = NULL;
+        }
+        if (c->ssl_cert_compression_zlib_algorithm != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zlib_algorithm);
+            }
+            c->ssl_cert_compression_zlib_algorithm = NULL;
+        }
+        if (c->ssl_cert_compression_brotli_algorithm != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_brotli_algorithm);
+            }
+            c->ssl_cert_compression_brotli_algorithm = NULL;
+        }
+        if (c->ssl_cert_compression_zstd_algorithm != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zstd_algorithm);
+            }
+            c->ssl_cert_compression_zstd_algorithm = NULL;
+        }
+#endif // OPENSSL_IS_BORINGSSL
+
+        if (c->ssl_session_cache != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->ssl_session_cache);
+            }
+            c->ssl_session_cache = NULL;
+        }
+        c->ssl_session_cache_creation_method = NULL;
+        c->ssl_session_cache_get_method = NULL;
+
+        if (c->verifier != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->verifier);
+            }
+            c->verifier = NULL;
+        }
+        c->verifier_method = NULL;
+
+        if (c->cert_requested_callback != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->cert_requested_callback);
+            }
+            c->cert_requested_callback = NULL;
+        }
+        c->cert_requested_callback_method = NULL;
+
+        if (c->certificate_callback != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->certificate_callback);
+            }
+            c->certificate_callback = NULL;
+        }
+        c->certificate_callback_method = NULL;
+
+        if (c->sni_hostname_matcher != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
+            }
+            c->sni_hostname_matcher = NULL;
+        }
+        c->sni_hostname_matcher_method = NULL;
+
+        if (c->next_proto_data != NULL) {
+            OPENSSL_free(c->next_proto_data);
+            c->next_proto_data = NULL;
+        }
+        c->next_proto_len = 0;
+
+        if (c->alpn_proto_data != NULL) {
+            OPENSSL_free(c->alpn_proto_data);
+            c->alpn_proto_data = NULL;
+        }
+        c->alpn_proto_len = 0;
+
+        apr_thread_rwlock_destroy(c->mutex);
+
+        if (c->ticket_keys != NULL) {
+            OPENSSL_free(c->ticket_keys);
+            c->ticket_keys = NULL;
+        }
+        c->ticket_keys_len = 0;
+
+        if (c->password != NULL) {
+            // Just use free(...) as we used strdup(...) to create the stored password.
+            free(c->password);
+            c->password = NULL;
+        }
+    }
+    return APR_SUCCESS;
+}
+
 /* Initialize server context */
 TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mode)
 {
+    apr_pool_t *p = NULL;
     tcn_ssl_ctxt_t *c = NULL;
     SSL_CTX *ctx = NULL;
 
@@ -226,18 +337,17 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         goto cleanup;
     }
 
-    if ((c = calloc(1, sizeof(tcn_ssl_ctxt_t))) == NULL) {
-        tcn_Throw(e, "Failed to calloc tcn_ssl_ctxt_t");
+    TCN_THROW_IF_ERR(apr_pool_create(&p, tcn_global_pool), p);
+
+    if ((c = apr_pcalloc(p, sizeof(tcn_ssl_ctxt_t))) == NULL) {
+        tcn_ThrowAPRException(e, apr_get_os_error());
         goto cleanup;
     }
 
     c->protocol = protocol;
     c->mode     = mode;
     c->ctx      = ctx;
-    c->ticket_keys_new = tcn_atomic_uint32_create();
-    c->ticket_keys_resume = tcn_atomic_uint32_create();
-    c->ticket_keys_renew = tcn_atomic_uint32_create();
-    c->ticket_keys_fail = tcn_atomic_uint32_create();
+    c->pool     = p;
 
     if (!(protocol & SSL_PROTOCOL_SSLV2)) {
         SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv2);
@@ -323,11 +433,20 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         SSL_CTX_set_allow_unknown_alpn_protos(ctx, 1);
     }
 #endif
-    c->ticket_keys_lock = tcn_lock_rw_create();
+    apr_thread_rwlock_create(&c->mutex, p);
+    /*
+     * Let us cleanup the ssl context when the pool is destroyed
+     */
+    apr_pool_cleanup_register(p, (const void *)c,
+                              ssl_context_cleanup,
+                              apr_pool_cleanup_null);
 
     tcn_SSL_CTX_set_app_state(c->ctx, c);
     return P2J(c);
 cleanup:
+    if (p != NULL) {
+        apr_pool_destroy(p);
+    }
     SSL_CTX_free(ctx); // this function is safe to call with NULL.
     return 0;
 }
@@ -338,108 +457,10 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, free)(TCN_STDARGS, jlong ctx)
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    SSL_CTX_free(c->ctx); // this function is safe to call with NULL
-    c->ctx = NULL;
-
-#ifdef OPENSSL_IS_BORINGSSL
-    if (c->ssl_private_key_method != NULL) {
-        (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
-        c->ssl_private_key_method = NULL;
-    }
-    if (c->ssl_cert_compression_zlib_algorithm != NULL) {
-        (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zlib_algorithm);
-        c->ssl_cert_compression_zlib_algorithm = NULL;
-    }
-    if (c->ssl_cert_compression_brotli_algorithm != NULL) {
-        (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_brotli_algorithm);
-        c->ssl_cert_compression_brotli_algorithm = NULL;
-    }
-    if (c->ssl_cert_compression_zstd_algorithm != NULL) {
-        (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zstd_algorithm);
-        c->ssl_cert_compression_zstd_algorithm = NULL;
-    }
-#endif // OPENSSL_IS_BORINGSSL
-
-    if (c->ssl_session_cache != NULL) {
-        (*e)->DeleteGlobalRef(e, c->ssl_session_cache);
-        c->ssl_session_cache = NULL;
-    }
-    c->ssl_session_cache_creation_method = NULL;
-    c->ssl_session_cache_get_method = NULL;
-
-    if (c->verifier != NULL) {
-        (*e)->DeleteGlobalRef(e, c->verifier);
-        c->verifier = NULL;
-    }
-    c->verifier_method = NULL;
-
-    if (c->cert_requested_callback != NULL) {
-        (*e)->DeleteGlobalRef(e, c->cert_requested_callback);
-        c->cert_requested_callback = NULL;
-    }
-    c->cert_requested_callback_method = NULL;
-
-    if (c->certificate_callback != NULL) {
-        (*e)->DeleteGlobalRef(e, c->certificate_callback);
-        c->certificate_callback = NULL;
-    }
-    c->certificate_callback_method = NULL;
-
-    if (c->sni_hostname_matcher != NULL) {
-        (*e)->DeleteGlobalRef(e, c->sni_hostname_matcher);
-        c->sni_hostname_matcher = NULL;
-    }
-    c->sni_hostname_matcher_method = NULL;
-
-    if (c->next_proto_data != NULL) {
-        OPENSSL_free(c->next_proto_data);
-        c->next_proto_data = NULL;
-    }
-    c->next_proto_len = 0;
-
-    if (c->alpn_proto_data != NULL) {
-        OPENSSL_free(c->alpn_proto_data);
-        c->alpn_proto_data = NULL;
-    }
-    c->alpn_proto_len = 0;
-
-    if (c->ticket_keys_lock != NULL) {
-        tcn_lock_rw_destroy(c->ticket_keys_lock);
-        c->ticket_keys_lock = NULL;
-    }
-
-    if (c->ticket_keys_new != NULL) {
-        tcn_atomic_uint32_destroy(c->ticket_keys_new);
-        c->ticket_keys_new = NULL;
-    }
-    if (c->ticket_keys_resume != NULL) {
-        tcn_atomic_uint32_destroy(c->ticket_keys_resume);
-        c->ticket_keys_resume = NULL;
-    }
-    if (c->ticket_keys_renew != NULL) {
-        tcn_atomic_uint32_destroy(c->ticket_keys_renew);
-        c->ticket_keys_renew = NULL;
-    }
-    if (c->ticket_keys_fail != NULL) {
-        tcn_atomic_uint32_destroy(c->ticket_keys_fail);
-        c->ticket_keys_fail = NULL;
-    }
-
-    if (c->ticket_keys != NULL) {
-        OPENSSL_free(c->ticket_keys);
-        c->ticket_keys = NULL;
-    }
-    c->ticket_keys_len = 0;
-
-    if (c->password != NULL) {
-        // Just use free(...) as we used strdup(...) to create the stored password.
-        free(c->password);
-        c->password = NULL;
-    }
-
-    // Use free as we used calloc(...) to allocate
-    free(c);
-    return 0;
+    /* Run and destroy the cleanup callback */
+    int result = apr_pool_cleanup_run(c->pool, c, ssl_context_cleanup);
+    apr_pool_destroy(c->pool);
+    return result;
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setContextId)(TCN_STDARGS, jlong ctx,
@@ -644,7 +665,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
             SSL_CTX_set_tmp_dh_callback(c->ctx, tcn_SSL_callback_tmp_DH_4096);
             return;
         default:
-            tcn_Throw(e, "Unsupported length %d", length);
+            tcn_Throw(e, "Unsupported length %s", length);
             return;
     }
 }
@@ -1187,7 +1208,8 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyNew)(TCN_STDARGS, jlong ct
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    return (jlong) tcn_atomic_uint32_get(c->ticket_keys_new);
+    jlong rv = apr_atomic_read32(&c->ticket_keys_new);
+    return rv;
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyResume)(TCN_STDARGS, jlong ctx)
@@ -1196,7 +1218,8 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyResume)(TCN_STDARGS, jlong
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    return (jlong) tcn_atomic_uint32_get(c->ticket_keys_resume);
+    jlong rv = apr_atomic_read32(&c->ticket_keys_resume);
+    return rv;
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyRenew)(TCN_STDARGS, jlong ctx)
@@ -1205,7 +1228,8 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyRenew)(TCN_STDARGS, jlong 
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    return (jlong) tcn_atomic_uint32_get(c->ticket_keys_renew);
+    jlong rv = apr_atomic_read32(&c->ticket_keys_renew);
+    return rv;
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyFail)(TCN_STDARGS, jlong ctx)
@@ -1214,17 +1238,18 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, sessionTicketKeyFail)(TCN_STDARGS, jlong c
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    return (jlong) tcn_atomic_uint32_get(c->ticket_keys_fail);
+    jlong rv = apr_atomic_read32(&c->ticket_keys_fail);
+    return rv;
 }
 
 static int current_session_key(tcn_ssl_ctxt_t *c, tcn_ssl_ticket_key_t *key) {
     int result = JNI_FALSE;
-    tcn_lock_r_t reader_lock = tcn_lock_r_acquire(c->ticket_keys_lock);
+    apr_thread_rwlock_rdlock(c->mutex);
     if (c->ticket_keys_len > 0) {
         *key = c->ticket_keys[0];
         result = JNI_TRUE;
     }
-    tcn_lock_r_release(reader_lock);
+    apr_thread_rwlock_unlock(c->mutex);
     return result;
 }
 
@@ -1232,7 +1257,7 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
     int result = JNI_FALSE;
     int i;
 
-    tcn_lock_r_t reader_lock = tcn_lock_r_acquire(c->ticket_keys_lock);
+    apr_thread_rwlock_rdlock(c->mutex);
     for (i = 0; i < c->ticket_keys_len; ++i) {
         // Check if we have a match for tickets.
         if (memcmp(c->ticket_keys[i].key_name, key_name, 16) == 0) {
@@ -1242,7 +1267,7 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
             break;
         }
     }
-    tcn_lock_r_release(reader_lock);
+    apr_thread_rwlock_unlock(c->mutex);
     return result;
 }
 
@@ -1265,9 +1290,7 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
 
              EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
              HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
-             if (c->ticket_keys_new != NULL) {
-                 tcn_atomic_uint32_increment(c->ticket_keys_new);
-             }
+             apr_atomic_inc32(&c->ticket_keys_new);
              return 1;
          }
          // No ticket configured
@@ -1279,21 +1302,15 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
              if (!is_current_key) {
                  // The ticket matched a key in the list, and we want to upgrade it to the current
                  // key.
-                 if (c->ticket_keys_renew != NULL) {
-                     tcn_atomic_uint32_increment(c->ticket_keys_renew);
-                 }
+                 apr_atomic_inc32(&c->ticket_keys_renew);
                  return 2;
              }
              // The ticket matched the current key.
-             if (c->ticket_keys_resume != NULL) {
-                tcn_atomic_uint32_increment(c->ticket_keys_resume);
-             }
+             apr_atomic_inc32(&c->ticket_keys_resume);
              return 1;
          }
          // No matching ticket.
-         if (c->ticket_keys_fail != NULL) {
-             tcn_atomic_uint32_increment(c->ticket_keys_fail);
-         }
+         apr_atomic_inc32(&c->ticket_keys_fail);
          return 0;
      }
 }
@@ -1325,13 +1342,13 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     }
     (*e)->ReleaseByteArrayElements(e, keys, b, 0);
 
-    tcn_lock_w_t writer_lock = tcn_lock_w_acquire(c->ticket_keys_lock);
+    apr_thread_rwlock_wrlock(c->mutex);
     if (c->ticket_keys) {
         OPENSSL_free(c->ticket_keys);
     }
     c->ticket_keys_len = cnt;
     c->ticket_keys = ticket_keys;
-    tcn_lock_w_release(writer_lock);
+    apr_thread_rwlock_unlock(c->mutex);
 
     SSL_CTX_set_tlsext_ticket_key_cb(c->ctx, ssl_tlsext_ticket_key_cb);
 }
