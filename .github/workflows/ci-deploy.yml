@@ -35,13 +35,6 @@ jobs:
 
     name: stage-snapshot-${{ matrix.setup }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: false
-
       - uses: actions/checkout@v3
 
       # Cache .m2/repository
@@ -52,16 +45,6 @@ jobs:
           key: stage-snapshot-${{ matrix.setup }}-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             stage-snapshot-${{ matrix.setup }}-m2-repository-cache-
-
-      # Enable caching of Docker layers
-      - uses: jpribyl/action-docker-layer-caching@v0.1.1
-        env:
-          docker-cache-name: staging-${{ matrix.setup }}-cache-docker
-        continue-on-error: true
-        with:
-          key: ${{ runner.os }}-staging-${{ env.docker-cache-name }}-{hash}
-          restore-keys: |
-            ${{ runner.os }}-staging-${{ env.docker-cache-name }}-
 
       - name: Create local staging directory
         run: mkdir -p ~/local-staging
