@@ -18,7 +18,6 @@
 #include "ssl_private.h"
 #ifdef OPENSSL_IS_BORINGSSL
 #include "cert_compress.h"
-#include <string.h>
 
 static int compress(jobject compression_algorithm, jmethodID compress_method, SSL* ssl, CBB* out,
     const uint8_t* in, size_t in_len) {

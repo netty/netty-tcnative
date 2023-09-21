@@ -29,8 +29,8 @@
  * limitations under the License.
  */
 
-#include <string.h>
 #include "tcn.h"
+
 #include "ssl_private.h"
 
 /*  _________________________________________________________________

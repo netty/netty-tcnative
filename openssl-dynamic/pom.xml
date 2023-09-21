@@ -27,7 +27,7 @@
   <name>Netty/TomcatNative [OpenSSL - Dynamic]</name>
   <description>
     A Mavenized fork of Tomcat Native which incorporates various patches. This artifact is dynamically linked
-    to OpenSSL.
+    to OpenSSL and Apache APR.
   </description>
 
   <properties>
@@ -190,6 +190,12 @@
                 <configuration>
                   <rules>
                     <requireEnvironmentVariable>
+                      <variableName>APR_INCLUDE_DIR</variableName>
+                    </requireEnvironmentVariable>
+                    <requireEnvironmentVariable>
+                      <variableName>APR_LIB_DIR</variableName>
+                    </requireEnvironmentVariable>
+                    <requireEnvironmentVariable>
                       <variableName>OPENSSL_INCLUDE_DIR</variableName>
                     </requireEnvironmentVariable>
                     <requireEnvironmentVariable>
@@ -229,6 +235,7 @@
                   <forceConfigure>${forceConfigure}</forceConfigure>
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
+                    <configureArg>--with-apr=/usr/local/opt/apr/</configureArg>
                     <configureArg>--with-ssl=/usr/local/opt/openssl@1.1/</configureArg>
                   </configureArgs>
                 </configuration>
@@ -267,6 +274,7 @@
                   <forceConfigure>${forceConfigure}</forceConfigure>
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
+                    <configureArg>--with-apr=/opt/homebrew/opt/apr/</configureArg>
                     <configureArg>--with-ssl=/opt/homebrew/opt/openssl@1.1/</configureArg>
                   </configureArgs>
                 </configuration>
@@ -349,6 +357,10 @@
                       <content>release 7.6</content>
                     </requireFilesContent>
                     <requireProperty>
+                      <property>aprArmHome</property>
+                      <message>The folder of APR for aarch64 must be specified by hand. Please try -DaprArmHome=</message>
+                    </requireProperty>
+                    <requireProperty>
                       <property>opensslArmHome</property>
                       <message>The folder of OpenSSL for aarch64 must be specified by hand. Please try -DopensslArmHome=</message>
                     </requireProperty>
@@ -374,10 +386,10 @@
                   <forceConfigure>${forceConfigure}</forceConfigure>
                   <configureArgs>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
+                    <configureArg>--with-apr=${aprArmHome}</configureArg>
                     <configureArg>--with-ssl=${opensslArmHome}</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
                     <configureArg>CC=aarch64-none-linux-gnu-gcc</configureArg>
-                    <configureArg>CXX=aarch64-none-linux-gnu-g++</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
