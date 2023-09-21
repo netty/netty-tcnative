@@ -176,7 +176,7 @@ jobs:
             deploy-stage-snapshot-m2-repository-cache-
 
 
-      - uses: s4u/maven-settings-action@v2.2.0
+      - uses: s4u/maven-settings-action@v2.8.0
         with:
           servers: |
             [{

@@ -117,7 +117,7 @@ jobs:
           restore-keys: |
             stage-release-linux-${{ matrix.setup }}-m2-repository-cache-
 
-      - uses: s4u/maven-settings-action@v2.2.0
+      - uses: s4u/maven-settings-action@v2.8.0
         with:
           servers: |
             [{
@@ -213,7 +213,7 @@ jobs:
           restore-keys: |
             staging-release-cache-windows-m2-repository-
 
-      - uses: s4u/maven-settings-action@v2.2.0
+      - uses: s4u/maven-settings-action@v2.8.0
         with:
           servers: |
             [{
@@ -314,7 +314,7 @@ jobs:
             deploy-staged-release-cache-m2-repository-
 
 
-      - uses: s4u/maven-settings-action@v2.2.0
+      - uses: s4u/maven-settings-action@v2.8.0
         with:
           servers: |
             [{
