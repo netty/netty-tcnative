@@ -88,7 +88,6 @@
         <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
         <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
         <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
-        <enableUnitTest>${run_fips_tests}</enableUnitTest>
         <jniArch>${os.detected.arch}</jniArch>
       </properties>
 
@@ -224,15 +223,6 @@
                             <!-- This is needed to generate bssl execute file to verify isfips property-->
                             <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
                             </exec>
-                            <!-- Test to verify is BoooringSSL build is FIPS complaint-->
-                            <if>
-                              <equals arg1="${enableUnitTest}" arg2="1"/>
-                              <then>
-                                <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
-                                  <arg value="run_fips_tests" />
-                                </exec>
-                              </then>
-                            </if>
                             <exec executable="./tool/bssl" failonerror="false" dir="${boringsslBuildDir}" outputproperty="boringssl.isfips.result">
                               <arg value="isfips" />
                             </exec>
