@@ -109,7 +109,7 @@
               </execution>
             </executions>
             <configuration>
-              <url>https://commondatastorage.googleapis.com/chromium-boringssl-fips/boringssl-853ca1ea1168dff08011e5d42d94609cc0ca2e27.tar.xz</url>
+              <url>https://commondatastorage.googleapis.com/chromium-boringssl-fips/boringssl-${boringsslBranch}.tar.xz</url>
               <unpack>true</unpack>
               <outputDirectory>${project.build.directory}/boringssl-${boringsslBranch}</outputDirectory>
             </configuration>
