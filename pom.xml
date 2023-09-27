@@ -100,8 +100,6 @@
     <opensslSha256>a0ce69b8b97ea6a35b96875235aa453b966ba3cba8af2de23657d8b6767d6539</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
-    <aprPatchFile>r1871981-macos11.patch</aprPatchFile>
-    <aprPatchFileSha256>8754b8089d0eb53a7c4fd435c9a9300560b675a8ff2c32315a5e9303408447fe</aprPatchFileSha256>
     <archBits>64</archBits>
     <linkStatic>false</linkStatic>
     <osxCrossCompile>false</osxCrossCompile>
@@ -662,25 +660,6 @@
                       <else>
                         <echo message="Building APR" />
                         <mkdir dir="${aprHome}" />
-
-                        <!-- 
-                          We need to patch APR on macOS to be able to compile it on macOS 11 as well. 
-                          Let's just re-use the same patch that homebrew is using
-                          https://github.com/Homebrew/homebrew-core/pull/56849 
-
-                          This should be removed again once apr 1.7.1 was released with the fix included.
-                        -->
-                        <if>
-                          <equals arg1="${os.detected.name}" arg2="osx" />
-                          <then>
-                             <echo message="Patching APR to make it's build scripts work on macOS 11" />
-                             <get src="https://raw.githubusercontent.com/Homebrew/formula-patches/7e2246542543bbd3111a4ec29f801e6e4d538f88/apr/${aprPatchFile}" dest="${project.build.directory}/${aprPatchFile}" verbose="on" />
-                             <checksum file="${project.build.directory}/${aprPatchFile}" algorithm="SHA-256" property="${aprPatchFileSha256}" verifyProperty="isEqual" />
-                             <patch patchfile="${project.build.directory}/${aprPatchFile}" strip="0" dir="${aprSourceDir}" />
-                             <exec executable="buildconf" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
-                          </then>
-                        </if>
-
                         <echo message="Patching APR to not link against libcrypt" />
                         <patch patchfile="../patches/apr_crypt.patch" strip="0" dir="${aprSourceDir}" />
                         <exec executable="buildconf" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
