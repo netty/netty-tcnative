@@ -248,6 +248,8 @@
           <runOrder>random</runOrder>
           <!-- Ensure the whole stacktrace is preserved when an exception is thrown. See https://issues.apache.org/jira/browse/SUREFIRE-1457 -->
           <trimStackTrace>false</trimStackTrace>
+          <!-- Always check JNI during test run so we catch bugs that could cause crashes -->
+          <argLine>-ea -Xcheck:jni</argLine>
         </configuration>
       </plugin>
 
