@@ -83,7 +83,7 @@
         <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}/boringssl</boringsslCheckoutDir>
         <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
         <!--   Latest FIPS compliant boringSSL commit   -->
-        <boringsslBranch>${env.BORINGSSL_COMMIT}</boringsslBranch>
+        <boringsslBranch>853ca1ea1168dff08011e5d42d94609cc0ca2e27</boringsslBranch>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
         <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
