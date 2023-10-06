@@ -449,8 +449,7 @@
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
         <configuration>
-          <!-- Specifying a profile here will disable the all profile, since it's activeByDefault -->
-          <arguments>-Prestricted-release,sonatype-oss-release -DmoduleSelector=none</arguments>
+          <arguments>-Prestricted-release,sonatype-oss-release</arguments>
           <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
           <autoVersionSubmodules>true</autoVersionSubmodules>
         </configuration>
@@ -796,9 +795,6 @@
           <family>windows</family>
         </os>
       </activation>
-      <properties>
-        <moduleSelector>none</moduleSelector>
-      </properties>
       <modules>
         <!-- Ony Windows we only support boringssl-static -->
         <module>openssl-classes</module>
@@ -806,16 +802,28 @@
       </modules>
     </profile>
 
-    <!--
-      Profile for building all modules. This is enabled by default so if any profile is manually specified,
-      this will be disabled automatically.
-    -->
     <profile>
-      <id>all</id>
+      <id>linux-compile-all</id>
       <activation>
-        <property>
-          <name>!moduleSelector</name>
-        </property>
+        <os>
+          <family>linux</family>
+        </os>
+      </activation>
+      <modules>
+        <module>openssl-classes</module>
+        <module>openssl-dynamic</module>
+        <module>openssl-static</module>
+        <module>boringssl-static</module>
+        <module>libressl-static</module>
+      </modules>
+    </profile>
+
+    <profile>
+      <id>osx-compile-all</id>
+      <activation>
+        <os>
+          <family>osx</family>
+        </os>
       </activation>
       <modules>
         <module>openssl-classes</module>
