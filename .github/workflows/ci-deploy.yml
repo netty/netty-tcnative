@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # Cache .m2/repository
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         continue-on-error: true
         with:
           path: ~/.m2/repository
@@ -56,7 +56,7 @@ jobs:
         run: docker-compose ${{ matrix.docker-compose-run }}
 
       - name: Upload local staging directory
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.setup }}-local-staging
           path: ~/local-staging
@@ -73,7 +73,7 @@ jobs:
         run: mkdir local-staging
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: 8
           distribution: zulu
@@ -92,7 +92,7 @@ jobs:
           args: install ninja nasm
 
       # Cache .m2/repository
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         continue-on-error: true
         with:
           path: ~/.m2/repository
@@ -104,7 +104,7 @@ jobs:
         run: ./mvnw.cmd --file pom.xml -am -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=local-staging -DskipRemoteStaging=true -DskipTests=true
 
       - name: Upload local staging directory
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-x86_64-local-staging
           path: boringssl-static/local-staging
@@ -118,7 +118,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: 8
           distribution: zulu
@@ -131,25 +131,25 @@ jobs:
       # Hardcode the staging artifacts that need to be downloaded.
       # These must match the matrix setups and windows build. There is currently no way to pull this out of the config.
       - name: Download windows_x86_64 staging directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: windows-x86_64-local-staging
           path: ~/windows-x86_64-local-staging
 
       - name: Download centos7-aarch64 staging directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: centos7-aarch64-local-staging
           path: ~/centos7-aarch64-local-staging
 
       - name: Download debian7-x86_64 staging directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: debian7-x86_64-local-staging
           path: ~/debian7-x86_64-local-staging
 
       - name: Download centos6-x86_64 staging directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: centos6-x86_64-local-staging
           path: ~/centos6-x86_64-local-staging
@@ -167,7 +167,7 @@ jobs:
           cp -r ~/centos6-x86_64-local-staging/deferred/* ~/local-staging/deferred/
 
       # Cache .m2/repository
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         continue-on-error: true
         with:
           path: ~/.m2/repository
@@ -176,7 +176,7 @@ jobs:
             deploy-stage-snapshot-m2-repository-cache-
 
 
-      - uses: s4u/maven-settings-action@v2.8.0
+      - uses: s4u/maven-settings-action@v3.0.0
         with:
           servers: |
             [{
