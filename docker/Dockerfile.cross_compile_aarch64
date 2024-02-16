@@ -36,7 +36,7 @@ RUN yum install -y cmake3 && ln -s /usr/bin/cmake3 /usr/bin/cmake
 
 # Cross compile Apache Apr for aarch64 - static
 RUN set -x && \
-  wget https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
+  wget --no-check-certificate https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
   tar xvf apr-$APR_VERSION.tar.gz && \
   pushd apr-$APR_VERSION && \
   CC=aarch64-none-linux-gnu-gcc CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ./configure --disable-shared --prefix=/opt/apr-$APR_VERSION-static --host=aarch64-none-linux-gnu ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8 && \
@@ -49,7 +49,7 @@ RUN set -x && \
 
 # Cross compile Apache Apr for aarch64 - share
 RUN set -x && \
-  wget https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
+  wget --no-check-certificate https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
   tar xvf apr-$APR_VERSION.tar.gz && \
   pushd apr-$APR_VERSION && \
   CC=aarch64-none-linux-gnu-gcc CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ./configure --prefix=/opt/apr-$APR_VERSION-share --host=aarch64-none-linux-gnu ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8 && \
@@ -71,6 +71,9 @@ RUN set -x && \
 
 # Downloading and installing SDKMAN!
 RUN curl -s "https://get.sdkman.io" | bash
+
+# Don't check the certificates as our curl version is too old.
+RUN echo 'sdkman_insecure_ssl=true' >> $HOME/.sdkman/etc/config
 
 # Installing Java and Maven, removing some unnecessary SDKMAN files
 RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
