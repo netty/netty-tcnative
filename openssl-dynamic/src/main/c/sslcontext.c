@@ -2016,7 +2016,7 @@ static int certificate_cb(SSL* ssl, void* arg) {
         // Check if java threw an exception and if so signal back that we should not continue with the handshake.
         if ((*e)->ExceptionCheck(e) != JNI_TRUE) {
             // Everything good...
-            ret = -1;
+            ret = 1;
         }
     }
 
