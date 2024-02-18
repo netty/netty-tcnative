@@ -94,10 +94,10 @@
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
     -->
     <libresslSha256>ff88bffe354818b3ccf545e3cafe454c5031c7a77217074f533271d63c37f08d</libresslSha256>
-    <opensslMinorVersion>3.1.2</opensslMinorVersion>
-    <opensslPatchVersion />
-    <opensslVersion>${opensslMinorVersion}${opensslPatchVersion}</opensslVersion>
-    <opensslSha256>a0ce69b8b97ea6a35b96875235aa453b966ba3cba8af2de23657d8b6767d6539</opensslSha256>
+    <opensslMinorVersion>3.1</opensslMinorVersion>
+    <opensslPatchVersion>5</opensslPatchVersion>
+    <opensslVersion>${opensslMinorVersion}.${opensslPatchVersion}</opensslVersion>
+    <opensslSha256>6ae015467dabf0469b139ada93319327be24b98251ffaeceda0221848dc09262</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
     <archBits>64</archBits>
