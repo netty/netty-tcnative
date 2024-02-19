@@ -924,8 +924,7 @@ static tcn_ssl_state_t* new_ssl_state(tcn_ssl_ctxt_t* ctx) {
     return state;
 }
 
-static void free_ssl_state(tcn_ssl_state_t* state) {
-    JNIEnv* e = NULL;
+static void free_ssl_state(JNIEnv* e, tcn_ssl_state_t* state) {
     if (state == NULL) {
         return;
     }
@@ -936,8 +935,6 @@ static void free_ssl_state(tcn_ssl_state_t* state) {
         state->verify_config = NULL;
     }
 
-
-    tcn_get_java_env(&e);
     tcn_ssl_task_free(e, state->ssl_task);
     state->ssl_task = NULL;
 
@@ -1130,7 +1127,7 @@ TCN_IMPLEMENT_CALL(void, SSL, freeSSL)(TCN_STDARGS,
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    free_ssl_state(tcn_SSL_get_app_state(ssl_));
+    free_ssl_state(e, tcn_SSL_get_app_state(ssl_));
 
     SSL_free(ssl_);
 }
