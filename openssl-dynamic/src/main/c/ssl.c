@@ -919,20 +919,14 @@ static tcn_ssl_state_t* new_ssl_state(tcn_ssl_ctxt_t* ctx) {
     memset(state, 0, sizeof(tcn_ssl_state_t));
     state->ctx = ctx;
 
-     // Initially we will share the configuration from the SSLContext.
-    state->verify_config = &ctx->verify_config;
+     // Initially we will copy the configuration from the SSLContext.
+    memcpy(&state->verify_config, &ctx->verify_config, sizeof(tcn_ssl_verify_config_t));
     return state;
 }
 
 static void free_ssl_state(JNIEnv* e, tcn_ssl_state_t* state) {
     if (state == NULL) {
         return;
-    }
-
-    // Only free the verify_config if it is not shared with the SSLContext.
-    if (state->verify_config != NULL && state->verify_config != &state->ctx->verify_config) {
-        OPENSSL_free(state->verify_config);
-        state->verify_config = NULL;
     }
 
     tcn_ssl_task_free(e, state->ssl_task);
@@ -1526,24 +1520,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jin
     state = tcn_SSL_get_app_state(ssl_);
     TCN_ASSERT(state != NULL);
     TCN_ASSERT(state->ctx != NULL);
-    TCN_ASSERT(state->verify_config != NULL);
-
-    // If we are sharing the configuration from the SSLContext we now need to create a new configuration just for this SSL.
-    if (state->verify_config == &state->ctx->verify_config) {
-       if ((state->verify_config = (tcn_ssl_verify_config_t*) OPENSSL_malloc(sizeof(tcn_ssl_verify_config_t))) == NULL) {
-           tcn_ThrowException(e, "failed to allocate tcn_ssl_verify_config_t");
-           return;
-       }
-       // Copy the verify depth form the context in case depth is <0.
-       state->verify_config->verify_depth = state->ctx->verify_config.verify_depth;
-    }
 
 #ifdef OPENSSL_IS_BORINGSSL
-    SSL_set_custom_verify(ssl_, tcn_set_verify_config(state->verify_config, level, depth), tcn_SSL_cert_custom_verify);
+    SSL_set_custom_verify(ssl_, tcn_set_verify_config(&state->verify_config, level, depth), tcn_SSL_cert_custom_verify);
 #else
     // No need to specify a callback for SSL_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
-    SSL_set_verify(ssl_, tcn_set_verify_config(state->verify_config, level, depth), NULL);
-    SSL_set_verify_depth(ssl_, state->verify_config->verify_depth);
+    SSL_set_verify(ssl_, tcn_set_verify_config(&state->verify_config, level, depth), NULL);
+    SSL_set_verify_depth(ssl_, state->verify_config.verify_depth);
 #endif // OPENSSL_IS_BORINGSSL
 }
 

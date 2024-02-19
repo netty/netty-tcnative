@@ -1426,14 +1426,13 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
 
     tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl);
     TCN_ASSERT(state != NULL);
-    TCN_ASSERT(state->verify_config != NULL);
 
     // SSL_CTX_set_verify_depth() and SSL_set_verify_depth() set the limit up to which depth certificates in a chain are
     // used during the verification procedure. If the certificate chain is longer than allowed, the certificates above
     // the limit are ignored. Error messages are generated as if these certificates would not be present,
     // most likely a X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY will be issued.
     // https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-    int len = TCN_MIN(state->verify_config->verify_depth, totalQueuedLength);
+    int len = TCN_MIN(state->verify_config.verify_depth, totalQueuedLength);
     unsigned i;
     int length;
 
@@ -1562,7 +1561,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 #endif // X509_V_ERR_UNSPECIFIED
 
 
-    // TODO(scott): if verify_config->verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
+    // TODO(scott): if verify_config.verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
     // succeed for some of the "informational" error messages (e.g. X509_V_ERR_EMAIL_MISMATCH ?)
 
 complete:
@@ -1674,7 +1673,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
             result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
         }
 
-        // TODO(scott): if verify_config->verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
+        // TODO(scott): if verify_config.verify_depth == SSL_CVERIFY_OPTIONAL we have the option to let the handshake
         // succeed for some of the "informational" error messages (e.g. X509_V_ERR_EMAIL_MISMATCH ?)
     }
 complete:

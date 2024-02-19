@@ -398,7 +398,7 @@ struct tcn_ssl_state_t {
     int handshakeCount;
     tcn_ssl_ctxt_t *ctx;
     tcn_ssl_task_t* ssl_task;
-    tcn_ssl_verify_config_t* verify_config;
+    tcn_ssl_verify_config_t verify_config;
 };
 
 #define TCN_GET_SSL_CTX(ssl, C)                             \
