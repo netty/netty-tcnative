@@ -692,7 +692,11 @@
                           </then>
                           <else>
                             <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget}" />
+                              <!--
+                                Disable the detection of sys_siglist and just use apr's own implementation to workaround problems when trying to use static jars on alpine linux
+                                See https://github.com/netty/netty-tcnative/issues/853
+                              -->
+                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ac_cv_have_decl_sys_siglist=no ${macOsxDeploymentTarget}" />
                             </exec>
                             <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
                             <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
@@ -700,7 +704,6 @@
                             </exec>
                           </else>
                         </if>
-
                       </else>
                     </if>
                   </target>
