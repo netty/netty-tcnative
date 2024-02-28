@@ -18,7 +18,7 @@ RUN yum install -y http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-g
 # Install requirements
 RUN  set -x && \
   yum -y install epel-release && \
-  yum -y install wget tar git make autoconf automake libtool openssl-devel ninja-build gcc-c++ patch unzip zip
+  yum -y install wget tar git make autoconf automake libtool openssl-devel ninja-build gcc-c++ patch unzip zip which
 
 # Install Java
 RUN yum install -y java-1.8.0-openjdk-devel golang

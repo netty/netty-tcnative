@@ -30,6 +30,7 @@ RUN yum install -y \
  tar \
  unzip \
  wget \
+ which \
  zip
 
 RUN mkdir $SOURCE_DIR
