@@ -663,6 +663,7 @@
                         <mkdir dir="${aprHome}" />
                         <echo message="Patching APR to not link against libcrypt" />
                         <patch patchfile="../patches/apr_crypt.patch" strip="0" dir="${aprSourceDir}" />
+
                         <exec executable="buildconf" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
 
                         <if>
@@ -673,7 +674,7 @@
 +                             See https://stackoverflow.com/a/1605497/1074097
 +                           -->
                             <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC -target arm64-apple-macos11' --host=aarch64-apple-darwin ${macOsxDeploymentTarget} ac_cv_file__dev_zero=yes apr_cv_process_shared_works=yes apr_cv_mutex_robust_shared=no apr_cv_tcp_nodelay_with_cork=yes ${macOsxDeploymentTarget}" />
+                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC -target arm64-apple-macos11' --host=aarch64-apple-darwin ${macOsxDeploymentTarget} ac_cv_have_decl_sys_siglist=no ac_cv_file__dev_zero=yes apr_cv_process_shared_works=yes apr_cv_mutex_robust_shared=no apr_cv_tcp_nodelay_with_cork=yes" />
                             </exec>
                             <!--
                               Make will fail when it tries to use the gen_test_char program.
@@ -692,7 +693,11 @@
                           </then>
                           <else>
                             <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget}" />
+                              <!--
+                                Disable the detection of sys_siglist and just use apr's own implementation to workaround problems when trying to use static jars on alpine linux
+                                See https://github.com/netty/netty-tcnative/issues/853
+                              -->
+                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget} ac_cv_have_decl_sys_siglist=no" />
                             </exec>
                             <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
                             <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
@@ -700,7 +705,6 @@
                             </exec>
                           </else>
                         </if>
-
                       </else>
                     </if>
                   </target>
