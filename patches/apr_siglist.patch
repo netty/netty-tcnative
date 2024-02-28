@@ -1,0 +1,10 @@
+--- configure.in.old	2024-02-27 20:42:12
++++ configure.in	2024-02-27 20:46:44
+@@ -1600,7 +1600,6 @@
+ AC_SUBST(sendfile)
+
+ AC_CHECK_FUNCS(sigaction, [ have_sigaction="1" ], [ have_sigaction="0" ])
+-AC_DECL_SYS_SIGLIST
+
+ AC_CHECK_FUNCS(fork, [ fork="1" ], [ fork="0" ])
+ AC_SUBST(apr_inaddr_none)
