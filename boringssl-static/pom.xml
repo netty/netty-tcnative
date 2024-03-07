@@ -667,11 +667,12 @@
     </profile>
 
     <profile>
-      <id>linux-aarch64</id>
+      <id>linux-aarch64-cross-compile</id>
 
       <properties>
         <boringsslSourceDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslSourceDir>
         <boringsslHome>${boringsslSourceDir}/build</boringsslHome>
+        <crossCompile>linux</crossCompile>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
         <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto</msvcSslLibDirs>
@@ -728,10 +729,6 @@
                       </files>
                       <content>release 7.6</content>
                     </requireFilesContent>
-                    <requireProperty>
-                      <property>aprArmHome</property>
-                      <message>The folder of APR for aarch64 must be specified by hand. Please try -DaprArmHome=</message>
-                    </requireProperty>
                   </rules>
                   <ignoreCache>true</ignoreCache>
                 </configuration>
@@ -984,7 +981,7 @@
                   <!-- <verbose>true</verbose> -->
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
-                    <configureArg>--with-apr=${aprArmHome}</configureArg>
+                    <configureArg>--with-apr=${aprHome}</configureArg>
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
@@ -1178,7 +1175,7 @@
 
       <properties>
         <linkStatic>true</linkStatic>
-        <osxCrossCompile>true</osxCrossCompile>
+        <crossCompile>osx</crossCompile>
         <target>arm64-apple-macos11</target>
         <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=11.0</macOsxDeploymentTarget>
         <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0</cmakeOsxDeploymentTarget>
@@ -1425,7 +1422,7 @@
 
       <properties>
         <linkStatic>true</linkStatic>
-        <osxCrossCompile>true</osxCrossCompile>
+        <crossCompile>osx</crossCompile>
         <target>x86_64-apple-macos10.12</target>
         <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=10.12</macOsxDeploymentTarget>
         <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12</cmakeOsxDeploymentTarget>

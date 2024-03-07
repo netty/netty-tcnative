@@ -103,7 +103,7 @@
     <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
     <archBits>64</archBits>
     <linkStatic>false</linkStatic>
-    <osxCrossCompile>false</osxCrossCompile>
+    <crossCompile>false</crossCompile>
     <sslHome>${project.build.directory}/ssl</sslHome>
     <msvcSslIncludeDirs>${sslHome}/include</msvcSslIncludeDirs>
     <msvcSslLibDirs>${sslHome}/lib</msvcSslLibDirs>
@@ -699,7 +699,7 @@
                         <exec executable="buildconf" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
 
                         <if>
-                          <equals arg1="${osxCrossCompile}" arg2="true" />
+                          <equals arg1="${crossCompile}" arg2="osx" />
                           <then>
                             <!--
 +                             We need to set some extra variables as otherwise the configure of apr will fail when trying to cross-compile.
@@ -723,6 +723,32 @@
                               <arg line="install" />
                             </exec>
                           </then>
+                          <elseif>
+                            <equals arg1="${crossCompile}" arg2="linux" />
+                            <then>
+                              <!--
+  +                             We need to set some extra variables as otherwise the configure of apr will fail when trying to cross-compile.
+  +                             See https://stackoverflow.com/a/1605497/1074097
+  +                           -->
+                              <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                                <arg line="--disable-shared --prefix=${aprHome} CC=aarch64-none-linux-gnu-gcc CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' --host=aarch64-linux-gnu ac_cv_have_decl_sys_siglist=no ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8" />
+                              </exec>
+                              <!--
+                                Make will fail when it tries to use the gen_test_char program.
+                                We work around this by compile gen_test_char separate, execute and than rerun make.
+                                See https://stackoverflow.com/a/56262330/1074097
+                              -->
+                              <exec executable="make" failonerror="false" dir="${aprSourceDir}" resolveexecutable="true" />
+                              <exec executable="gcc" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                                <arg line="-Wall -O2 -DCROSS_COMPILE tools/gen_test_char.c -o tools/gen_test_char" />
+                              </exec>
+                              <exec executable="tools/gen_test_char" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" output="${aprSourceDir}/include/private/apr_escape_test_char.h" />
+                              <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+                              <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                                <arg line="install" />
+                              </exec>
+                            </then>
+                          </elseif>
                           <else>
                             <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
                               <!--
