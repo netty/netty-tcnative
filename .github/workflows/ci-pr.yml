@@ -52,6 +52,13 @@ jobs:
         run: ./.github/scripts/check_build_result.sh build.output
 
       - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: build-pr-${{ matrix.setup }}-jars
+          path: |
+            **/target/*.jar
+
+      - uses: actions/upload-artifact@v4
         if: ${{ failure() }}
         with:
           name: build-pr-${{ matrix.setup }}-target
@@ -95,6 +102,13 @@ jobs:
 
       - name: Build netty-tcnative-boringssl-static
         run: ./mvnw.cmd --file pom.xml -am -pl boringssl-static clean package
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: build-pr-windows-jars
+          path: |
+            **/target/*.jar
 
       - uses: actions/upload-artifact@v4
         if: ${{ failure() }}
