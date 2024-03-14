@@ -534,6 +534,20 @@ public final class SSLContext {
      */
     public static native void setSniHostnameMatcher(long ctx, SniHostNameMatcher matcher);
 
+    /**
+     * Allow to hook {@link KeyLogCallback} into the debug infrastructor of the native TLS implementation.
+     * This will call {@code SSL_CTX_set_keylog_callback} and so replace the existing reference.
+     * This is intended for debugging use with tools like Wireshark.
+     * <p>
+     * <strong>Warning:</strong> The log output will contain secret key material, and can be used to decrypt
+     * TLS sessions! The log output should be handled with the same care given to the private keys.
+     * @param ctx Server or Client context to use.
+     * @param callback the callback to call when delivering debug output.
+     * @return {@code true} if the key-log callback was assigned,
+     * otherwise {@code false} if key-log callbacks are not supported.
+     */
+    public static native boolean setKeyLogCallback(long ctx, KeyLogCallback callback);
+
     private static byte[] protocolsToWireFormat(String[] protocols) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {

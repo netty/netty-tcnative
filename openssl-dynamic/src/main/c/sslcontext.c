@@ -100,6 +100,13 @@ static apr_status_t ssl_context_cleanup(void *data)
             }
             c->ssl_cert_compression_zstd_algorithm = NULL;
         }
+        if (c->keylog_callback != NULL) {
+            if (e != NULL) {
+                (*e)->DeleteGlobalRef(e, c->keylog_callback);
+            }
+            c->keylog_callback = NULL;
+        }
+        c->keylog_callback_method = NULL;
 #endif // OPENSSL_IS_BORINGSSL
 
         if (c->ssl_session_cache != NULL) {
@@ -2531,6 +2538,86 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
     }
 }
 
+#ifdef OPENSSL_IS_BORINGSSL
+static void keylog_cb(const SSL* ssl, const char *line) {
+    if (line == NULL) {
+        return;
+    }
+
+    tcn_ssl_state_t *state = tcn_SSL_get_app_state(ssl);
+    if (state == NULL || state->ctx == NULL) {
+        // There's nothing we can do without tcn_ssl_state_t.
+        return;
+    }
+
+    JNIEnv *e = NULL;
+    if (tcn_get_java_env(&e) != JNI_OK) {
+        // There's nothing we cna do with the JNIEnv*.
+        return;
+    }
+
+    jbyteArray outputLine = NULL;
+    int maxLen = 1048576; // 1 MiB.
+    int len = strnlen(line, maxLen);
+    if (len == maxLen) {
+        // This line is suspiciously large. Bail on it.
+        return;
+    }
+    if ((outputLine = (*e)->NewByteArray(e, len)) == NULL) {
+        // We failed to allocate a byte array.
+        return;
+    }
+    (*e)->SetByteArrayRegion(e, outputLine, 0, len, (const jbyte*) line);
+    
+    // Execute the java callback
+    (*e)->CallVoidMethod(e, state->ctx->keylog_callback, state->ctx->keylog_callback_method,
+                P2J(ssl), outputLine);
+}
+#endif // OPENSSL_IS_BORINGSSL
+
+TCN_IMPLEMENT_CALL(jboolean, SSLContext, setKeyLogCallback)(TCN_STDARGS, jlong ctx, jobject callback)
+{
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+
+#ifdef OPENSSL_IS_BORINGSSL
+    jobject oldCallback = c->keylog_callback;
+    if (callback == NULL) {
+        c->keylog_callback = NULL;
+        c->keylog_callback_method = NULL;
+
+        SSL_CTX_set_keylog_callback(c->ctx, NULL);
+    } else {
+        jclass callback_class = (*e)->GetObjectClass(e, callback);
+        jmethodID method = (*e)->GetMethodID(e, callback_class, "handle", "(J[B)V");
+        if (method == NULL) {
+            tcn_ThrowIllegalArgumentException(e, "Unable to retrieve handle method");
+            return JNI_FALSE;
+        }
+
+        jobject m = (*e)->NewGlobalRef(e, callback);
+        if (m == NULL) {
+            tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
+            return JNI_FALSE;
+        }
+
+        c->keylog_callback = m;
+        c->keylog_callback_method = method;
+
+        SSL_CTX_set_keylog_callback(c->ctx, keylog_cb);
+    }
+
+     // Delete the reference to the previous specified callback if needed.
+     if (oldCallback != NULL) {
+        (*e)->DeleteGlobalRef(e, oldCallback);
+    }
+    return JNI_TRUE;
+#else
+    return JNI_FALSE;
+#endif // OPENSSL_IS_BORINGSSL
+}
+
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong ctx, jbyteArray sidCtx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -2830,6 +2917,7 @@ static const JNINativeMethod fixed_method_table[] = {
   // setCertRequestedCallback -> needs dynamic method table
   // setCertificateCallback -> needs dynamic method table
   // setSniHostnameMatcher -> needs dynamic method table
+  // setKeyLogCallback -> needs dynamic method table
   // setPrivateKeyMethod0 --> needs dynamic method table
   // setSSLSessionCache --> needs dynamic method table
 
@@ -2849,7 +2937,7 @@ static const JNINativeMethod fixed_method_table[] = {
 static const jint fixed_method_table_size = sizeof(fixed_method_table) / sizeof(fixed_method_table[0]);
 
 static jint dynamicMethodsTableSize() {
-    return fixed_method_table_size + 7;
+    return fixed_method_table_size + 8;
 }
 
 static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
@@ -2889,22 +2977,29 @@ static JNINativeMethod* createDynamicMethodsTable(const char* packagePrefix) {
     netty_jni_util_free_dynamic_name(&dynamicTypeName);
     dynamicMethod->name = "setSniHostnameMatcher";
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSniHostnameMatcher);
-  
+
     dynamicMethod = &dynamicMethods[fixed_method_table_size + 4];
+    NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/KeyLogCallback;)Z", dynamicTypeName, error);
+    NETTY_JNI_UTIL_PREPEND("(JL", dynamicTypeName,  dynamicMethod->signature, error);
+    netty_jni_util_free_dynamic_name(&dynamicTypeName);
+    dynamicMethod->name = "setKeyLogCallback";
+    dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setKeyLogCallback);
+  
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 5];
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", dynamicTypeName, error);
     NETTY_JNI_UTIL_PREPEND("(JL", dynamicTypeName,  dynamicMethod->signature, error);
     netty_jni_util_free_dynamic_name(&dynamicTypeName);
     dynamicMethod->name = "setPrivateKeyMethod0";
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setPrivateKeyMethod0);
 
-    dynamicMethod = &dynamicMethods[fixed_method_table_size + 5];
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 6];
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLSessionCache;)V", dynamicTypeName, error); 
     NETTY_JNI_UTIL_PREPEND("(JL", dynamicTypeName,  dynamicMethod->signature, error);
     netty_jni_util_free_dynamic_name(&dynamicTypeName);
     dynamicMethod->name = "setSSLSessionCache";
     dynamicMethod->fnPtr = (void *) TCN_FUNCTION_NAME(SSLContext, setSSLSessionCache);
 
-    dynamicMethod = &dynamicMethods[fixed_method_table_size + 6];
+    dynamicMethod = &dynamicMethods[fixed_method_table_size + 7];
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateCompressionAlgo;)I", dynamicTypeName, error);
     NETTY_JNI_UTIL_PREPEND("(JIIL", dynamicTypeName,  dynamicMethod->signature, error);
     netty_jni_util_free_dynamic_name(&dynamicTypeName);

@@ -350,6 +350,9 @@ struct tcn_ssl_ctxt_t {
     jobject                  ssl_cert_compression_zstd_algorithm;
     jmethodID                ssl_cert_compression_zstd_compress_method;
     jmethodID                ssl_cert_compression_zstd_decompress_method;
+
+    jobject                  keylog_callback;
+    jmethodID                keylog_callback_method;
 #endif // OPENSSL_IS_BORINGSSL
 
     tcn_ssl_verify_config_t  verify_config;
