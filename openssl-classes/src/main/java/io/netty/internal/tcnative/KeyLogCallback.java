@@ -16,7 +16,7 @@
 package io.netty.internal.tcnative;
 
 /**
- * Callback hooked into <a href="https://source.chromium.org/chromium/chromium/src/+/main:third_party/perl/c/include/openssl/ssl.h;l=912-923;drc=3618b14f3e00bf6053ec715ec04ef360d661b03a">SSL_CTX_set_keylog_callback</a>
+ * Callback hooked into <a href="https://github.com/google/boringssl/blob/master/include/openssl/ssl.h#L4379">SSL_CTX_set_keylog_callback</a>
  * This is intended for TLS debugging with tools like <a href="https://wiki.wireshark.org/TLS">Wireshark</a>.
  * For instance, a valid {@code SSLKEYLOGFILE} implementation could look like this:
  * <pre>{@code

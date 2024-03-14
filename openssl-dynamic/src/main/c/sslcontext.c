@@ -2552,7 +2552,7 @@ static void keylog_cb(const SSL* ssl, const char *line) {
 
     JNIEnv *e = NULL;
     if (tcn_get_java_env(&e) != JNI_OK) {
-        // There's nothing we cna do with the JNIEnv*.
+        // There's nothing we can do with the JNIEnv*.
         return;
     }
 
