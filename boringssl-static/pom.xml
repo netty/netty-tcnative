@@ -837,38 +837,12 @@
 
                         <mkdir dir="${boringsslHome}" />
 
-                        <if>
-                          <equals arg1="${os.detected.name}" arg2="windows" />
-                          <then>
-                            <!-- On Windows, build with /MT for static linking -->
-                            <property name="cmakeAsmFlags" value="" />
-                            <property name="cmakeCFlags" value="/MT" />
-                            <!-- Disable one warning to be able to build on windows -->
-                            <property name="cmakeCxxFlags" value="/MT /wd4091" />
-                          </then>
-                          <elseif>
-                            <equals arg1="${os.detected.name}" arg2="linux" />
-                            <then>
-                              <!-- On *nix, add ASM flags to disable executable stack -->
-                              <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                              <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer" />
-                              <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
-                              <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -Wno-error=shadow -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
-                            </then>
-                          </elseif>
-                          <else>
-                            <!-- On *nix, add ASM flags to disable executable stack -->
-                            <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                            <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer" />
-                            <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
-                          </else>
-                        </if>
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                          <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
-                          <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
-                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
+                          <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -Wno-error=shadow -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
                           <arg value="-DCMAKE_SYSTEM_NAME=Linux" />
                           <arg value="-DCMAKE_SYSTEM_PROCESSOR=aarch64" />
                           <arg value="-DCMAKE_C_COMPILER=aarch64-none-linux-gnu-gcc" />
