@@ -53,7 +53,7 @@ RUN wget -q --no-check-certificate https://github.com/netty/netty-tcnative/relea
 RUN rm -rf $SOURCE_DIR
 
 # Downloading and installing SDKMAN!
-RUN curl -s "https://get.sdkman.io" | bash
+RUN curl -s -k "https://get.sdkman.io" | bash
 
 ARG java_version="8.0.302-zulu"
 ENV JAVA_VERSION $java_version
