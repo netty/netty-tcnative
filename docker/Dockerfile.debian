@@ -52,11 +52,11 @@ RUN wget -q --no-check-certificate https://github.com/netty/netty-tcnative/relea
 
 RUN rm -rf $SOURCE_DIR
 
-# Downloading and installing SDKMAN!
-RUN curl -s "https://get.sdkman.io" | bash
 
-ARG java_version="8.0.302-zulu"
-ENV JAVA_VERSION $java_version
+# Downloading and installing SDKMAN!
+RUN echo '-k' > $HOME/.curlrc
+RUN curl -s "https://get.sdkman.io" | bash
+RUN rm $HOME/.curlrc
 
 # Don't check the certificates as our curl version is too old.
 RUN echo 'sdkman_insecure_ssl=true' >> $HOME/.sdkman/etc/config
@@ -66,6 +66,9 @@ RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
     yes | sdk install java $JAVA_VERSION && \
     rm -rf $HOME/.sdkman/archives/* && \
     rm -rf $HOME/.sdkman/tmp/*"
+
+ARG java_version="8.0.302-zulu"
+ENV JAVA_VERSION $java_version
 
 RUN echo 'export JAVA_HOME="/root/.sdkman/candidates/java/current"' >> ~/.bashrc
 RUN echo 'PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
