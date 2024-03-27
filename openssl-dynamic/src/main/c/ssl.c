@@ -345,9 +345,7 @@ static long bio_java_bytebuffer_ctrl(BIO* bio, int cmd, long num, void* ptr) {
         case BIO_CTRL_FLUSH:
             return 1;
         case BIO_C_SET_FD:
-#if defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
-            bio->num = *((int *)ptr);
-#endif
+            // Make this a no op.
             return 1;
         default:
             return 0;
@@ -400,14 +398,7 @@ static int ssl_ui_writer(UI *ui, UI_STRING *uis)
 TCN_IMPLEMENT_CALL(void, SSL, bioSetFd)(TCN_STDARGS, jlong ssl, jint fd) {
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
-
-    BIO* bio = SSL_get_rbio(ssl_);
-
-    // We do not want the fd to be closed
-    int rc = BIO_set_fd(bio, fd, 0);
-    if (rc != 1) {
-        tcn_ThrowException(e, "Failed to set BIO fd");
-    }
+    // no op.
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, bioLengthByteBuffer)(TCN_STDARGS, jlong bioAddress) {
