@@ -222,12 +222,15 @@ public final class SSL {
     public static native long bioNewByteBuffer(long ssl, int nonApplicationBufferSize);
 
     /**
-     * Sets the socket file descriptor of the rbio field inside the SSL struct (ssl->rbio->num)
+     * Sets the socket file descriptor
      *
      * @param ssl the SSL instance (SSL *)
      * @param fd the file descriptor of the socket used for the given SSL connection
+     *
+     * @deprecated This is not supported official by OpenSSL or BoringSSL so its just a no op.
      */
-     public static native void bioSetFd(long ssl, int fd);
+    @Deprecated
+    public static native void bioSetFd(long ssl, int fd);
 
     /**
      * Set the memory location which that OpenSSL's internal BIO will use to write encrypted data to, or read encrypted
