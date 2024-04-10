@@ -65,6 +65,9 @@
 #include <openssl/x509v3.h>
 #include <openssl/hmac.h>
 #include <openssl/dh.h>
+#if OPENSSL_VERSION_NUMBER >= 0x30000000
+#include <openssl/core_names.h>
+#endif
 
 #define ERR_LEN 256
 
@@ -290,7 +293,11 @@ typedef struct tcn_ssl_ctxt_t tcn_ssl_ctxt_t;
 
 typedef struct {
     unsigned char   key_name[SSL_SESSION_TICKET_KEY_NAME_LEN];
-    unsigned char   hmac_key[SSL_SESSION_TICKET_HMAC_KEY_LEN];
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+    unsigned char hmac_key[SSL_SESSION_TICKET_HMAC_KEY_LEN];
+#else
+    OSSL_PARAM mac_params[3];
+#endif
     unsigned char   aes_key[SSL_SESSION_TICKET_AES_KEY_LEN];
 } tcn_ssl_ticket_key_t;
 
@@ -425,6 +432,7 @@ void       *tcn_SSL_CTX_get_app_state(const SSL_CTX *);
 void        tcn_SSL_CTX_set_app_state(SSL_CTX *, void *);
 
 int         tcn_SSL_password_callback(char *, int, int, void *);
+#if OPENSSL_VERSION_NUMBER < 0x30000000
 DH         *tcn_SSL_dh_get_tmp_param(int);
 DH         *tcn_SSL_callback_tmp_DH(SSL *, int, int);
 // The following provided callbacks will always return DH of a given length.
@@ -433,6 +441,7 @@ DH         *tcn_SSL_callback_tmp_DH_512(SSL *, int, int);
 DH         *tcn_SSL_callback_tmp_DH_1024(SSL *, int, int);
 DH         *tcn_SSL_callback_tmp_DH_2048(SSL *, int, int);
 DH         *tcn_SSL_callback_tmp_DH_4096(SSL *, int, int);
+#endif
 int         tcn_SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, bool);
 int         tcn_SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, bool);
 int         tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *, BIO *);

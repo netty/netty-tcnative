@@ -229,6 +229,7 @@ int tcn_SSL_password_callback(char *buf, int bufsiz, int verify,
     return (int)strlen(buf);
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 static unsigned char dh0512_p[]={
     0xD9,0xBA,0xBF,0xFD,0x69,0x38,0xC9,0x51,0x2D,0x19,0x37,0x39,
     0xD7,0x7D,0x7E,0x3E,0x25,0x58,0x55,0x94,0x90,0x60,0x93,0x7A,
@@ -434,6 +435,7 @@ DH *tcn_SSL_callback_tmp_DH_4096(SSL *ssl, int export, int keylen)
 {
     return (DH *)SSL_temp_keys[SSL_TMP_KEY_DH_4096];
 }
+#endif // OPENSSL_VERSION_NUMBER < 0x30000000L
 
 /*
  * Read a file that optionally contains the server certificate in PEM
