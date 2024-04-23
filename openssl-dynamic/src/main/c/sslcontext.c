@@ -1312,7 +1312,7 @@ static int ssl_tlsext_ticket_key_cb(SSL *s,
 
              EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
-             HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
+             HMAC_Init_ex(hmac_ctx, key.hmac_key, 16, EVP_sha256(), NULL);
 #else
              EVP_MAC_CTX_set_params(mac_ctx, key.mac_params);
 #endif
@@ -1324,7 +1324,7 @@ static int ssl_tlsext_ticket_key_cb(SSL *s,
      } else { /* retrieve session */
          if (find_session_key(c, key_name, &key, &is_current_key)) {
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
-             HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
+             HMAC_Init_ex(hmac_ctx, key.hmac_key, 16, EVP_sha256(), NULL);
 #else
              EVP_MAC_CTX_set_params(mac_ctx, key.mac_params);
 #endif
