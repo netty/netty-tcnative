@@ -58,6 +58,12 @@ static UI_METHOD *ui_method = NULL;
 #endif // OPENSSL_NO_ENGINE
 
 
+#if defined(OPENSSL_FIPS) && (OPENSSL_VERSION_NUMBER < 0x30000000L)
+#define tcn_enable_fips(to)   FIPS_mode_set((to))
+#else
+#define tcn_enable_fips(to)   EVP_default_properties_enable_fips(NULL, (to))
+#endif
+
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090000fL)
 
 /* Global reference to the pool used by the dynamic mutexes */
@@ -461,10 +467,12 @@ static BIO_METHOD* BIO_java_bytebuffer() {
 #endif
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 static int ssl_tmp_key_init_dh(int bits, int idx)
 {
     return (SSL_temp_keys[idx] = tcn_SSL_dh_get_tmp_param(bits)) ? 0 : 1;
 }
+#endif
 
 TCN_IMPLEMENT_CALL(jint, SSL, version)(TCN_STDARGS)
 {
@@ -511,9 +519,9 @@ static apr_status_t ssl_init_cleanup(void *data)
     free_bio_methods();
 #endif
 
-// Reset fips mode to the default.
-#ifdef OPENSSL_FIPS
-     FIPS_mode_set(0);
+#if defined(OPENSSL_FIPS) && (OPENSSL_VERSION_NUMBER < 0x30000000L)
+    // Reset fips mode to the default.
+    tcn_enable_fips(0);
 #endif
 
 #ifndef OPENSSL_NO_ENGINE
@@ -841,7 +849,9 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     init_bio_methods();
 #endif
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
     SSL_TMP_KEYS_INIT(r);
+#endif
     if (r) {
         // TODO: Should we really do this as the user may want to inspect the error stack ?
         ERR_clear_error();
@@ -948,7 +958,7 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
         tcn_ThrowException(e, "cannot create new ssl state struct");
         return 0;
     }
-    
+
     // Set the app_data2 before all the others because it may be used in SSL_free.
     tcn_SSL_set_app_state(ssl, state);
 
@@ -1316,7 +1326,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
         // Out of memory
         return NULL;
     }
-     
+
     for(i = 0; i < len; i++) {
 
 #ifdef OPENSSL_IS_BORINGSSL
@@ -1839,7 +1849,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
         return NULL;
     }
 
-    
+
     if ((bArray = (*e)->NewByteArray(e, len)) == NULL) {
         return NULL;
     }
@@ -2481,8 +2491,8 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getOcspResponse)(TCN_STDARGS, jlong ssl) {
 
 TCN_IMPLEMENT_CALL(void, SSL, fipsModeSet)(TCN_STDARGS, jint mode)
 {
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode_set((int) mode) == 0) {
+#if defined(OPENSSL_FIPS) || (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+    if (tcn_enable_fips((int) mode) == 0) {
         char err[ERR_LEN];
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();

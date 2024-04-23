@@ -423,7 +423,11 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         EC_KEY_free(ecdh);
 #endif
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
         SSL_CTX_set_tmp_dh_callback(c->ctx,  tcn_SSL_callback_tmp_DH);
+#else
+        SSL_CTX_set_dh_auto(c->ctx, 1);
+#endif
     }
 
     // Default depth is 100 and disabled according to https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html.
@@ -654,6 +658,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setNumTickets)(TCN_STDARGS, jlong ctx, 
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jint length)
 {
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, /* void */);
@@ -675,6 +680,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
             tcn_Throw(e, "Unsupported length %s", length);
             return;
     }
+#endif // OPENSSL_VERSION_NUMBER < 0x30000000L
 }
 
 #ifndef OPENSSL_IS_BORINGSSL
@@ -1278,7 +1284,16 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
     return result;
 }
 
-static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned char *iv, EVP_CIPHER_CTX *ctx, HMAC_CTX *hctx, int enc) {
+static int ssl_tlsext_ticket_key_cb(SSL *s,
+                                    unsigned char key_name[16],
+                                    unsigned char *iv,
+                                    EVP_CIPHER_CTX *ctx,
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+                                    HMAC_CTX *hmac_ctx,
+#else
+                                    EVP_MAC_CTX *mac_ctx,
+#endif
+                                    int enc) {
      tcn_ssl_ctxt_t *c = NULL;
      tcn_ssl_ticket_key_t key;
      int is_current_key;
@@ -1296,7 +1311,11 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
              memcpy(key_name, key.key_name, 16);
 
              EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv);
-             HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+             HMAC_Init_ex(hmac_ctx, key.hmac_key, 16, EVP_sha256(), NULL);
+#else
+             EVP_MAC_CTX_set_params(mac_ctx, key.mac_params);
+#endif
              apr_atomic_inc32(&c->ticket_keys_new);
              return 1;
          }
@@ -1304,7 +1323,11 @@ static int ssl_tlsext_ticket_key_cb(SSL *s, unsigned char key_name[16], unsigned
          return 0;
      } else { /* retrieve session */
          if (find_session_key(c, key_name, &key, &is_current_key)) {
-             HMAC_Init_ex(hctx, key.hmac_key, 16, EVP_sha256(), NULL);
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+             HMAC_Init_ex(hmac_ctx, key.hmac_key, 16, EVP_sha256(), NULL);
+#else
+             EVP_MAC_CTX_set_params(mac_ctx, key.mac_params);
+#endif
              EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.aes_key, iv );
              if (!is_current_key) {
                  // The ticket matched a key in the list, and we want to upgrade it to the current
@@ -1344,7 +1367,13 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     for (i = 0; i < cnt; ++i) {
         key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
         memcpy(ticket_keys[i].key_name, key, 16);
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
         memcpy(ticket_keys[i].hmac_key, key + 16, 16);
+#else
+        ticket_keys[i].mac_params[0] = OSSL_PARAM_construct_octet_string(OSSL_MAC_PARAM_KEY, key + 16, 16);
+        ticket_keys[i].mac_params[1] = OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, "sha256", 0);
+        ticket_keys[i].mac_params[2] = OSSL_PARAM_construct_end();
+#endif
         memcpy(ticket_keys[i].aes_key, key + 32, 16);
     }
     (*e)->ReleaseByteArrayElements(e, keys, b, 0);
@@ -1357,7 +1386,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     c->ticket_keys = ticket_keys;
     apr_thread_rwlock_unlock(c->mutex);
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
     SSL_CTX_set_tlsext_ticket_key_cb(c->ctx, ssl_tlsext_ticket_key_cb);
+#else
+    SSL_CTX_set_tlsext_ticket_key_evp_cb(c->ctx, ssl_tlsext_ticket_key_cb);
+#endif
 }
 
 static const char* authentication_method(const SSL* ssl) {
