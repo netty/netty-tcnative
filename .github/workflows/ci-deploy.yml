@@ -26,9 +26,9 @@ jobs:
           - setup: centos6-x86_64
             docker-compose-build: "-f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml build"
             docker-compose-run: "-f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml run stage-snapshot"
-          - setup: debian7-x86_64
-            docker-compose-build: "-f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml build"
-            docker-compose-run: "-f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml run stage-snapshot"
+          - setup: debian12-x86_64
+            docker-compose-build: "-f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-12.18.yaml build"
+            docker-compose-run: "-f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-12.18.yaml run stage-snapshot"
           - setup: centos7-aarch64
             docker-compose-build: "-f docker/docker-compose.centos-7.yaml build"
             docker-compose-run: "-f docker/docker-compose.centos-7.yaml run cross-compile-aarch64-stage-snapshot"
@@ -142,11 +142,11 @@ jobs:
           name: centos7-aarch64-local-staging
           path: ~/centos7-aarch64-local-staging
 
-      - name: Download debian7-x86_64 staging directory
+      - name: Download debian12-x86_64 staging directory
         uses: actions/download-artifact@v4
         with:
-          name: debian7-x86_64-local-staging
-          path: ~/debian7-x86_64-local-staging
+          name: debian12-x86_64-local-staging
+          path: ~/debian12-x86_64-local-staging
 
       - name: Download centos6-x86_64 staging directory
         uses: actions/download-artifact@v4
@@ -161,8 +161,8 @@ jobs:
           cp -r ~/windows-x86_64-local-staging/deferred/* ~/local-staging/deferred/
           cat ~/centos7-aarch64-local-staging/deferred/.index >>  ~/local-staging/deferred/.index
           cp -r ~/centos7-aarch64-local-staging/deferred/* ~/local-staging/deferred/
-          cat ~/debian7-x86_64-local-staging/deferred/.index >>  ~/local-staging/deferred/.index
-          cp -r ~/debian7-x86_64-local-staging/deferred/* ~/local-staging/deferred/
+          cat ~/debian12-x86_64-local-staging/deferred/.index >>  ~/local-staging/deferred/.index
+          cp -r ~/debian12-x86_64-local-staging/deferred/* ~/local-staging/deferred/
           cat ~/centos6-x86_64-local-staging/deferred/.index >>  ~/local-staging/deferred/.index
           cp -r ~/centos6-x86_64-local-staging/deferred/* ~/local-staging/deferred/
 

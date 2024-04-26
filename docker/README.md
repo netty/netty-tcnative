@@ -21,10 +21,10 @@ docker-compose -f docker/docker-compose.arch.yaml -f docker/docker-compose.arch-
 docker-compose -f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml run build
 ```
 
-## debian 7 with java 8
+## debian 12 with java 8
 
 ```
-docker-compose -f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml run build
+docker-compose -f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-12.18.yaml run build
 ```
 
 ## openSUSE Leap 15.1 with java 8
