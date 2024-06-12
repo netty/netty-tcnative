@@ -1363,7 +1363,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
         return;
     }
 
-    b = (*e)->GetByteArrayElements(e, keys, NULL);
+    if ((b = (*e)->GetByteArrayElements(e, keys, NULL)) == NULL) {
+      tcn_ThrowException(e, "GetByteArrayElements() returned null");
+      return;
+    }
+
     for (i = 0; i < cnt; ++i) {
         key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
         memcpy(ticket_keys[i].key_name, key, 16);
@@ -1495,7 +1499,7 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
         length = i2d_X509(cert, &buf);
 #endif // OPENSSL_IS_BORINGSSL
 
-        if (length <= 0 || (bArray = (*e)->NewByteArray(e, length)) == NULL ) {
+        if (length <= 0 || (bArray = (*e)->NewByteArray(e, length)) == NULL) {
             NETTY_JNI_UTIL_DELETE_LOCAL(e, array);
             array = NULL;
             goto complete;
@@ -2173,7 +2177,11 @@ static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t
             } else {
                 arrayLen = (*e)->GetArrayLength(e, resultBytes);
                 if (max_out >= arrayLen) {
-                    b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
+                    if ((b = (*e)->GetByteArrayElements(e, resultBytes, NULL)) == NULL) {
+                        ret = ssl_private_key_failure;
+                        goto complete;
+                    }
+
                     memcpy(out, b, arrayLen);
                     (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
                     *out_len = arrayLen;
@@ -2238,7 +2246,11 @@ static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint
             } else {
                 arrayLen = (*e)->GetArrayLength(e, resultBytes);
                 if (max_out >= arrayLen) {
-                    b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
+                    if ((b = (*e)->GetByteArrayElements(e, resultBytes, NULL)) == NULL) {
+                        ret = ssl_private_key_failure;
+                        goto complete;
+                    }
+
                     memcpy(out, b, arrayLen);
                     (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
                     *out_len = arrayLen;
@@ -2300,7 +2312,9 @@ static enum ssl_private_key_result_t tcn_private_key_complete_java(SSL *ssl, uin
              // belong to us.
             return ssl_private_key_failure;
         }
-        b = (*e)->GetByteArrayElements(e, resultBytes, NULL);
+        if ((b = (*e)->GetByteArrayElements(e, resultBytes, NULL)) == NULL) {
+            return ssl_private_key_failure;
+        }
         memcpy(out, b, arrayLen);
         (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
         *out_len = arrayLen;

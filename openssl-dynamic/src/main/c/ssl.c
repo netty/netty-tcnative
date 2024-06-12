@@ -1849,7 +1849,6 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getSessionId)(TCN_STDARGS, jlong ssl)
         return NULL;
     }
 
-
     if ((bArray = (*e)->NewByteArray(e, len)) == NULL) {
         return NULL;
     }

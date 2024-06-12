@@ -54,6 +54,9 @@ static int compress(jobject compression_algorithm, jmethodID compress_method, SS
         return 0; // Unable to reserve space for compressed data
     }
     jbyte* resultData = (*e)->GetByteArrayElements(e, resultArray, NULL);
+    if (resultData == NULL) {
+        return 0;
+    }
     memcpy(outData, resultData, resultLen);
     (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
     if (!CBB_did_write(out, resultLen)) {
@@ -102,6 +105,9 @@ static int decompress(jobject compression_algorithm, jmethodID decompress_method
         return 0; // Unable to allocate certificate decompression buffer
     }
     jbyte* resultData = (*e)->GetByteArrayElements(e, resultArray, NULL);
+    if (resultData == NULL) {
+        return 0;
+    }
     memcpy(outData, resultData, uncompressed_len);
     (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
     return 1; // Success
