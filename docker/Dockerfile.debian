@@ -1,19 +1,17 @@
-ARG debian_version=7
+ARG debian_version=12
 FROM debian:$debian_version
 # needed to do again after FROM due to docker limitation
 ARG debian_version
 
 ENV SOURCE_DIR /root/source
-ENV CMAKE_VERSION_BASE 3.8
-ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
-ENV NINJA_VERSION 1.7.2
+ENV CMAKE_VERSION 3.29.2
+ENV NINJA_VERSION 1.12.0
+ENV MAVEN_VERSION 3.9.6
 ENV GO_VERSION 1.9.3
 ENV GCC_VERSION 4.9.4
 
 # install dependencies
-RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > /etc/apt/sources.list && \
- echo "deb-src http://archive.debian.org/debian/ wheezy contrib main non-free" >> /etc/apt/sources.list && \ 
- apt-get -y update && apt-get --force-yes -y install \
+RUN apt -y update && apt --force-yes -y install \
  autoconf \
  automake \
  bzip2 \
@@ -23,16 +21,15 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
  gcc-multilib \
  git \
  gnupg \
+ golang-go \
  g++ \
  libapr1-dev \
- libssl1.0.0=1.0.1e-2+deb7u20 \
  libssl-dev \
  libtool \
- libc-bin=2.13-38+deb7u10 \
- libc6=2.13-38+deb7u10 libc6-dev \
+ libc-bin \
+ libc6-dev \
  make \
  patch \
- perl-base=5.14.2-21+deb7u3 \
  tar \
  unzip \
  wget \
@@ -42,39 +39,40 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
 RUN mkdir $SOURCE_DIR
 WORKDIR $SOURCE_DIR
 
-RUN curl -q -k https://cmake.org/files/v$CMAKE_VERSION_BASE/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz --output cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz && tar zxf cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz && mv cmake-$CMAKE_VERSION-Linux-x86_64 /opt/ && echo 'PATH=/opt/cmake-$CMAKE_VERSION-Linux-x86_64/bin:$PATH' >> ~/.bashrc
+# Install CMake
+RUN curl -L -O https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && \
+ tar -zxvf cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && \
+ mv cmake-$CMAKE_VERSION-linux-x86_64 /opt/ && \
+ echo 'PATH=/opt/cmake-$CMAKE_VERSION-linux-x86_64/bin:$PATH' >> ~/.bashrc
 
-RUN wget -q --no-check-certificate https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip && unzip ninja-linux.zip && mkdir -p /opt/ninja-$NINJA_VERSION/bin && mv ninja /opt/ninja-$NINJA_VERSION/bin && echo 'PATH=/opt/ninja-$NINJA_VERSION/bin:$PATH' >> ~/.bashrc
-
-RUN wget -q http://storage.googleapis.com/golang/go$GO_VERSION.linux-amd64.tar.gz && tar zxf go$GO_VERSION.linux-amd64.tar.gz && mv go /opt/ && echo 'PATH=/opt/go/bin:$PATH' >> ~/.bashrc && echo 'export GOROOT=/opt/go/' >> ~/.bashrc
-
-RUN wget -q --no-check-certificate https://github.com/netty/netty-tcnative/releases/download/gcc-precompile/gcc-$GCC_VERSION.tar.gz && tar zxf gcc-$GCC_VERSION.tar.gz && mv gcc-$GCC_VERSION /opt/ && echo 'PATH=/opt/gcc-$GCC_VERSION/bin:$PATH' >> ~/.bashrc && echo 'export CC=/opt/gcc-$GCC_VERSION/bin/gcc' >> ~/.bashrc && echo 'export CXX=/opt/gcc-$GCC_VERSION/bin/g++' >> ~/.bashrc
+# Install Ninja
+RUN curl -L -O https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip && \
+ unzip ninja-linux.zip && \
+ mkdir -p /opt/ninja-$NINJA_VERSION/bin && \
+ mv ninja /opt/ninja-$NINJA_VERSION/bin && \
+ echo 'PATH=/opt/ninja-$NINJA_VERSION/bin:$PATH' >> ~/.bashrc
 
 RUN rm -rf $SOURCE_DIR
 
-
 # Downloading and installing SDKMAN!
-RUN echo '-k' > $HOME/.curlrc
 RUN curl -s "https://get.sdkman.io" | bash
-RUN rm $HOME/.curlrc
 
-# Don't check the certificates as our curl version is too old.
-RUN echo 'sdkman_insecure_ssl=true' >> $HOME/.sdkman/etc/config
+ARG java_version="8.0.412-zulu"
+ENV JAVA_VERSION $java_version
 
 # Installing Java removing some unnecessary SDKMAN files
 RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
     yes | sdk install java $JAVA_VERSION && \
+    yes | sdk install maven $MAVEN_VERSION && \
     rm -rf $HOME/.sdkman/archives/* && \
     rm -rf $HOME/.sdkman/tmp/*"
-
-ARG java_version="8.0.302-zulu"
-ENV JAVA_VERSION $java_version
 
 RUN echo 'export JAVA_HOME="/root/.sdkman/candidates/java/current"' >> ~/.bashrc
 RUN echo 'PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
 
 # Prepare our own build
+ENV PATH /root/.sdkman/candidates/maven/current:$PATH
 ENV JAVA_HOME /jdk/
 
 ## Cleanup
-RUN apt-get clean
+RUN apt clean
