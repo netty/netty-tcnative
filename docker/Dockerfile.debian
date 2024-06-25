@@ -10,6 +10,9 @@ ENV NINJA_VERSION 1.7.2
 ENV GO_VERSION 1.9.3
 ENV GCC_VERSION 4.9.4
 
+ARG java_version="8.0.302-zulu"
+ENV JAVA_VERSION $java_version
+
 # install dependencies
 RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > /etc/apt/sources.list && \
  echo "deb-src http://archive.debian.org/debian/ wheezy contrib main non-free" >> /etc/apt/sources.list && \ 
@@ -52,7 +55,6 @@ RUN wget -q --no-check-certificate https://github.com/netty/netty-tcnative/relea
 
 RUN rm -rf $SOURCE_DIR
 
-
 # Downloading and installing SDKMAN!
 RUN echo '-k' > $HOME/.curlrc
 RUN curl -s "https://get.sdkman.io" | bash
@@ -67,8 +69,6 @@ RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
     rm -rf $HOME/.sdkman/archives/* && \
     rm -rf $HOME/.sdkman/tmp/*"
 
-ARG java_version="8.0.302-zulu"
-ENV JAVA_VERSION $java_version
 
 RUN echo 'export JAVA_HOME="/root/.sdkman/candidates/java/current"' >> ~/.bashrc
 RUN echo 'PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
