@@ -8,9 +8,14 @@ ENV GCC_VERSION $gcc_version
 ENV OPENSSL_VERSION $openssl_version
 ENV MAVEN_VERSION 3.9.1
 ENV APR_VERSION $apr_version
+ENV CMAKE_VERSION_BASE 3.26
+ENV CMAKE_VERSION $CMAKE_VERSION_BASE.4
 
 RUN mkdir $SOURCE_DIR
 WORKDIR $SOURCE_DIR
+
+# Update to use the vault
+RUN sed -i -e 's/^mirrorlist/#mirrorlist/g' -e 's/^#baseurl=http:\/\/mirror.centos.org\/centos\/$releasever\//baseurl=https:\/\/linuxsoft.cern.ch\/centos-vault\/\/7.6.1810\//g' /etc/yum.repos.d/CentOS-Base.repo
 
 # We want to have git 2.x for the maven scm plugin and also for boringssl
 RUN yum install -y http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
@@ -30,9 +35,6 @@ RUN set -x && \
   tar xvf gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu.tar.xz && \
   mv gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu /
 ENV PATH="/gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu/bin:${PATH}"
-
-# Install CMake
-RUN yum install -y cmake3 && ln -s /usr/bin/cmake3 /usr/bin/cmake
 
 # Cross compile Apache Apr for aarch64 - static
 RUN set -x && \
@@ -68,6 +70,9 @@ RUN set -x && \
   ./Configure linux-aarch64 --cross-compile-prefix=aarch64-none-linux-gnu- --prefix=/opt/openssl-$OPENSSL_VERSION-share shared && \
   make && make install && \
   popd
+
+# Install cmake
+RUN curl -s https://cmake.org/files/v$CMAKE_VERSION_BASE/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz --output cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && tar zvxf cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && mv cmake-$CMAKE_VERSION-linux-x86_64 /opt/ && echo 'PATH=/opt/cmake-$CMAKE_VERSION-linux-x86_64/bin:$PATH' >> ~/.bashrc
 
 # Downloading and installing SDKMAN!
 RUN curl -s "https://get.sdkman.io" | bash
