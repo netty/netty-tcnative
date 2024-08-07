@@ -1,0 +1,2 @@
+exports:
+  - package: io.netty.internal.tcnative
