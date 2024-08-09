@@ -239,11 +239,22 @@
         <version>2.1</version>
         <executions>
           <execution>
-            <id>module-info</id>
+            <id>default-jar-module-info</id>
             <phase>process-classes</phase>
             <configuration>
               <moduleName>${javaModuleName}</moduleName>
               <outputDirectory>${project.build.outputDirectory}/META-INF/versions/11/</outputDirectory>
+            </configuration>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>native-jar-module-info</id>
+            <phase>process-classes</phase>
+            <configuration>
+              <moduleName>${javaModuleNameNative}</moduleName>
+              <outputDirectory>${nativeJarWorkdir}//META-INF/versions/11/</outputDirectory>
             </configuration>
             <goals>
               <goal>generate</goal>
