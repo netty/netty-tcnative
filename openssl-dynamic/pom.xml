@@ -36,7 +36,7 @@
     <nativeSourceDirectory />
     <skipJapicmp>true</skipJapicmp>
     <!-- We need to use the same module name for all our "native" impls as only one should be loaded -->
-    <javaModuleName>${javaModuleNameNative}</javaModuleName>
+    <javaModuleName>${javaDefaultModuleName}</javaModuleName>
   </properties>
 
   <build>
@@ -77,7 +77,7 @@
             <configuration>
               <target>
                 <copy todir="${nativeJarWorkdir}">
-                  <zipfileset src="${defaultJarFile}" />
+                  <zipfileset src="${defaultJarFile}" excludes="META-INF/versions/**/module-info.class" />
                 </copy>
                 <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
                   <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />

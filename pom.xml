@@ -234,6 +234,36 @@
       </plugin>
 
       <plugin>
+        <groupId>io.github.dmlloyd.module-info</groupId>
+        <artifactId>module-info</artifactId>
+        <version>2.1</version>
+        <executions>
+          <execution>
+            <id>default-jar-module-info</id>
+            <phase>process-classes</phase>
+            <configuration>
+              <moduleName>${javaModuleName}</moduleName>
+              <outputDirectory>${project.build.outputDirectory}/META-INF/versions/11/</outputDirectory>
+            </configuration>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>native-jar-module-info</id>
+            <phase>process-classes</phase>
+            <configuration>
+              <moduleName>${javaModuleNameNative}</moduleName>
+              <outputDirectory>${nativeJarWorkdir}//META-INF/versions/11/</outputDirectory>
+            </configuration>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.22.2</version>
         <configuration combine.self="override">
@@ -439,7 +469,7 @@
                   <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                 </manifest>
                 <manifestEntries>
-                  <Automatic-Module-Name>${javaModuleName}</Automatic-Module-Name>
+                  <Multi-Release>true</Multi-Release>
                 </manifestEntries>
                 <index>true</index>
                 <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
