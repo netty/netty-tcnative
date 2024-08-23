@@ -47,11 +47,11 @@
     </pluginManagement>
 
     <plugins>
-      <!-- We must generate a -javadoc JAR file to publish on Maven Central -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
+          <!-- We must generate a -javadoc JAR file to publish on Maven Central -->
           <execution>
             <id>empty-javadoc-jar</id>
             <phase>package</phase>
@@ -61,6 +61,18 @@
             <configuration>
               <classifier>javadoc</classifier>
               <classesDirectory>${basedir}/javadoc</classesDirectory>
+            </configuration>
+          </execution>
+          <!-- We must generate a -source JAR file to publish on Maven Central -->
+          <execution>
+            <id>source-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <classifier>source</classifier>
+              <classesDirectory>${generatedSourcesDir}/c</classesDirectory>
             </configuration>
           </execution>
         </executions>
