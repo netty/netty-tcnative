@@ -171,13 +171,13 @@
           </execution>
           <!-- We must generate a -source JAR file to publish on Maven Central -->
           <execution>
-            <id>source-jar</id>
+            <id>sources-jar</id>
             <phase>package</phase>
             <goals>
               <goal>jar</goal>
             </goals>
             <configuration>
-              <classifier>source</classifier>
+              <classifier>sources</classifier>
               <classesDirectory>${basedir}/src/main/c</classesDirectory>
             </configuration>
           </execution>
