@@ -60,6 +60,7 @@ jobs:
         with:
           name: prepare-release-workspace
           path: ${{ github.workspace }}/**
+          include-hidden-files: true
 
   stage-release-linux:
     runs-on: ubuntu-latest
@@ -147,6 +148,7 @@ jobs:
           name: ${{ matrix.setup }}-local-staging
           path: ~/local-staging
           if-no-files-found: error
+          include-hidden-files: true
 
       - name: Rollback release on failure
         working-directory: ./prepare-release-workspace/
@@ -232,6 +234,7 @@ jobs:
           name: windows-x86_64-local-staging
           path: prepare-release-workspace/boringssl-static/local-staging
           if-no-files-found: error
+          include-hidden-files: true
 
       - name: Rollback release on failure
         working-directory: prepare-release-workspace
