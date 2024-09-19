@@ -1668,7 +1668,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
         goto complete;
     }
 
-    // Create the byte[][] array that holds all the certs
+    // Create the byte[][] array that holds all the certs
     if ((array = get_certs(e, ssl, chain)) == NULL) {
         goto complete;
     }
