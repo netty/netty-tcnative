@@ -321,7 +321,7 @@
       </build>
     </profile>
     <profile>
-      <id>linux-aarch64</id>
+      <id>linux-aarch64-cross-compile</id>
 
       <properties>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
