@@ -546,9 +546,8 @@
                           <equals arg1="${os.detected.name}" arg2="linux" />
                           <then>
                             <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
-                              <arg value="crypto/libcrypto.a" />
-                              <arg value="crypto/fipsmodule/fipsmodule" />
-                              <arg value="ssl/libssl.a" />
+                              <arg value="crypto" />
+                              <arg value="ssl" />
                             </exec>
                           </then>
                           <else>
