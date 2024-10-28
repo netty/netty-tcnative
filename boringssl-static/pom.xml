@@ -207,11 +207,10 @@
                         <if>
                           <equals arg1="${os.detected.name}" arg2="windows" />
                           <then>
-                            <!-- On Windows, build with /MT for static linking -->
                             <property name="cmakeAsmFlags" value="" />
-                            <property name="cmakeCFlags" value="/MT" />
+                            <property name="cmakeCFlags" value="" />
                             <!-- Disable one warning to be able to build on windows -->
-                            <property name="cmakeCxxFlags" value="/MT /wd4091" />
+                            <property name="cmakeCxxFlags" value="/wd4091" />
                           </then>
                           <elseif>
                             <equals arg1="${os.detected.name}" arg2="linux" />
@@ -233,6 +232,7 @@
                         <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DMSVC_RUNTIME_LIBRARY=MultiThread=MultiThreaded" />
                           <arg value="-DCMAKE_C_COMPILER=clang" />
                           <arg value="-DCMAKE_CXX_COMPILER=clang++" />
                           <arg value="-DFIPS=1" />
@@ -498,11 +498,10 @@
                         <if>
                           <equals arg1="${os.detected.name}" arg2="windows" />
                           <then>
-                            <!-- On Windows, build with /MT for static linking -->
                             <property name="cmakeAsmFlags" value="" />
-                            <property name="cmakeCFlags" value="/MT" />
+                            <property name="cmakeCFlags" value="" />
                             <!-- Disable one warning to be able to build on windows -->
-                            <property name="cmakeCxxFlags" value="/MT /wd4091" />
+                            <property name="cmakeCxxFlags" value="/wd4091" />
                           </then>
                           <elseif>
                             <equals arg1="${os.detected.name}" arg2="linux" />
@@ -523,6 +522,7 @@
                         </if>
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DMSVC_RUNTIME_LIBRARY=MultiThread=MultiThreaded" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS_RELEASE=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
@@ -842,11 +842,10 @@
                         <if>
                           <equals arg1="${os.detected.name}" arg2="windows" />
                           <then>
-                            <!-- On Windows, build with /MT for static linking -->
                             <property name="cmakeAsmFlags" value="" />
-                            <property name="cmakeCFlags" value="/MT" />
+                            <property name="cmakeCFlags" value="" />
                             <!-- Disable one warning to be able to build on windows -->
-                            <property name="cmakeCxxFlags" value="/MT /wd4091" />
+                            <property name="cmakeCxxFlags" value="/wd4091" />
                           </then>
                           <elseif>
                             <equals arg1="${os.detected.name}" arg2="linux" />
@@ -867,6 +866,7 @@
                         </if>
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DMSVC_RUNTIME_LIBRARY=MultiThread=MultiThreaded" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS_RELEASE=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
@@ -1300,6 +1300,7 @@
                         <mkdir dir="${boringsslHome}" />
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DMSVC_RUNTIME_LIBRARY=MultiThread=MultiThreaded" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS_RELEASE=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
@@ -1547,6 +1548,7 @@
                         <mkdir dir="${boringsslHome}" />
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DMSVC_RUNTIME_LIBRARY=MultiThread=MultiThreaded" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS_RELEASE=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
