@@ -524,7 +524,7 @@
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                          <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
+                          <arg value="-DCMAKE_ASM_FLAGS_RELEASE=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
                           <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
                           <arg value="${cmakeOsxDeploymentTarget}" />
@@ -546,9 +546,8 @@
                           <equals arg1="${os.detected.name}" arg2="linux" />
                           <then>
                             <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
-                              <arg value="crypto/libcrypto.a" />
-                              <arg value="crypto/fipsmodule/fipsmodule" />
-                              <arg value="ssl/libssl.a" />
+                              <arg value="crypto" />
+                              <arg value="ssl" />
                             </exec>
                           </then>
                           <else>
@@ -869,7 +868,7 @@
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                          <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
+                          <arg value="-DCMAKE_ASM_FLAGS_RELEASE=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
                           <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
                           <arg value="-DCMAKE_SYSTEM_NAME=Linux" />
@@ -1302,7 +1301,7 @@
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                          <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
+                          <arg value="-DCMAKE_ASM_FLAGS_RELEASE=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
                           <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
                           <arg value="-DCMAKE_SYSTEM_PROCESSOR=arm64" />
@@ -1549,7 +1548,7 @@
                         <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                          <arg value="-DCMAKE_ASM_FLAGS=${cmakeAsmFlags}" />
+                          <arg value="-DCMAKE_ASM_FLAGS_RELEASE=${cmakeAsmFlags}" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=${cmakeCFlags}" />
                           <arg value="-DCMAKE_CXX_FLAGS_RELEASE=${cmakeCxxFlags}" />
                           <arg value="-DCMAKE_SYSTEM_PROCESSOR=x86_64" />

@@ -45,8 +45,8 @@ RUN yum install -y centos-release-scl
 RUN sed -i -e 's/^mirrorlist/#mirrorlist/g' -e 's/^# baseurl=http:\/\/mirror.centos.org\/centos\/6\//baseurl=https:\/\/vault.centos.org\/centos\/6\//g' /etc/yum.repos.d/CentOS-SCLo-scl.repo
 RUN sed -i -e 's/^mirrorlist/#mirrorlist/g' -e 's/^#baseurl=http:\/\/mirror.centos.org\/centos\/6\//baseurl=https:\/\/vault.centos.org\/centos\/6\//g' /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo
 
-RUN yum -y install devtoolset-7-gcc devtoolset-7-gcc-c++
-RUN echo 'source /opt/rh/devtoolset-7/enable' >> ~/.bashrc
+RUN yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
+RUN echo 'source /opt/rh/devtoolset-9/enable' >> ~/.bashrc
 
 RUN rm -rf $SOURCE_DIR
 
