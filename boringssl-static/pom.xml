@@ -1621,7 +1621,7 @@
                     </manifest>
 
                     <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
-                    <attachartifact file="${nativeJarFile}" classifier="${os.detected.name}-osx_64" type="jar" />
+                    <attachartifact file="${nativeJarFile}" classifier="${os.detected.name}-x86_64" type="jar" />
                   </target>
                 </configuration>
               </execution>
