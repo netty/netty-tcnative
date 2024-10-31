@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.68.Final</version>
+    <version>2.0.69.Final-SNAPSHOT</version>
   </parent>
   <artifactId>netty-tcnative-openssl-static</artifactId>
   <packaging>jar</packaging>
