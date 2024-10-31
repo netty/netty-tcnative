@@ -25,10 +25,11 @@ public class NativeTest {
     @Test
     public void loadNativeLib() throws Exception {
         String testClassesRoot =  NativeTest.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+        File f = new File(testClassesRoot + File.separator + "META-INF" + File.separator + "native");
         File[] directories = new File(testClassesRoot + File.separator + "META-INF" + File.separator + "native")
                 .listFiles();
         if (directories == null || directories.length != 1) {
-            throw new IllegalStateException("Could not find platform specific native directory");
+            throw new IllegalStateException("Could not find platform specific native directory: " + f);
         }
         String libName = System.mapLibraryName("netty_tcnative")
                 // Fix the filename (this is needed for macOS).

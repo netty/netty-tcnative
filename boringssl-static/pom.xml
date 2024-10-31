@@ -93,7 +93,7 @@
     <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
     <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
     <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
-    <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto -static-libstdc++ -l:libstdc++.a</ldflags>
+    <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
     <skipJapicmp>true</skipJapicmp>
     <!-- We need to use the same module name for all our "native" impls as only one should be loaded -->
     <javaModuleName>${javaDefaultModuleName}</javaModuleName>
@@ -563,6 +563,33 @@
                 </configuration>
               </execution>
 
+              <execution>
+                <id>ldflags-setup</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <exportAntProperties>true</exportAntProperties>
+                  <target>
+                    <!-- Add the ant tasks from ant-contrib -->
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                    <echo message="Setup flags to use during linking" />
+
+                    <!-- If we compile on linux we need to adjust the ldflags to correct link libstdc++ -->
+                    <if>
+                      <equals arg1="${os.detected.name}" arg2="linux" />
+                      <then>
+                        <property name="hawtjniLdflags" value="-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto -static-libstdc++ -l:libstdc++.a" />
+                      </then>
+                      <else>
+                        <property name="hawtjniLdflags" value="${ldflags}" />
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+
               <!-- Build the additional JAR that contains the native library. -->
               <execution>
                 <id>native-jar</id>
@@ -658,7 +685,7 @@
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
                     <configureArg>CFLAGS=${cflags}</configureArg>
                     <configureArg>CPPFLAGS=${cppflags}</configureArg>
-                    <configureArg>LDFLAGS=${ldflags}</configureArg>
+                    <configureArg>LDFLAGS=${hawtjniLdflags}</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
