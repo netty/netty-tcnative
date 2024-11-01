@@ -193,6 +193,11 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     // See https://github.com/google/boringssl/blob/chromium-stable/PORTING.md#crypto_buffer
     ctx = SSL_CTX_new(TLS_with_buffers_method());
 
+    // We need to set the minimum TLS version to TLS1 to be able to enable it explicitly later. By default
+    // TLS1_2_VERSION is the minimum with BoringSSL these days:
+    // See https://github.com/google/boringssl/commit/e95b0cad901abd49755d2a2a2f1f6c3e87d12b94
+    SSL_CTX_set_min_proto_version(ctx, TLS1_VERSION);
+
     // Needed in BoringSSL to be able to use TLSv1.3
     //
     // See http://hg.nginx.org/nginx/rev/7ad0f4ace359
