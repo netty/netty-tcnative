@@ -1,5 +1,5 @@
 ARG opensuse_version=15.1
-FROM opensuse/leap:$opensuse_version
+FROM --platform=linux/amd64 opensuse/leap:$opensuse_version
 # needed to do again after FROM due to docker limitation
 ARG opensuse_version
 

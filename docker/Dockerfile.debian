@@ -1,5 +1,5 @@
 ARG debian_version=7
-FROM debian:$debian_version
+FROM --platform=linux/amd64 debian:$debian_version
 # needed to do again after FROM due to docker limitation
 ARG debian_version
 

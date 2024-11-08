@@ -1,4 +1,4 @@
-FROM archlinux/base
+FROM --platform=linux/amd64 archlinux/base
 
 ARG java_version=8
 ENV JAVA_VERSION $java_version
