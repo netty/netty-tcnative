@@ -55,7 +55,7 @@ RUN rm -rf $SOURCE_DIR
 RUN curl -L https://install.perlbrew.pl | bash
 RUN echo 'source ~/perl5/perlbrew/etc/bashrc' >> ~/.bashrc
 
-RUN /root/perl5/perlbrew/bin/perlbrew install --thread --switch perl-5.16.3
+RUN /root/perl5/perlbrew/bin/perlbrew install --notest  --thread --switch perl-5.16.3
 RUN ln -sf /root/perl5/perlbrew/perls/perl-5.16.3/bin/perl /usr/bin/perl
 
 # Downloading and installing SDKMAN!
