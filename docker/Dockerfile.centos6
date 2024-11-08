@@ -1,4 +1,4 @@
-FROM centos:6.10
+FROM --platform=linux/amd64 centos:6.10
 
 ENV SOURCE_DIR /root/source
 ENV CMAKE_VERSION_BASE 3.26
