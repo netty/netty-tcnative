@@ -711,6 +711,7 @@
         <jniClassifier>${os.detected.name}-aarch_64</jniClassifier>
         <jniArch>aarch_64</jniArch>
         <javaModuleNameClassifier>${os.detected.name}.aarch_64</javaModuleNameClassifier>
+        <crossCompile>linux</crossCompile>
       </properties>
 
       <build>
@@ -757,10 +758,6 @@
                       </files>
                       <content>release 7.6</content>
                     </requireFilesContent>
-                    <requireProperty>
-                      <property>aprArmHome</property>
-                      <message>The folder of APR for aarch64 must be specified by hand. Please try -DaprArmHome=</message>
-                    </requireProperty>
                   </rules>
                   <ignoreCache>true</ignoreCache>
                 </configuration>
@@ -1013,7 +1010,7 @@
                   <!-- <verbose>true</verbose> -->
                   <configureArgs>
                     <configureArg>--with-ssl=no</configureArg>
-                    <configureArg>--with-apr=${aprArmHome}</configureArg>
+                    <configureArg>--with-apr=${aprHome}</configureArg>
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
@@ -1207,7 +1204,7 @@
 
       <properties>
         <linkStatic>true</linkStatic>
-        <osxCrossCompile>true</osxCrossCompile>
+        <crossCompile>mac</crossCompile>
         <target>arm64-apple-macos11</target>
         <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=11.0</macOsxDeploymentTarget>
         <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0</cmakeOsxDeploymentTarget>
@@ -1455,7 +1452,7 @@
 
       <properties>
         <linkStatic>true</linkStatic>
-        <osxCrossCompile>true</osxCrossCompile>
+        <crossCompile>mac</crossCompile>
         <target>x86_64-apple-macos10.12</target>
         <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=10.12</macOsxDeploymentTarget>
         <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12</cmakeOsxDeploymentTarget>

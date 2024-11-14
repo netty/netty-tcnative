@@ -36,24 +36,6 @@ RUN set -x && \
   mv gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu /
 ENV PATH="/gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu/bin:${PATH}"
 
-# Copy over patch we need to apply to apr to not link against libcrypt
-COPY patches/apr_crypt.patch $SOURCE_DIR
-
-# Cross compile Apache Apr for aarch64 - static
-RUN set -x && \
-  wget --no-check-certificate https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
-  tar xvf apr-$APR_VERSION.tar.gz && \
-  pushd apr-$APR_VERSION && \
-  patch -p0 < $SOURCE_DIR/apr_crypt.patch && \
-  ./buildconf && \
-  CC=aarch64-none-linux-gnu-gcc CFLAGS='-O3 -fno-omit-frame-pointer -fPIC ' ./configure --disable-shared --prefix=/opt/apr-$APR_VERSION-static --host=aarch64-none-linux-gnu ac_cv_have_decl_sys_siglist=no ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8 && \
-  make || true && \
-  pushd tools && \
-  gcc -Wall -O2 -DCROSS_COMPILE gen_test_char.c -s -o gen_test_char && \
-  popd && \
-  make && make install && \
-  popd
-
 # Cross compile Apache Apr for aarch64 - share
 RUN set -x && \
   wget --no-check-certificate https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
