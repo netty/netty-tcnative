@@ -55,6 +55,7 @@ RUN rm -rf $SOURCE_DIR
 RUN curl -L https://install.perlbrew.pl | bash
 RUN echo 'source ~/perl5/perlbrew/etc/bashrc' >> ~/.bashrc
 
+RUN /root/perl5/perlbrew/bin/perlbrew install-patchperl
 RUN /root/perl5/perlbrew/bin/perlbrew install --notest --force --thread --switch perl-5.40.1
 RUN ln -sf /root/perl5/perlbrew/perls/perl-5.40.1/bin/perl /usr/bin/perl
 
