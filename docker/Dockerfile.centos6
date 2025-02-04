@@ -27,6 +27,7 @@ RUN yum install -y \
  patch \
  perl \
  perl-parent \
+ perl-devel \
  tar \
  unzip \
  wget \
