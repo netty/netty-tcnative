@@ -111,6 +111,22 @@ jstring         tcn_new_stringn(JNIEnv *, const char *, size_t);
         }                                            \
     NETTY_JNI_UTIL_END_MACRO
 
+#define TCN_CHECK_POSITIVE_OR_ZERO(V, M, R)                                  \
+    NETTY_JNI_UTIL_BEGIN_MACRO                                               \
+        if (V < 0) {                                                         \
+            tcn_ThrowIllegalArgumentException(e, #M); \
+            return R;                                                        \
+        }                                                                    \
+    NETTY_JNI_UTIL_END_MACRO
+
+#define TCN_CHECK_POSITIVE(V, M, R)                                          \
+    NETTY_JNI_UTIL_BEGIN_MACRO                                               \
+        if (V <= 0) {                                                        \
+            tcn_ThrowIllegalArgumentException(e, #M); \
+            return R;                                                        \
+        }                                                                    \
+    NETTY_JNI_UTIL_END_MACRO
+
 #define TCN_FREE_JSTRING(V)      \
     NETTY_JNI_UTIL_BEGIN_MACRO   \
         if (c##V)                \

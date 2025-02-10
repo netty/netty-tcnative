@@ -994,6 +994,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, bioWrite)(TCN_STDARGS,
 
     TCN_CHECK_NULL(bio, bioAddress, 0);
     TCN_CHECK_NULL(wbuf, wbufAddress, 0);
+    TCN_CHECK_POSITIVE_OR_ZERO(wlen, wlen must be >= 0, 0);
 
     return BIO_write(bio, wbuf, wlen);
 }
@@ -1008,7 +1009,7 @@ TCN_IMPLEMENT_CALL(void, SSL, bioSetByteBuffer)(TCN_STDARGS,
     struct TCN_bio_bytebuffer* bioUserData = NULL;
     TCN_CHECK_NULL(bio, bioAddress, /* void */);
     TCN_CHECK_NULL(buffer, bufferAddress, /* void */);
-
+    TCN_CHECK_POSITIVE_OR_ZERO(maxUsableBytes, maxUsableBytes must be >= 0, /* void */);
     bioUserData = (struct TCN_bio_bytebuffer*) BIO_get_data(bio);
     TCN_ASSERT(bioUserData != NULL);
 
@@ -1056,6 +1057,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, writeToSSL)(TCN_STDARGS,
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
     TCN_CHECK_NULL(w, wbuf, 0);
+    TCN_CHECK_POSITIVE_OR_ZERO(wlen, wlen must be >= 0, 0);
 
     return SSL_write(ssl_, w, wlen);
 }
@@ -1070,6 +1072,7 @@ TCN_IMPLEMENT_CALL(jint /* status */, SSL, readFromSSL)(TCN_STDARGS,
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
     TCN_CHECK_NULL(r, rbuf, 0);
+    TCN_CHECK_POSITIVE_OR_ZERO(rlen, rlen must be >=, 0);
 
     return SSL_read(ssl_, r, rlen);
 }
@@ -1136,10 +1139,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, bioNewByteBuffer)(TCN_STDARGS,
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
-    if (nonApplicationBufferSize <= 0) {
-        tcn_ThrowException(e, "nonApplicationBufferSize <= 0");
-        return 0;
-    }
+    TCN_CHECK_POSITIVE(nonApplicationBufferSize, nonApplicationBufferSize must be > 0, 0);
 
     bio = BIO_new(BIO_java_bytebuffer());
     if (bio == NULL) {
