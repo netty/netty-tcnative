@@ -1636,6 +1636,36 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
     return array;
 }
 
+TCN_IMPLEMENT_CALL(jboolean, SSL, setCurvesList0)(TCN_STDARGS, jlong ssl, jstring curves) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, JNI_FALSE);
+
+    if (curves == NULL) {
+        return JNI_FALSE;
+    }
+    const char *nativeString = (*e)->GetStringUTFChars(e, curves, 0);
+    int ret = tcn_SSL_set1_curves_list(ssl_, nativeString);
+    (*e)->ReleaseStringUTFChars(e, curves, nativeString);
+
+    return ret == 1 ? JNI_TRUE : JNI_FALSE;
+}
+
+TCN_IMPLEMENT_CALL(jboolean, SSL, setCurves0)(TCN_STDARGS, jlong ssl, jintArray curves) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, JNI_FALSE);
+
+    if (curves == NULL) {
+        return JNI_FALSE;
+    }
+    int len = (*e)->GetArrayLength(e, curves);
+    jint *nativeCurves = (*e)->GetIntArrayElements(e, curves, NULL);
+    int ret = tcn_SSL_set1_curves(ssl_, (int *) nativeCurves, len);
+    (*e)->ReleaseIntArrayElements(e, curves, nativeCurves, JNI_ABORT);
+    return ret == 1 ? JNI_TRUE : JNI_FALSE;
+}
+
 TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
                                                          jstring ciphers, jboolean tlsv13)
 {
@@ -2681,6 +2711,8 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getMaxWrapOverhead, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getCiphers, (J)[Ljava/lang/String;, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setCipherSuites, (JLjava/lang/String;Z)Z, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setCurvesList0, (JLjava/lang/String;)Z, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(setCurves0, (J[I)Z, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getSessionId, (J)[B, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getHandshakeCount, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(clearError, ()V, SSL) },

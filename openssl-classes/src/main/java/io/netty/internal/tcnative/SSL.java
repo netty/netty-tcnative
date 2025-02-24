@@ -562,6 +562,53 @@ public final class SSL {
      */
     public static native boolean setCipherSuites(long ssl, String ciphers, boolean tlsv13)
             throws Exception;
+
+    /**
+     * Sets the curves to use.
+     *
+     * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_set1_curves_list.html">SSL_set1_curves_list</a>.
+     * @param ssl the SSL instance (SSL *)
+     * @param curves the curves to use.
+     * @return {@code true} if successful, {@code false} otherwise.
+     */
+    public static boolean setCurvesList(long ssl, String... curves) {
+        if (curves == null) {
+            throw new NullPointerException("curves");
+        }
+        if (curves.length == 0) {
+            throw new IllegalArgumentException();
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String curve: curves) {
+            sb.append(curve);
+            // Curves are separated by : as explained in the manpage.
+            sb.append(':');
+        }
+        sb.setLength(sb.length() - 1);
+        return setCurvesList0(ssl, sb.toString());
+    }
+
+    private static native boolean setCurvesList0(long ctx, String curves);
+
+    /**
+     * Sets the curves to use.
+     *
+     * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_set1_curves.html">SSL_set1_curves</a>.
+     * @param ssl the SSL instance (SSL *)
+     * @param curves the curves to use.
+     * @return {@code true} if successful, {@code false} otherwise.
+     */
+    public static boolean setCurves(long ssl, int[] curves) {
+        if (curves == null) {
+            throw new NullPointerException("curves");
+        }
+        if (curves.length == 0) {
+            throw new IllegalArgumentException();
+        }
+        return setCurves0(ssl, curves);
+    }
+    private static native boolean setCurves0(long ctx, int[] curves);
+
     /**
      * Returns the ID of the session as byte array representation.
      *
