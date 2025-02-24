@@ -566,7 +566,7 @@ public final class SSL {
     /**
      * Sets the curves to use.
      *
-     * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_set1_curves_list.html">SSL_set1_curves_list</a>.
+     * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_set1_curves_list.html">SSL_set1_curves_list</a>.
      * @param ssl the SSL instance (SSL *)
      * @param curves the curves to use.
      * @return {@code true} if successful, {@code false} otherwise.
@@ -593,7 +593,7 @@ public final class SSL {
     /**
      * Sets the curves to use.
      *
-     * See <a href="https://www.openssl.org/docs/man1.1.0/man3/SSL_set1_curves.html">SSL_set1_curves</a>.
+     * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_set1_curves.html">SSL_set1_curves</a>.
      * @param ssl the SSL instance (SSL *)
      * @param curves the curves to use.
      * @return {@code true} if successful, {@code false} otherwise.
