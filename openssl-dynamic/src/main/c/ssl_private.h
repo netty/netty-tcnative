@@ -503,11 +503,18 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 
 #ifdef OPENSSL_IS_BORINGSSL
 #define tcn_SSL_CTX_set1_curves_list(ctx, s) SSL_CTX_set1_curves_list(ctx, s)
+#define tcn_SSL_set1_curves_list(ssl, s) SSL_set1_curves_list(ssl, s)
+#define tcn_SSL_set1_curves(ssl, clist, clistlen) SSL_set1_curves(ssl, clist, clistlen)
 #else
 #ifndef SSL_CTRL_SET_GROUPS_LIST
 #define SSL_CTRL_SET_GROUPS_LIST                92
 #endif // SSL_CTRL_SET_GROUPS_LIST
+#ifndef SSL_CTRL_SET_GROUPS
+#define SSL_CTRL_SET_GROUPS                     91
+#endif // SSL_CTRL_SET_GROUPS
 #define tcn_SSL_CTX_set1_curves_list(ctx, s) SSL_CTX_ctrl(ctx, SSL_CTRL_SET_GROUPS_LIST, 0, (char *)(s))
+#define tcn_SSL_set1_curves_list(s, str) SSL_ctrl(s, SSL_CTRL_SET_GROUPS_LIST, 0, (char *)(str))
+#define tcn_SSL_set1_curves(s, glist, glistlen) SSL_ctrl(s, SSL_CTRL_SET_GROUPS, glistlen,(char *)(glist))
 #endif // OPENSSL_IS_BORINGSSL
 
 #endif /* SSL_PRIVATE_H */
