@@ -85,7 +85,6 @@
     <boringsslHome>${boringsslSourceDir}/build</boringsslHome>
     <boringsslSourceDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslSourceDir>
     <boringsslRepository>https://boringssl.googlesource.com/boringssl</boringsslRepository>
-    <boringsslBranch>master</boringsslBranch>
     <linkStatic>true</linkStatic>
     <compileLibrary>true</compileLibrary>
     <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>

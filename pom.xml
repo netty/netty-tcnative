@@ -85,7 +85,7 @@
     <nativeLibOsParts>${os.detected.name}_${os.detected.arch}</nativeLibOsParts>
     <aprVersion>1.7.5</aprVersion>
     <aprSha256>3375fa365d67bcf945e52b52cba07abea57ef530f40b281ffbe977a9251361db</aprSha256>
-    <boringsslBranch>master</boringsslBranch>
+    <boringsslBranch>main</boringsslBranch>
     <!--
       See https://boringssl.googlesource.com/boringssl/+/refs/heads/master for the latest commit
     -->
