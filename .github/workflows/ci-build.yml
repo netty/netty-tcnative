@@ -105,7 +105,7 @@ jobs:
             build-windows-m2-repository-cache-
 
       - name: Build netty-tcnative-boringssl-static
-        run: ./mvnw.cmd --file pom.xml -am -pl boringssl-static clean package
+        run: ./mvnw.cmd --file pom.xml clean package
 
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
