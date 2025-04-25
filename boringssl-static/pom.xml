@@ -1014,7 +1014,7 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslSourceDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto -static-libstdc++ -l:libstdc++.a</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslHome} -lssl -lcrypto -static-libstdc++ -l:libstdc++.a</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
                     <configureArg>CC=aarch64-none-linux-gnu-gcc</configureArg>
                   </configureArgs>
@@ -1461,7 +1461,7 @@
         <cmakeCxxFlags>-O3 -fno-omit-frame-pointer -target ${target} -Wno-error=range-loop-analysis</cmakeCxxFlags>
         <cflags>-target ${target} -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
         <cppflags>-target ${target} -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
-        <ldflags>-arch x86_64 -L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
+        <ldflags>-arch x86_64 -L${boringsslHome} -lssl -lcrypto</ldflags>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-x86_64.jar</nativeJarFile>
         <nativeLibOsParts>${os.detected.name}_x86_64</nativeLibOsParts>
