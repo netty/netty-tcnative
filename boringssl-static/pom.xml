@@ -121,8 +121,8 @@
         <boringsslBranch>853ca1ea1168dff08011e5d42d94609cc0ca2e27</boringsslBranch>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
-        <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
+        <msvcSslLibDirs>${boringsslBuildDir}</msvcSslLibDirs>
+        <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
         <jniArch>${os.detected.arch}</jniArch>
       </properties>
 
@@ -376,7 +376,7 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
