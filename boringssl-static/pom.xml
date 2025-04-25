@@ -88,7 +88,7 @@
     <linkStatic>true</linkStatic>
     <compileLibrary>true</compileLibrary>
     <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
-    <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto</msvcSslLibDirs>
+    <msvcSslLibDirs>${boringsslHome}</msvcSslLibDirs>
     <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
     <cflags>-fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
     <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
@@ -702,7 +702,7 @@
         <boringsslHome>${boringsslSourceDir}/build</boringsslHome>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto</msvcSslLibDirs>
+        <msvcSslLibDirs>${boringsslHome}</msvcSslLibDirs>
         <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch_64.jar</nativeJarFile>
