@@ -92,7 +92,7 @@
     <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
     <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
     <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
-    <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
+    <ldflags>-L${boringsslHome} -lssl -lcrypto</ldflags>
     <skipJapicmp>true</skipJapicmp>
     <!-- We need to use the same module name for all our "native" impls as only one should be loaded -->
     <javaModuleName>${javaDefaultModuleName}</javaModuleName>
@@ -579,7 +579,7 @@
                     <if>
                       <equals arg1="${os.detected.name}" arg2="linux" />
                       <then>
-                        <property name="hawtjniLdflags" value="-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto -static-libstdc++ -l:libstdc++.a" />
+                        <property name="hawtjniLdflags" value="-L${boringsslHome} -lssl -lcrypto -static-libstdc++ -l:libstdc++.a" />
                       </then>
                       <else>
                         <property name="hawtjniLdflags" value="${ldflags}" />
