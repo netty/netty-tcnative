@@ -155,7 +155,7 @@ jobs:
         run: brew bundle
 
       - name: Build project
-        run: ./mvnw -B -ntp --file pom.xml clean package
+        run: ./mvnw -B -ntp --file pom.xml -am -pl openssl-dynamic,boringssl-static clean package
 
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
