@@ -90,7 +90,7 @@
     <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
     <msvcSslLibDirs>${boringsslHome}</msvcSslLibDirs>
     <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
-    <cflags>-fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
+    <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
     <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
     <ldflags>-L${boringsslHome} -lssl -lcrypto</ldflags>
     <skipJapicmp>true</skipJapicmp>
@@ -374,7 +374,7 @@
                     <configureArg>--with-apr=${aprHome}</configureArg>
                     <configureArg>--with-static-libs</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
-                    <configureArg>CFLAGS=-O3 -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
+                    <configureArg>CFLAGS=-Werror -O3 -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
                     <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto</configureArg>
                   </configureArgs>
