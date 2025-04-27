@@ -599,6 +599,10 @@
                         <replace dir="${aprSourceDir}" token="/MD" value="/MT">
                           <include name="*.mak" />
                         </replace>
+                        <!-- See https://stackoverflow.com/a/67548973 -->
+                        <replace dir="${aprSourceDir}" token="#define _WIN32_WINNT 0x0501" value="">
+                          <include name="apr.hw" />
+                        </replace>
                         <retry retrycount="3">
                           <exec executable="nmake" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
                             <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />
