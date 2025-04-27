@@ -157,7 +157,7 @@ jobs:
         run: bash ./.github/scripts/release_rollback.sh release.properties netty/netty-tcnative main
 
   stage-release-windows-x86_64:
-    runs-on: windows-2022
+    runs-on: windows-2019
     name: stage-release-windows-x86_64
     needs: prepare-release
     permissions:

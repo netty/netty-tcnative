@@ -68,7 +68,7 @@ jobs:
             **/hs_err*.log
 
   build-pr-windows:
-    runs-on: windows-2022
+    runs-on: windows-2019
     name: windows-x86_64
     steps:
       - uses: actions/checkout@v4
