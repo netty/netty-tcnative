@@ -597,13 +597,12 @@
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
-                          <arg value="-G'NMake Makefiles'" />
+                          <arg value="-GNinja" />
                           <arg value="${aprSourceDir}" />
                         </exec>
 
-                        <exec executable="nmake" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                          <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; buildall" />
-                        </exec>
+                        <exec executable="ninja" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
+
                         <copy todir="${aprHome}/include">
                           <fileset dir="${aprBuildDir}/include/arch/win32" includes="*.h" />
                         </copy>
