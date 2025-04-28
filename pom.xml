@@ -591,6 +591,7 @@
                       </then>
                       <else>
                         <echo message="Building APR" />
+                        <mkdir dir="${aprBuildDir}" />
 
                         <exec executable="cmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
