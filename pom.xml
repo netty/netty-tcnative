@@ -598,13 +598,15 @@
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
                           <arg value="-DCMAKE_POLICY_VERSION_MINIMUM=3.5" />
+                          <arg value="-DCMAKE_INSTALL_PREFIX=${aprHome}" />
+                          <arg value="-DAPR_BUILD_SHARED=OFF" />
                           <arg value="-GNinja" />
                           <arg value="${aprSourceDir}" />
                         </exec>
 
                         <exec executable="ninja" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
                         <!-- debug -->
-                        <dirset id="dist.contents" dir="${aprBuildDir}" includes="*"/>
+                        <dirset id="dist.contents" dir="${aprHome}" includes="*"/>
                         <property name="prop.dist.contents" refid="dist.contents"/>
                         <echo>${prop.dist.contents}</echo>
 
