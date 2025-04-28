@@ -101,6 +101,7 @@
     <opensslSha256>5d2be4036b478ef3cb0a854ca9b353072c3a0e26d8a56f8f0ab9fb6ed32d38d7</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
+    <aprBuildDir>${project.build.directory}/apr-build</aprBuildDir>
     <archBits>64</archBits>
     <linkStatic>false</linkStatic>
     <crossCompile>false</crossCompile>
@@ -591,28 +592,22 @@
                       <else>
                         <echo message="Building APR" />
 
-                        <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
-                          <equals arg1="${archBits}" arg2="32" />
-                        </condition>
-                        <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
-                        <!-- On Windows, force building APR with /MT for static linking -->
-                        <replace dir="${aprSourceDir}" token="/MD" value="/MT">
-                          <include name="*.mak" />
-                        </replace>
-                        <!-- See https://stackoverflow.com/a/67548973 -->
-                        <replace dir="${aprSourceDir}" token="#define _WIN32_WINNT 0x0501" value="">
-                          <include name="apr.hw" />
-                        </replace>
-                        <retry retrycount="3">
-                          <exec executable="nmake" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                            <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />
-                          </exec>
-                        </retry>
+                        <exec executable="cmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
+                          <arg value="-G'NMake Makefiles'" />
+                          <arg value="${aprSourceDir}" />
+                        </exec>
+
+                        <exec executable="nmake" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                          <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; buildall" />
+                        </exec>
                         <copy todir="${aprHome}/include">
-                          <fileset dir="${aprSourceDir}/include/arch/win32" includes="*.h" />
+                          <fileset dir="${aprBuildDir}/include/arch/win32" includes="*.h" />
                         </copy>
                         <copy todir="${aprHome}">
-                          <fileset dir="${aprSourceDir}/include/arch" includes="*.h" />
+                          <fileset dir="${aprBuildDir}/include/arch" includes="*.h" />
                         </copy>
                       </else>
                     </if>
