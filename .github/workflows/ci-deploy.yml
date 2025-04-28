@@ -150,13 +150,13 @@ jobs:
             stage-snapshot-windows-m2-repository-cache-
 
       - name: Build netty-tcnative-boringssl-static
-        run: ./mvnw.cmd --file pom.xml -am -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=local-staging -DskipRemoteStaging=true -DskipTests=true
+        run: ./mvnw.cmd --file pom.xml -am -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/local-staging -DskipRemoteStaging=true -DskipTests=true
 
       - name: Upload local staging directory
         uses: actions/upload-artifact@v4
         with:
           name: windows-x86_64-local-staging
-          path: boringssl-static/local-staging
+          path: /local-staging
           if-no-files-found: error
           include-hidden-files: true
 
@@ -205,7 +205,7 @@ jobs:
           name: windows-x86_64-local-staging
           path: ~/windows-x86_64-local-staging
 
-      - name: Download macos-aarch64-java11 staging directory
+      - name: Download macos-aarch64 staging directory
         uses: actions/download-artifact@v4
         with:
           name: macos-aarch64-local-staging
@@ -241,7 +241,7 @@ jobs:
       - name: Generate uber jar and deploy to local staging.
         run: |
           mkdir -p ~/uber-local-staging
-          ./mvnw -B --file pom.xml -Psonatype-oss-release,uber-snapshot -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=$HOME/uber-local-staging -DskipRemoteStaging=true -DskipTests=true
+          ./mvnw -B --file pom.xml -Puber-snapshot -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=$HOME/uber-local-staging -DskipRemoteStaging=true -DskipTests=true
 
       - name: Merge staging repositories
         run: bash ./.github/scripts/merge_local_staging.sh ~/local-staging/deferred ~/windows-x86_64-local-staging/deferred ~/macos-aarch64-local-staging/deferred ~/macos-x86_64-local-staging/deferred ~/centos7-aarch64-local-staging/deferred ~/debian7-x86_64-local-staging/deferred ~/centos6-x86_64-local-staging/deferred ~/uber-local-staging/deferred
