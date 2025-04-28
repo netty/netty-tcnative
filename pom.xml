@@ -614,7 +614,7 @@
                         <copy todir="${aprHome}/include">
                           <fileset dir="${aprSourceDir}/include/arch/win32" includes="*.h" />
                         </copy>
-                        <copy todir="${aprHome}">
+                        <copy todir="${aprHome}/include">
                           <fileset dir="${aprSourceDir}/include" includes="*.h" />
                         </copy>
                       </else>
