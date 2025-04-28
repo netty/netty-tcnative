@@ -599,18 +599,23 @@
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
                           <arg value="-DCMAKE_POLICY_VERSION_MINIMUM=3.5" />
                           <arg value="-DCMAKE_INSTALL_PREFIX=apr" />
-                          <arg value="-DAPR_BUILD_SHARED=OFF" />
                           <arg value="-GNinja" />
                           <arg value="${aprSourceDir}" />
                         </exec>
 
                         <exec executable="ninja" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
 
+                        <copy todir="${aprHome}/libs">
+                          <fileset dir="${aprBuildDir}/" includes="*.lib" />
+                        </copy>
                         <copy todir="${aprHome}/include">
+                          <fileset dir="${aprBuildDir}/" includes="*.h" />
+                        </copy>
+                        <copy todir="${aprSourceDir}/include">
                           <fileset dir="${aprBuildDir}/include/arch/win32" includes="*.h" />
                         </copy>
-                        <copy todir="${aprHome}">
-                          <fileset dir="${aprBuildDir}/include/arch" includes="*.h" />
+                        <copy todir="${aprSourceDir.}">
+                          <fileset dir="${aprBuildDir}/include" includes="*.h" />
                         </copy>
                       </else>
                     </if>
