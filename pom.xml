@@ -598,6 +598,7 @@
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
                           <arg value="-DCMAKE_POLICY_VERSION_MINIMUM=3.5" />
+                          <arg value="-DPREFIX={aprHome}" />
                           <arg value="-GNinja" />
                           <arg value="${aprSourceDir}" />
                         </exec>
