@@ -236,7 +236,7 @@ jobs:
           path: ~/centos6-x86_64-local-staging
 
       - name: Copy previous build artifacts to local maven repository
-        run: bash ./.github/scripts/install_local_staging.sh ~/.m2/repository ~/windows-x86_64-local-staging/deferred ~/macos-aarch64-local-staging/deferred ~/macos-x86_64-local-staging/deferred ~/centos7-aarch64-local-staging/deferred ~/debian7-aarch64-local-staging/deferred ~/centos6-x86_64-local-staging/deferred
+        run: bash ./.github/scripts/install_local_staging.sh ~/.m2/repository ~/windows-x86_64-local-staging/deferred ~/macos-aarch64-local-staging/deferred ~/macos-x86_64-local-staging/deferred ~/centos7-aarch64-local-staging/deferred ~/debian7-x86_64-local-staging/deferred ~/centos6-x86_64-local-staging/deferred
 
       - name: Generate uber jar and deploy to local staging.
         run: |
@@ -244,7 +244,7 @@ jobs:
           ./mvnw -B --file pom.xml -Psonatype-oss-release,uber-snapshot -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=$HOME/uber-local-staging -DskipRemoteStaging=true -DskipTests=true
 
       - name: Merge staging repositories
-        run: bash ./.github/scripts/merge_local_staging.sh ~/local-staging/deferred ~/windows-x86_64-local-staging/deferred ~/macos-aarch64-local-staging/deferred ~/macos-x86_64-local-staging/deferred ~/centos7-aarch64-local-staging/deferred ~/debian7-aarch64-local-staging/deferred ~/centos6-x86_64-local-staging/deferred ~/uber-local-staging/deferred
+        run: bash ./.github/scripts/merge_local_staging.sh ~/local-staging/deferred ~/windows-x86_64-local-staging/deferred ~/macos-aarch64-local-staging/deferred ~/macos-x86_64-local-staging/deferred ~/centos7-aarch64-local-staging/deferred ~/debian7-x86_64-local-staging/deferred ~/centos6-x86_64-local-staging/deferred ~/uber-local-staging/deferred
 
       - name: Deploy local staged artifacts
         run: ./mvnw -B --file pom.xml org.sonatype.plugins:nexus-staging-maven-plugin:deploy-staged -DaltStagingDirectory=$LOCAL_STAGING_DIR
