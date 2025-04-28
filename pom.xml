@@ -611,11 +611,11 @@
                         <copy todir="${aprHome}/include">
                           <fileset dir="${aprBuildDir}/" includes="*.h" />
                         </copy>
-                        <copy todir="${aprSourceDir}/include">
-                          <fileset dir="${aprBuildDir}/include/arch/win32" includes="*.h" />
+                        <copy todir="${aprHome}/include">
+                          <fileset dir="${aprSourceDir}/include/arch/win32" includes="*.h" />
                         </copy>
-                        <copy todir="${aprSourceDir.}">
-                          <fileset dir="${aprBuildDir}/include" includes="*.h" />
+                        <copy todir="${aprHome}">
+                          <fileset dir="${aprSourceDir}/include" includes="*.h" />
                         </copy>
                       </else>
                     </if>
