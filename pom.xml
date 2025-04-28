@@ -605,10 +605,6 @@
                         </exec>
 
                         <exec executable="ninja" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
-                        <!-- debug -->
-                        <dirset id="dist.contents" dir="${aprHome}" includes="*"/>
-                        <property name="prop.dist.contents" refid="dist.contents"/>
-                        <echo>${prop.dist.contents}</echo>
 
                         <copy todir="${aprHome}/include">
                           <fileset dir="${aprBuildDir}/include/arch/win32" includes="*.h" />

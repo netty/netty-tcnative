@@ -117,6 +117,13 @@ jobs:
         with:
           name: build-pr-windows-target
           path: |
+            **/target/
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: build-pr-windows-target
+          path: |
             **/target/surefire-reports/
             **/hs_err*.log
 
