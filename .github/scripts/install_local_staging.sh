@@ -26,10 +26,9 @@ do
   DIR="${!i}"
   SUB_DIR=$(ls -d "${DIR}"/* | awk -F / '{print $NF}')
 
-  if [ ! -d "${TARGET}/${SUB_DIR}" ]
+  if [ ! -d "${TARGET}" ]
   then
-      mkdir -p "${TARGET}/${SUB_DIR}"
+      mkdir -p "${TARGET}"
   fi
-  cat "${DIR}"/"${SUB_DIR}"/.index >> "${TARGET}/${SUB_DIR}"/.index
-  cp -r "${DIR}"/"${SUB_DIR}"/* "${TARGET}/${SUB_DIR}"/
+  cp -r "${DIR}"/"${SUB_DIR}"/* "${TARGET}"/
 done

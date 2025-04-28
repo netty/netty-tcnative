@@ -1153,7 +1153,18 @@
           <version>${project.version}</version>
           <classifier>linux-aarch_64</classifier>
         </dependency>
-        <!-- Don't include osx as we dont deploy snapshots atm -->
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-tcnative-boringssl-static</artifactId>
+          <version>${project.version}</version>
+          <classifier>osx-x86_64</classifier>
+        </dependency>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-tcnative-boringssl-static</artifactId>
+          <version>${project.version}</version>
+          <classifier>osx-aarch_64</classifier>
+        </dependency>
         <dependency>
           <groupId>io.netty</groupId>
           <artifactId>netty-tcnative-boringssl-static</artifactId>
