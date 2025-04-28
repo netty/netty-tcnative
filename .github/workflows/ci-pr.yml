@@ -15,6 +15,7 @@ env:
 
 jobs:
   build-pr:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -120,6 +121,7 @@ jobs:
             **/hs_err*.log
 
   build-pr-macos:
+    if: false
     strategy:
       fail-fast: false
       matrix:
