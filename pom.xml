@@ -605,7 +605,7 @@
 
                         <exec executable="ninja" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
 
-                        <copy todir="${aprHome}/libs">
+                        <copy todir="${aprHome}/lib">
                           <fileset dir="${aprBuildDir}/" includes="*.lib" />
                         </copy>
                         <copy todir="${aprHome}/include">
