@@ -102,7 +102,7 @@ jobs:
         run: mkdir -p ~/local-staging
 
       - name: Stage snapshots to local staging directory
-        run: ./mvnw -B -ntp clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=$HOME/local-staging -DskipRemoteStaging=true -DskipTests=true
+        run: ./mvnw -B -ntp -am -pl openssl-dynamic,boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=$HOME/local-staging -DskipRemoteStaging=true -DskipTests=true
 
       - name: Upload local staging directory
         uses: actions/upload-artifact@v4
