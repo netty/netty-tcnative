@@ -430,6 +430,7 @@ jobs:
         run: bash ./.github/scripts/install_local_staging.sh ~/.m2/repository ~/windows-x86_64-local-staging/staging ~/macos-aarch64-local-staging/staging ~/macos-x86_64-local-staging/staging ~/centos7-aarch64-local-staging/staging ~/debian7-x86_64-local-staging/staging ~/centos6-x86_64-local-staging/staging
 
       - name: Generate uber jar and deploy to local staging.
+        working-directory: ./prepare-release-workspace/
         run: |
           mkdir -p ~/uber-local-staging
           ./mvnw -B --file pom.xml -Puber-snapshot -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=$HOME/uber-local-staging -DskipRemoteStaging=true -DskipTests=true
