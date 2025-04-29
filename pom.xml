@@ -594,7 +594,7 @@
                         <mkdir dir="${aprBuildDir}" />
 
                         <exec executable="cmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
-                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_BUILD_TYPE=RELEASE" />
                           <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
                           <arg value="-DCMAKE_POLICY_VERSION_MINIMUM=3.5" />
