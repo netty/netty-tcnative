@@ -600,6 +600,7 @@
                           <arg value="-DCMAKE_POLICY_VERSION_MINIMUM=3.5" />
                           <arg value="-DCMAKE_INSTALL_PREFIX=apr" />
                           <arg value="-DAPR_BUILD_SHARED=OFF" />
+                          <arg value="-DMIN_WINDOWS_VER=0x0600" />
                           <arg value="-GNinja" />
                           <arg value="${aprSourceDir}" />
                         </exec>
