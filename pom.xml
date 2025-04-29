@@ -605,7 +605,6 @@
                           <arg value="${aprSourceDir}" />
                         </exec>
 
-
                         <!-- On Windows, force building APR with /MT for static linking -->
                         <replace dir="${aprBuildDir}" token="/MD" value="/MT">
                           <include name="build.ninja" />
