@@ -427,7 +427,7 @@ jobs:
 
       - name: Copy previous build artifacts to local maven repository
         working-directory: ./prepare-release-workspace/
-        run: bash ./.github/scripts/install_local_staging.sh ~/.m2/repository ~/windows-x86_64-local-staging/staging ~/macos-aarch64-local-staging/staging ~/macos-x86_64-local-staging/staging ~/centos7-aarch64-local-staging/staging ~/debian7-x86_64-local-staging/staging ~/centos6-x86_64-local-staging/staging ~/uber-local-staging/staging
+        run: bash ./.github/scripts/install_local_staging.sh ~/.m2/repository ~/windows-x86_64-local-staging/staging ~/macos-aarch64-local-staging/staging ~/macos-x86_64-local-staging/staging ~/centos7-aarch64-local-staging/staging ~/debian7-x86_64-local-staging/staging ~/centos6-x86_64-local-staging/staging
 
       - name: Generate uber jar and deploy to local staging.
         run: |
