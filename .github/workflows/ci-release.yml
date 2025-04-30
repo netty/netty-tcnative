@@ -433,7 +433,7 @@ jobs:
         working-directory: ./prepare-release-workspace/
         run: |
           mkdir -p ~/uber-local-staging
-          ./mvnw -B --file pom.xml -Puber-snapshot -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=$HOME/uber-local-staging -DskipRemoteStaging=true -DskipTests=true
+          ./mvnw -B --file pom.xml -Puber-snapshot -pl boringssl-static clean package gpg:sign org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DnexusUrl=https://oss.sonatype.org -DserverId=sonatype-nexus-staging -DaltStagingDirectory=$HOME/uber-local-staging -DskipRemoteStaging=true -DskipTests=true
 
       # This step takes care of merging all the previous staged repositories in a way that will allow us to deploy
       # all together with one maven command.
