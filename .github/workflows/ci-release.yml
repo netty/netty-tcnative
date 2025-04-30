@@ -358,6 +358,13 @@ jobs:
           java-version: 8
           distribution: zulu
 
+      - name: Import GPG key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
       - name: Setup git configuration
         run: |
           git config --global user.email "netty-project-bot@users.noreply.github.com"
