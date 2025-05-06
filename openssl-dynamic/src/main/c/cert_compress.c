@@ -16,7 +16,7 @@
 
 #include "tcn.h"
 #include "ssl_private.h"
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 #include "cert_compress.h"
 
 static int compress(jobject compression_algorithm, jmethodID compress_method, SSL* ssl, CBB* out,
@@ -168,4 +168,4 @@ int zstd_decompress_java(SSL* ssl, CRYPTO_BUFFER** out, size_t uncompressed_len,
         ssl, out, uncompressed_len, in, in_len);
 }
 
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)

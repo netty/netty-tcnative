@@ -176,7 +176,7 @@ public final class SSL {
     // https://boringssl.googlesource.com/boringssl/+/chromium-stable/include/openssl/ssl.h#519
     public static final int SSL_ERROR_WANT_PRIVATE_KEY_OPERATION = sslErrorWantPrivateKeyOperation();
 
-    // BoringSSL specific
+    // BoringSSL and AWS-LC specific
     public static final int SSL_ERROR_WANT_CERTIFICATE_VERIFY = sslErrorWantCertificateVerify();
 
     /**
@@ -961,7 +961,7 @@ public final class SSL {
     public static native long getSession(long ssl);
 
     /**
-     * Allow to set the renegotiation mode that is used. This is only support by {@code BoringSSL}.
+     * Allow to set the renegotiation mode that is used. This is only supported by {@code BoringSSL} and {@code AWS-LC}.
      *
      * See <a href="https://boringssl.googlesource.com/boringssl/+/refs/heads/master/include/openssl/ssl.h#4081">
      *     SSL_set_renegotiate_mode</a>..
