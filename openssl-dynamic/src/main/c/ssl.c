@@ -2583,7 +2583,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
     }
 
     for (i = 0; i < num_peer_sigalgs; i++) {
-        if ((alg = SSL_get_signature_algorithm_name(peer_sigalgs[i], SSL_version(ssl_) != TLS1_2_VERSION)) == NULL) {
+        if ((alg = SSL_get_signature_algorithm_name(peer_sigalgs[i], false)) == NULL) {
             // The signature algorithm is not known to BoringSSL, skip it.
             continue;
         }
