@@ -1051,14 +1051,6 @@
         <compileLibrary>false</compileLibrary>
       </properties>
 
-      <repositories>
-        <repository>
-          <id>staged-releases</id>
-          <name>Staged Releases</name>
-          <url>https://oss.sonatype.org/service/local/repositories/${stagingRepositoryId}/content/</url>
-        </repository>
-      </repositories>
-
       <dependencies>
         <dependency>
           <groupId>io.netty</groupId>

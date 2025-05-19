@@ -102,7 +102,7 @@ jobs:
         run: mkdir -p ~/local-staging
 
       - name: Stage snapshots to local staging directory
-        run: ./mvnw -B -ntp -am -pl openssl-dynamic,boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=$HOME/local-staging -DskipRemoteStaging=true -DskipTests=true
+        run: ./mvnw -B -ntp -am -pl openssl-dynamic,boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=$HOME/local-staging -DskipTests=true
 
       - name: Upload local staging directory
         uses: actions/upload-artifact@v4
@@ -186,15 +186,10 @@ jobs:
         with:
           servers: |
             [{
-              "id": "sonatype-nexus-snapshots",
-              "username": "${{ secrets.SONATYPE_USERNAME }}",
-              "password": "${{ secrets.SONATYPE_PASSWORD }}"
+              "id": "central-portal-snapshots",
+              "username": "${{ secrets.MAVEN_CENTRAL_USERNAME }}",
+              "password": "${{ secrets.MAVEN_CENTRAL_PASSWORD }}"
             }]
-
-      # Setup some env to re-use later.
-      - name: Prepare enviroment variables
-        run: |
-          echo "LOCAL_STAGING_DIR=$HOME/local-staging" >> $GITHUB_ENV
 
       # Hardcode the staging artifacts that need to be downloaded.
       # These must match the matrix setups and windows build. There is currently no way to pull this out of the config.
@@ -240,10 +235,10 @@ jobs:
       - name: Generate uber jar and deploy to local staging.
         run: |
           mkdir -p ~/uber-local-staging
-          ./mvnw -B --file pom.xml -Puber-snapshot -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=$HOME/uber-local-staging -DskipRemoteStaging=true -DskipTests=true
+          ./mvnw -B --file pom.xml -Puber-snapshot -pl boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=$HOME/uber-local-staging -DskipTests=true
 
       - name: Merge staging repositories
-        run: bash ./.github/scripts/merge_local_staging.sh ~/local-staging ~/windows-x86_64-local-staging ~/macos-aarch64-local-staging ~/macos-x86_64-local-staging ~/centos7-aarch64-local-staging ~/debian7-x86_64-local-staging ~/centos6-x86_64-local-staging ~/uber-local-staging
+        run: bash ./.github/scripts/local_staging_merge_snapshot.sh ~/local-staging ~/windows-x86_64-local-staging ~/macos-aarch64-local-staging ~/macos-x86_64-local-staging ~/centos7-aarch64-local-staging ~/debian7-x86_64-local-staging ~/centos6-x86_64-local-staging ~/uber-local-staging
 
       - name: Deploy local staged artifacts
-        run: ./mvnw -B --file pom.xml org.sonatype.plugins:nexus-staging-maven-plugin:deploy-staged -DaltStagingDirectory=$LOCAL_STAGING_DIR
+        run: ./mvnw -B --file pom.xml org.sonatype.plugins:nexus-staging-maven-plugin:deploy-staged -DaltStagingDirectory=$HOME/local-staging
