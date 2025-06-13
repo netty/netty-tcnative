@@ -668,7 +668,7 @@ public final class SSLContext {
      * For servers, algorithm preference order is dictated by the order of algorithm registration.
      * Most preferred algorithm should be registered first.
      *
-     * This method is currently only supported when {@code BoringSSL} is used.
+     * This method is currently only supported when {@code BoringSSL} or {@code AWS-LC} is used.
      *
      * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#Certificate-compression">
      *     SSL_CTX_add_cert_compression_alg</a>
@@ -696,7 +696,7 @@ public final class SSLContext {
      * This allows to offload private key operations
      * if needed.
      *
-     * This method is currently only supported when {@code BoringSSL} is used.
+     * This method is currently only supported when {@code BoringSSL} and {@code AWS-LC} is used.
      *
      * @param ctx context to use
      * @param method method to use for the given context.
@@ -709,7 +709,7 @@ public final class SSLContext {
      * Sets the {@link AsyncSSLPrivateKeyMethod} to use for the given {@link SSLContext}.
      * This allows to offload private key operations if needed.
      *
-     * This method is currently only supported when {@code BoringSSL} is used.
+     * This method is currently only supported when {@code BoringSSL} and {@code AWS-LC} is used.
      *
      * @param ctx context to use
      * @param method method to use for the given context.

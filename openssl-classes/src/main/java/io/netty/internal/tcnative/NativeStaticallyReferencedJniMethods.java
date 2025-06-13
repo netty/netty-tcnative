@@ -153,7 +153,7 @@ final class NativeStaticallyReferencedJniMethods {
     static native int x509vErrIpAddressMismatch();
     static native int x509vErrDaneNoMatch();
 
-    // BoringSSL specific.
+    // BoringSSL and AWS-LC specific.
     static native int sslErrorWantCertificateVerify();
     static native int sslErrorWantPrivateKeyOperation();
     static native int sslSignRsaPkcsSha1();

@@ -510,7 +510,7 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, x509vErrDaneNoMat
 #endif
 }
 
-// BoringSSL specific
+// BoringSSL and AWS-LC specific
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslErrorWantCertificateVerify)(TCN_STDARGS) {
     return SSL_ERROR_WANT_CERTIFICATE_VERIFY;
 }
@@ -572,7 +572,7 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslSignRsaPkcs1Md
 }
 
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateNever)(TCN_STDARGS) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     return (jint) ssl_renegotiate_never;
 #else
     return 0;
@@ -580,7 +580,7 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateNev
 }
 
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateOnce)(TCN_STDARGS) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     return (jint) ssl_renegotiate_once;
 #else
     return 0;
@@ -588,7 +588,7 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateOnc
 }
 
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateFreely)(TCN_STDARGS) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     return (jint) ssl_renegotiate_freely;
 #else
     return 0;
@@ -597,7 +597,7 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateFre
 
 
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateIgnore)(TCN_STDARGS) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     return (jint) ssl_renegotiate_ignore;
 #else
     return 0;
@@ -605,7 +605,7 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateIgn
 }
 
 TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslRenegotiateExplicit)(TCN_STDARGS) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     return (jint) ssl_renegotiate_explicit;
 #else
     return 0;
@@ -744,7 +744,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(x509vErrEmailMismatch, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(x509vErrIpAddressMismatch, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(x509vErrDaneNoMatch, ()I, NativeStaticallyReferencedJniMethods) },
-  // BoringSSL specific
+  // BoringSSL and AWS-LC specific
   { TCN_METHOD_TABLE_ENTRY(sslErrorWantCertificateVerify, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslErrorWantPrivateKeyOperation, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(sslSignRsaPkcsSha1, ()I, NativeStaticallyReferencedJniMethods) },

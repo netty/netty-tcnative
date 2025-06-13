@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-al2023:x86_64
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.al2023
+
+  common: &common
+    image: netty-tcnative-al2023:x86_64
+    depends_on: [runtime-setup]
+    environment:
+      MAVEN_OPTS:
+      LD_LIBRARY_PATH: /opt/aws-lc/lib64
+      LDFLAGS: -L/opt/aws-lc/lib64 -lssl -lcrypto
+      CFLAGS: -I/opt/aws-lc/include  -DHAVE_OPENSSL -lssl -lcrypto
+      CXXFLAGS: -I/opt/aws-lc/include  -DHAVE_OPENSSL -lssl -lcrypto
+    volumes:
+      - ~/.m2/repository:/root/.m2/repository
+      - ..:/code
+    working_dir: /code
+
+  build:
+    <<: *common
+    command: /bin/bash -cl "./mvnw -am -pl openssl-dynamic clean package"
+
+  shell:
+    <<: *common
+    volumes:
+      - ~/.m2:/root/.m2
+      - ~/.gitconfig:/root/.gitconfig
+      - ~/.gitignore:/root/.gitignore
+      - ..:/code
+    entrypoint: /bin/bash -l

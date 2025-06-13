@@ -35,6 +35,9 @@ jobs:
           - setup: centos7-aarch64
             docker-compose-build: "-f docker/docker-compose.centos-7.yaml build"
             docker-compose-run: "-f docker/docker-compose.centos-7.yaml run cross-compile-aarch64-build"
+          - setup: al2023-x86_64-aws_lc
+            docker-compose-build: "-f docker/docker-compose.al2023.yaml build"
+            docker-compose-run: "-f docker/docker-compose.al2023.yaml run build"
 
     name: ${{ matrix.setup }}
     steps:

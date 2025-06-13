@@ -78,8 +78,19 @@ const char* TCN_UNKNOWN_AUTH_METHOD = "UNKNOWN";
  * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
  */
 const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL)
 	return SSL_CIPHER_get_kx_name(cipher);
+#elif defined(OPENSSL_IS_AWSLC)
+    const char* name = SSL_CIPHER_get_kx_name(cipher);
+    if(strcmp(name, "GENERIC") == 0) {
+        // Only TLS 1.3 will report the kx name as generic.
+        // Map this UNKNOWN, which will signal to Java to validate that
+        // the certificate's keyUsage has at least the digitalSignature bit set.
+        // (Per the SunJCE implementation).
+        // This is done in the OpenSSL implementation a bit further down.
+        return "UNKNOWN";
+    }
+    return name;
 #elif OPENSSL_VERSION_NUMBER >= 0x10100000L && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x2070000fL)
     switch (SSL_CIPHER_get_kx_nid(cipher)) {
         case NID_kx_rsa:
@@ -462,12 +473,12 @@ int tcn_SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipf
 // TODO: in the future we may want to add a function which does not need X509 at all for this.
 static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     STACK_OF(CRYPTO_BUFFER) *names = sk_CRYPTO_BUFFER_new_null();
     CRYPTO_BUFFER *buffer = NULL;
     uint8_t *outp = NULL;
     int len;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     X509 *x509 = NULL;
     unsigned long err;
@@ -483,7 +494,7 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
 
     if (ca) {
         while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
             len = i2d_X509_NAME(X509_get_subject_name(x509), &outp);
             if (len < 0) {
                 sk_CRYPTO_BUFFER_pop_free(names, CRYPTO_BUFFER_free);
@@ -508,19 +519,19 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
             // SSL_CTX_add_client_CA does not take ownership of the x509. It just calls X509_get_subject_name
             // and make a duplicate of this value. So we should always free the x509 after this call.
             // See https://github.com/netty/netty/issues/6249.
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
             X509_free(x509);
             n++;
         }
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         SSL_CTX_set0_client_CAs(ctx, names);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     } else {
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         return -1;
 #else
         /* free a perhaps already configured extra chain */
@@ -535,7 +546,7 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
             }
             n++;
         }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     }
     /* Make sure that only the error is just an EOF */
@@ -559,7 +570,7 @@ int tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *ctx, BIO *bio)
     return SSL_CTX_setup_certs(ctx, bio, false, true);
 }
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 int tcn_SSL_use_certificate_chain_bio(SSL *ssl, BIO *bio, bool skipfirst)
 {
 #if defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER <= 0x2090200fL
@@ -613,7 +624,7 @@ X509 *tcn_load_pem_cert_bio(const char *password, const BIO *bio)
     }
     return cert;
 }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 EVP_PKEY *tcn_load_pem_key_bio(const char *password, const BIO *bio)
 {
@@ -626,7 +637,7 @@ EVP_PKEY *tcn_load_pem_key_bio(const char *password, const BIO *bio)
 }
 
 int tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey) {
-#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL))
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) && (OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL))
     return CRYPTO_add(&pkey->references, 1, CRYPTO_LOCK_EVP_PKEY);
 #else
     return EVP_PKEY_up_ref(pkey);
@@ -634,7 +645,7 @@ int tcn_EVP_PKEY_up_ref(EVP_PKEY* pkey) {
 }
 
 int tcn_X509_up_ref(X509* cert) {
-#if !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2060000fL))
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) && (OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2060000fL))
     return CRYPTO_add(&cert->references, 1, CRYPTO_LOCK_X509);
 #else
     return X509_up_ref(cert);

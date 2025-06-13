@@ -114,7 +114,7 @@ struct TCN_bio_bytebuffer {
     R |= SSL_TMP_KEY_INIT_DH(2048);             \
     R |= SSL_TMP_KEY_INIT_DH(4096)
 
-#if !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 // This is the maximum overhead when encrypting plaintext as defined by
 // <a href="https://www.ietf.org/rfc/rfc5246.txt">rfc5264</a>,
 // <a href="https://www.ietf.org/rfc/rfc5289.txt">rfc5289</a> and openssl implementation itself.
@@ -133,7 +133,7 @@ struct TCN_bio_bytebuffer {
 // See SSL#getMaxWrapOverhead for the overhead based upon the SSL*
 // TODO(scott): this may be an over estimate because we don't account for short headers.
 #define TCN_MAX_SEAL_OVERHEAD_LENGTH (TCN_MAX_ENCRYPTED_PACKET_LENGTH + SSL3_RT_HEADER_LENGTH)
-#endif /*!defined(OPENSSL_IS_BORINGSSL)*/
+#endif /*!defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)*/
 
 static jint tcn_flush_sslbuffer_to_bytebuffer(struct TCN_bio_bytebuffer* bioUserData) {
     jint writeAmount = TCN_MIN(bioUserData->bufferLength, bioUserData->nonApplicationBufferLength) * sizeof(char);
@@ -499,7 +499,7 @@ static apr_status_t ssl_init_cleanup(void *data)
     /*
      * Try to kill the internals of the SSL library.
      */
-#if OPENSSL_VERSION_NUMBER >= 0x00907001 && !defined(OPENSSL_IS_BORINGSSL)
+#if OPENSSL_VERSION_NUMBER >= 0x00907001 && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     /* Corresponds to OPENSSL_load_builtin_modules():
      * XXX: borrowed from apps.h, but why not CONF_modules_free()
      * which also invokes CONF_modules_finish()?
@@ -537,10 +537,10 @@ static apr_status_t ssl_init_cleanup(void *data)
      }
 
 // In case we loaded any engine we should also call cleanup. This is especialy important in openssl < 1.1.
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     // This is deprecated since openssl 1.1 but does not exist at all in BoringSSL.
     ENGINE_cleanup();
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 #endif // OPENSSL_NO_ENGINE
 
     /* Don't call ERR_free_strings here; ERR_load_*_strings only
@@ -1249,7 +1249,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS,
                                                          jlong ssl /* SSL * */) {
     // Use weak linking with GCC as this will alow us to run the same packaged version with multiple
     // version of openssl.
-    #if !defined(OPENSSL_IS_BORINGSSL) && (defined(__GNUC__) || defined(__GNUG__))
+    #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) && (defined(__GNUC__) || defined(__GNUG__))
         if (!SSL_get0_alpn_selected) {
             return NULL;
         }
@@ -1273,7 +1273,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getAlpnSelected)(TCN_STDARGS,
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
                                                   jlong ssl /* SSL * */)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     const STACK_OF(CRYPTO_BUFFER) *chain = NULL;
     const CRYPTO_BUFFER * cert = NULL;
     const tcn_ssl_ctxt_t* c = NULL;
@@ -1281,7 +1281,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     STACK_OF(X509) *chain = NULL;
     X509 *cert = NULL;
     unsigned char *buf = NULL;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     int len;
     int i;
     int length;
@@ -1295,7 +1295,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     TCN_CHECK_NULL(ssl_, ssl, NULL);
 
     // Get a stack of all certs in the chain.
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     TCN_GET_SSL_CTX(ssl_, c);
 
     TCN_ASSERT(c != NULL);
@@ -1313,7 +1313,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
     chain = SSL_get_peer_cert_chain(ssl_);
     len = sk_X509_num(chain);
     offset = 0;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     len -= offset;
     if (len <= 0) {
@@ -1329,7 +1329,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
 
     for(i = 0; i < len; i++) {
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         cert = sk_CRYPTO_BUFFER_value(chain, i + offset);
         length = CRYPTO_BUFFER_len(cert);
 #else
@@ -1341,11 +1341,11 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
             // In case of error just return an empty byte[][]
             return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
         }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
         bArray = (*e)->NewByteArray(e, length);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         if (bArray == NULL) {
             return NULL;
         }
@@ -1360,7 +1360,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
         OPENSSL_free(buf);
         buf = NULL;
 
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
@@ -1373,13 +1373,13 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
 TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
                                                   jlong ssl /* SSL * */)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     const STACK_OF(CRYPTO_BUFFER) *certs = NULL;
     const CRYPTO_BUFFER *leafCert = NULL;
 #else
     X509 *cert = NULL;
     unsigned char *buf = NULL;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     jbyteArray bArray = NULL;
     int length;
@@ -1388,7 +1388,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
 
     TCN_CHECK_NULL(ssl_, ssl, NULL);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     // Get a stack of all certs in the chain, the first is the leaf.
     certs = SSL_get0_peer_certificates(ssl_);
     if (certs == NULL || sk_CRYPTO_BUFFER_num(certs) <= 0) {
@@ -1403,10 +1403,10 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
     }
 
     length = i2d_X509(cert, &buf);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     if ((bArray = (*e)->NewByteArray(e, length)) != NULL) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(leafCert));
     }
 #else
@@ -1419,7 +1419,7 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getPeerCertificate)(TCN_STDARGS,
     X509_free(cert);
 
     OPENSSL_free(buf);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     return bArray;
 }
 
@@ -1522,13 +1522,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setVerify)(TCN_STDARGS, jlong ssl, jint level, jin
     TCN_ASSERT(state != NULL);
     TCN_ASSERT(state->ctx != NULL);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_set_custom_verify(ssl_, tcn_set_verify_config(&state->verify_config, level, depth), tcn_SSL_cert_custom_verify);
 #else
     // No need to specify a callback for SSL_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
     SSL_set_verify(ssl_, tcn_set_verify_config(&state->verify_config, level, depth), NULL);
     SSL_set_verify_depth(ssl_, state->verify_config.verify_depth);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
@@ -1585,7 +1585,7 @@ TCN_IMPLEMENT_CALL(jint, SSL, getMaxWrapOverhead)(TCN_STDARGS, jlong ssl)
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     return (jint) SSL_max_seal_overhead(ssl_);
 #else
     // TODO(scott): When OpenSSL supports something like SSL_max_seal_overhead ... use it!
@@ -1694,12 +1694,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCipherSuites)(TCN_STDARGS, jlong ssl,
     rv = SSL_set_cipher_list(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
 #else
     if (tlsv13 == JNI_TRUE) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL)
         // BoringSSL does not support setting TLSv1.3 cipher suites explicit for now.
         rv = JNI_TRUE;
 #else
         rv = SSL_set_ciphersuites(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     } else {
         rv = SSL_set_cipher_list(ssl_, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
     }
@@ -1926,7 +1926,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     if (flags != 0) {
         tcn_ThrowException(e, "flags must be 0");
     }
@@ -1966,7 +1966,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
     tcn_ThrowException(e, "hostname verification requires OpenSSL 1.0.2+");
 #endif // (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) || LIBRESSL_VERSION_NUMBER >= 0x2060000fL || defined(__GNUC__) || defined(__GNUG__)
 
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong ssl) {
@@ -2000,8 +2000,10 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
                                                          jlong cert, jlong key,
                                                          jstring password)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) 
     tcn_Throw(e, "Not supported using BoringSSL");
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported using AWS-LC");
 #else
     SSL *ssl_ = J2P(ssl, SSL *);
 
@@ -2062,7 +2064,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
@@ -2077,7 +2079,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
 
 // This call is only used to detect if we support KeyManager or not in netty. As we know that we support it in
 // BoringSSL we can just ignore this call. In the future we should remove the method all together.
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     char err[ERR_LEN];
 
     if (tcn_SSL_use_certificate_chain_bio(ssl_, b, skipfirst) < 0)  {
@@ -2085,7 +2087,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setCertificateChainBio)(TCN_STDARGS, jlong ssl,
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate chain (%s)", err);
     }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSL, loadPrivateKeyFromEngine)(TCN_STDARGS, jstring keyId, jstring password)
@@ -2149,7 +2151,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 {
     BIO *cert_bio = J2P(x509ChainBio, BIO *);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     STACK_OF(CRYPTO_BUFFER) *chain = sk_CRYPTO_BUFFER_new_null();
     CRYPTO_BUFFER *buffer = NULL;
     char *name = NULL;
@@ -2159,14 +2161,14 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 #else
     X509* cert = NULL;
     STACK_OF(X509) *chain = NULL;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     char err[ERR_LEN];
     unsigned long error;
 
     TCN_CHECK_NULL(cert_bio, x509ChainBio, 0);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     while (PEM_read_bio(cert_bio, &name, &header, &data, &data_len)) {
 
         OPENSSL_free(name);
@@ -2184,15 +2186,15 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
     chain = sk_X509_new_null();
     while ((cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL)) != NULL) {
         if (sk_X509_push(chain, cert) <= 0) {
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
             tcn_Throw(e, "No Certificate specified or invalid format");
             goto cleanup;
         }
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
         cert = NULL;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     }
 
     // ensure that if we have an error its just for EOL.
@@ -2212,25 +2214,25 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 cleanup:
     ERR_clear_error();
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     sk_CRYPTO_BUFFER_pop_free(chain, CRYPTO_BUFFER_free);
 #else
     sk_X509_pop_free(chain, X509_free);
     X509_free(cert);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     return 0;
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, freeX509Chain)(TCN_STDARGS, jlong x509Chain)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     STACK_OF(CRYPTO_BUFFER) *chain = J2P(x509Chain, STACK_OF(CRYPTO_BUFFER) *);
     sk_CRYPTO_BUFFER_pop_free(chain, CRYPTO_BUFFER_free);
 #else
     STACK_OF(X509) *chain = J2P(x509Chain, STACK_OF(X509) *);
     sk_X509_pop_free(chain, X509_free);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chain, jlong key)
@@ -2244,14 +2246,14 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
 
     EVP_PKEY* pkey = J2P(key, EVP_PKEY *);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     STACK_OF(CRYPTO_BUFFER) *cchain = J2P(chain, STACK_OF(CRYPTO_BUFFER) *);
     int numCerts = sk_CRYPTO_BUFFER_num(cchain);
     CRYPTO_BUFFER** certs = NULL;
 #else
     STACK_OF(X509) *cchain = J2P(chain, STACK_OF(X509) *);
     int numCerts = sk_X509_num(cchain);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     char err[ERR_LEN];
     int i;
@@ -2260,7 +2262,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
 
     TCN_CHECK_NULL(cchain, chain, /* void */);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     if ((certs = OPENSSL_malloc(sizeof(CRYPTO_BUFFER*) * numCerts)) == NULL) {
         tcn_Throw(e, "OPENSSL_malloc returned NULL");
         return;
@@ -2269,19 +2271,21 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
     for (i = 0; i < numCerts; i++) {
         certs[i] = sk_CRYPTO_BUFFER_value(cchain, i);
     }
+#endif
 
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     if (numCerts <= 0 || SSL_set_chain_and_key(ssl_, certs, numCerts, pkey, pkey == NULL ? &private_key_method : NULL) <= 0) {
 #else
     // SSL_use_certificate will increment the reference count of the cert.
     if (numCerts <= 0 || SSL_use_certificate(ssl_, sk_X509_value(cchain, 0)) <= 0) {
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
         ERR_error_string_n(ERR_get_error(), err, ERR_LEN);
         ERR_clear_error();
         tcn_Throw(e, "Error setting certificate (%s)", err);
     }
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     OPENSSL_free(certs);
 #else
     if (pkey != NULL) {
@@ -2313,7 +2317,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
             return;
         }
     }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 #endif
 }
@@ -2324,6 +2328,8 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterialClientSide)(TCN_STDARGS, jlong ssl, 
     tcn_Throw(e, "Not supported with LibreSSL");
 #elif defined(OPENSSL_IS_BORINGSSL)
     tcn_Throw(e, "Not supported with BoringSSL");
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported with AWS-LC");
 #else
     SSL *ssl_ = J2P(ssl, SSL *);
 
@@ -2398,13 +2404,13 @@ TCN_IMPLEMENT_CALL(void, SSL, enableOcsp)(TCN_STDARGS, jlong ssl) {
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
+#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
 
 #elif defined(TCN_OCSP_NOT_SUPPORTED)
     tcn_ThrowException(e, "OCSP stapling is not supported");
 
-#elif defined(OPENSSL_IS_BORINGSSL)
+#elif defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_enable_ocsp_stapling(ssl_);
 
 #else
@@ -2428,13 +2434,13 @@ TCN_IMPLEMENT_CALL(void, SSL, setOcspResponse)(TCN_STDARGS, jlong ssl, jbyteArra
         return;
     }
 
-#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
+#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
 
 #elif defined(TCN_OCSP_NOT_SUPPORTED)
     tcn_ThrowException(e, "OCSP stapling is not supported");
 
-#elif defined(OPENSSL_IS_BORINGSSL)
+#elif defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     uint8_t *value = OPENSSL_malloc(sizeof(uint8_t) * length);
     if (value == NULL) {
         tcn_ThrowException(e, "OPENSSL_malloc() returned null");
@@ -2479,13 +2485,13 @@ TCN_IMPLEMENT_CALL(jbyteArray, SSL, getOcspResponse)(TCN_STDARGS, jlong ssl) {
 
     TCN_CHECK_NULL(ssl_, ssl, NULL);
 
-#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
+#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
 
 #elif defined(TCN_OCSP_NOT_SUPPORTED)
     tcn_ThrowException(e, "OCSP stapling is not supported");
 
-#elif defined(OPENSSL_IS_BORINGSSL)
+#elif defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     const uint8_t *response = NULL;
     size_t length = 0;
 
@@ -2562,7 +2568,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
 // Not supported in LibreSSL
 #if defined(LIBRESSL_VERSION_NUMBER)
     return NULL;
-#elif defined(OPENSSL_IS_BORINGSSL)
+#elif defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     // Using a different API in BoringSSL
     // https://boringssl.googlesource.com/boringssl/+/ba16a1e405c617f4179bd780ad15522fb25b0a65%5E%21/
     int i;
@@ -2649,14 +2655,14 @@ complete:
     }
     return array;
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
-#endif // defined(OPENSSL_IS_BORINGSSL) || defined(LIBRESSL_VERSION_NUMBER)
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC) || defined(LIBRESSL_VERSION_NUMBER)
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, setRenegotiateMode)(TCN_STDARGS, jlong ssl, jint mode) {
     SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     tcn_Throw(e, "Not supported");
 #else
     SSL_set_renegotiate_mode(ssl_, (enum ssl_renegotiate_mode_t) mode);
