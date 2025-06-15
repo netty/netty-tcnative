@@ -1404,19 +1404,24 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
 
 static const char* authentication_method(const SSL* ssl) {
 {
-    const STACK_OF(SSL_CIPHER) *ciphers = NULL;
-
+    const SSL_CIPHER *cipher = NULL;
     switch (SSL_version(ssl))
         {
         case SSL2_VERSION:
             return SSL_TXT_RSA;
         default:
-            ciphers = SSL_get_ciphers(ssl);
-            if (ciphers == NULL || sk_SSL_CIPHER_num(ciphers) <= 0) {
+#if OPENSSL_VERSION_NUMBER > 0x10001000L
+            cipher = SSL_get_current_cipher(ssl);
+#else
+            // Directly access the struct to get the current cipher as SSL_get_current_cipher(...)
+            // does not exists prior openssl 1.1.0
+            cipher = ssl->s3->tmp.new_cipher
+            #endif
+            if (cipher == NULL) {
                 // No cipher available so return UNKNOWN.
                 return TCN_UNKNOWN_AUTH_METHOD;
             }
-            return tcn_SSL_cipher_authentication_method(sk_SSL_CIPHER_value(ciphers, 0));
+            return tcn_SSL_cipher_authentication_method(cipher);
         }
     }
 }
