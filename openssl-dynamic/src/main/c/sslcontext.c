@@ -1418,11 +1418,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
 
 static const char* authentication_method(const SSL* ssl) {
 {
-#if OPENSSL_VERSION_NUMBER <= 0x10001000L
-    const STACK_OF(SSL_CIPHER) *ciphers = NULL;
-#endif
     const SSL_CIPHER *cipher = NULL;
-
     switch (SSL_version(ssl))
         {
         case SSL2_VERSION:
@@ -1430,18 +1426,15 @@ static const char* authentication_method(const SSL* ssl) {
         default:
 #if OPENSSL_VERSION_NUMBER > 0x10001000L
             cipher = SSL_get_current_cipher(ssl);
+#else
+            // Directly access the struct to get the current cipher as SSL_get_current_cipher(...)
+            // does not exists prior openssl 1.1.0
+            cipher = ssl->s3->tmp.new_cipher
+#endif
             if (cipher == NULL) {
                 // No cipher available so return UNKNOWN.
                 return TCN_UNKNOWN_AUTH_METHOD;
             }
-#else
-            ciphers = SSL_get_ciphers(ssl);
-            if (ciphers == NULL || sk_SSL_CIPHER_num(ciphers) <= 0) {
-                // No cipher available so return UNKNOWN.
-                return TCN_UNKNOWN_AUTH_METHOD;
-            }
-            cipher = sk_SSL_CIPHER_value(ciphers, 0);
-#endif
             return tcn_SSL_cipher_authentication_method(cipher);
         }
     }
