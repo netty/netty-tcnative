@@ -74,7 +74,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLSession, upRef)(TCN_STDARGS, jlong session) {
     TCN_CHECK_NULL(session_, session, JNI_FALSE);
 
     // Only supported with GCC
-    #if !defined(OPENSSL_IS_BORINGSSL) && (defined(__GNUC__) || defined(__GNUG__))
+    #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) && (defined(__GNUC__) || defined(__GNUG__))
         if (!SSL_SESSION_up_ref) {
             return JNI_FALSE;
         }
@@ -98,13 +98,13 @@ TCN_IMPLEMENT_CALL(void, SSLSession, free)(TCN_STDARGS, jlong session) {
 
 TCN_IMPLEMENT_CALL(jboolean, SSLSession, shouldBeSingleUse)(TCN_STDARGS, jlong session) {
 // Only supported by BoringSSL atm
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_SESSION *session_ = J2P(session, SSL_SESSION *);
     TCN_CHECK_NULL(session_, session, JNI_FALSE);
     return SSL_SESSION_should_be_single_use(session_) == 0 ? JNI_FALSE : JNI_TRUE;
 #else 
     return JNI_FALSE;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 // JNI Method Registration Table Begin

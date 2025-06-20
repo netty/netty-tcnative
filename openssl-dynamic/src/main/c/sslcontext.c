@@ -75,13 +75,14 @@ static apr_status_t ssl_context_cleanup(void *data)
 
         tcn_get_java_env(&e);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         if (c->ssl_private_key_method != NULL) {
             if (e != NULL) {
                 (*e)->DeleteGlobalRef(e, c->ssl_private_key_method);
             }
             c->ssl_private_key_method = NULL;
         }
+
         if (c->ssl_cert_compression_zlib_algorithm != NULL) {
             if (e != NULL) {
                 (*e)->DeleteGlobalRef(e, c->ssl_cert_compression_zlib_algorithm);
@@ -107,7 +108,7 @@ static apr_status_t ssl_context_cleanup(void *data)
             c->keylog_callback = NULL;
         }
         c->keylog_callback_method = NULL;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
         if (c->ssl_session_cache != NULL) {
             if (e != NULL) {
@@ -186,9 +187,10 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     tcn_ssl_ctxt_t *c = NULL;
     SSL_CTX *ctx = NULL;
 
-#ifdef OPENSSL_IS_BORINGSSL
-    // When using BoringSSL we want to use CRYPTO_BUFFER to reduce memory usage and minimize overhead as we do not need
-    // X509* at all and just need the raw bytes of the certificates to construct our Java X509Certificate.
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // When using BoringSSL or AWS-LC we want to use CRYPTO_BUFFER to reduce memory usage and minimize overhead as
+    // we do not need X509* at all and just need the raw bytes of the certificates to construct our Java 
+    // X509Certificate.
     //
     // See https://github.com/google/boringssl/blob/chromium-stable/PORTING.md#crypto_buffer
     ctx = SSL_CTX_new(TLS_with_buffers_method());
@@ -340,7 +342,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         tcn_Throw(e, "Unsupported SSL protocol (%d)", protocol);
         goto cleanup;
     }
-#endif /* OPENSSL_IS_BORINGSSL */
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     if (ctx == NULL) {
         char err[ERR_LEN];
@@ -443,7 +445,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *) tcn_SSL_password_callback);
     SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *) c->password);
 
-#if defined(OPENSSL_IS_BORINGSSL)
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     if (mode != SSL_MODE_SERVER) {
         // Set this to make the behaviour consistent with openssl / libressl
         SSL_CTX_set_allow_unknown_alpn_protos(ctx, 1);
@@ -553,12 +555,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
 #else
 
     if (tlsv13 == JNI_TRUE) {
-#ifdef OPENSSL_IS_BORINGSSL
-        // BoringSSL does not support setting TLSv1.3 cipher suites explicit for now.
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+        // BoringSSL and AWS-LC do not support setting TLSv1.3 cipher suites explicit for now.
         rv = JNI_TRUE;
 #else
         rv = SSL_CTX_set_ciphersuites(c->ctx, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     } else {
         rv = SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers)) == 0 ? JNI_FALSE : JNI_TRUE;
@@ -577,8 +579,11 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
                                                                   jstring file,
                                                                   jboolean skipfirst)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL)
     tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported using AWS-LC");
     return JNI_FALSE;
 #else
 
@@ -597,15 +602,18 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
     }
     TCN_FREE_CSTRING(file);
     return rv;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defiend(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jlong ctx,
                                                                   jlong chain,
                                                                   jboolean skipfirst)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL)
     tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported using AWS-LC");
     return JNI_FALSE;
 #else
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -620,7 +628,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainBio)(TCN_STDARGS, jl
         return JNI_TRUE;
     }
     return JNI_FALSE;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCACertificateBio)(TCN_STDARGS, jlong ctx, jlong certs)
@@ -641,8 +649,8 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setNumTickets)(TCN_STDARGS, jlong ctx, 
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
 
-#ifdef OPENSSL_IS_BORINGSSL
-    // Not supported by BoringSSL 
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // Not supported by BoringSSL or AWS-LC
     return JNI_FALSE;
 #else
     // Only supported with GCC
@@ -688,7 +696,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
 #endif // OPENSSL_VERSION_NUMBER < 0x30000000L
 }
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
 {
     BIO *bio = NULL;
@@ -791,14 +799,17 @@ static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jbo
     }
 }
 
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
                                                          jstring cert, jstring key,
                                                          jstring password)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL)
     tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported using AWS-LC");
     return JNI_FALSE;
 #else
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -887,15 +898,18 @@ cleanup:
     X509_free(xcert); // this function is safe to call with NULL
     free_and_reset_pass(c, old_password, rv);
     return rv;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong ctx,
                                                          jlong cert, jlong key,
                                                          jstring password)
 {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL)
     tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported using AWS-LC");
     return JNI_FALSE;
 #else
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -975,7 +989,7 @@ cleanup:
     X509_free(xcert); // this function is safe to call with NULL
     free_and_reset_pass(c, old_password, rv);
     return rv;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos0)(TCN_STDARGS, jlong ctx, jbyteArray next_protos,
@@ -1006,7 +1020,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos0)(TCN_STDARGS, jlong ctx, jby
         jint selectorFailureBehavior)
 {
     // Only supported with GCC
-    #if !defined(OPENSSL_IS_BORINGSSL) && (defined(__GNUC__) || defined(__GNUG__))
+    #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) && (defined(__GNUC__) || defined(__GNUG__))
         if (!SSL_CTX_set_alpn_protos || !SSL_CTX_set_alpn_select_cb) {
             return;
         }
@@ -1416,7 +1430,7 @@ static const char* authentication_method(const SSL* ssl) {
             // Directly access the struct to get the current cipher as SSL_get_current_cipher(...)
             // does not exists prior openssl 1.1.0
             cipher = ssl->s3->tmp.new_cipher
-            #endif
+#endif
             if (cipher == NULL) {
                 // No cipher available so return UNKNOWN.
                 return TCN_UNKNOWN_AUTH_METHOD;
@@ -1467,7 +1481,7 @@ static STACK_OF(X509)* X509_STORE_CTX_get0_untrusted(X509_STORE_CTX *ctx) {
 }
 #endif
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 static jbyteArray get_certs(JNIEnv *e, SSL* ssl, const STACK_OF(CRYPTO_BUFFER)* chain) {
     CRYPTO_BUFFER *cert = NULL;
     const int totalQueuedLength = sk_CRYPTO_BUFFER_num(chain);
@@ -1476,7 +1490,7 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
     X509 *cert = NULL;
     unsigned char *buf = NULL;
     const int totalQueuedLength = sk_X509_num(chain);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl);
     TCN_ASSERT(state != NULL);
@@ -1501,13 +1515,13 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
 
     for(i = 0; i < len; i++) {
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         cert = sk_CRYPTO_BUFFER_value(chain, i);
         length = CRYPTO_BUFFER_len(cert);
 #else
         cert = sk_X509_value(chain, i);
         length = i2d_X509(cert, &buf);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
         if (length <= 0 || (bArray = (*e)->NewByteArray(e, length)) == NULL) {
             NETTY_JNI_UTIL_DELETE_LOCAL(e, array);
@@ -1515,14 +1529,14 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
             goto complete;
         }
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) CRYPTO_BUFFER_data(cert));
 #else
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
 
         OPENSSL_free(buf);
         buf = NULL;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
         // Delete the local reference as we not know how long the chain is and local references are otherwise
@@ -1533,10 +1547,10 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
 
 complete:
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     // We need to delete the local references so we not leak memory as this method is called via callback.
     OPENSSL_free(buf);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
     // Delete the local reference as we not know how long the chain is and local references are otherwise
     // only freed once jni method returns.
@@ -1544,7 +1558,7 @@ complete:
     return array;
 }
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 // See https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_cert_verify_callback.html for return values.
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
@@ -1628,7 +1642,7 @@ complete:
     ret = result == X509_V_OK ? 1 : 0;
     return ret;
 }
-#else // OPENSSL_IS_BORINGSSL
+#else // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert) {
     enum ssl_verify_result_t ret = ssl_verify_invalid;
@@ -1747,7 +1761,7 @@ complete:
     }
     return ret;
 }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint level, jint depth)
@@ -1757,7 +1771,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint lev
     TCN_CHECK_NULL(c, ctx, /* void */);
 
     int mode = tcn_set_verify_config(&c->verify_config, level, depth);
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     if (c->verifier != NULL) {
         SSL_CTX_set_custom_verify(c->ctx, mode, tcn_SSL_cert_custom_verify);
     }
@@ -1765,7 +1779,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setVerify)(TCN_STDARGS, jlong ctx, jint lev
     // No need to set the callback for SSL_CTX_set_verify because we override the default certificate verification via SSL_CTX_set_cert_verify_callback.
     SSL_CTX_set_verify(c->ctx, mode, NULL);
     SSL_CTX_set_verify_depth(c->ctx, c->verify_config.verify_depth);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong ctx, jobject verifier)
@@ -1778,11 +1792,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
     if (verifier == NULL) {
         c->verifier = NULL;
         c->verifier_method = NULL;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         SSL_CTX_set_custom_verify(c->ctx, SSL_VERIFY_NONE, NULL);
 #else
         SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     } else {
         jclass verifier_class = (*e)->GetObjectClass(e, verifier);
         jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)I");
@@ -1800,12 +1814,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
         c->verifier = v;
         c->verifier_method = method;
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         SSL_CTX_set_custom_verify(c->ctx, tcn_set_verify_config(&c->verify_config, c->verify_config.verify_mode,
                  c->verify_config.verify_depth), tcn_SSL_cert_custom_verify);
 #else
         SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, NULL);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
         // Delete the reference to the previous specified verifier if needed.
         if (oldVerifier != NULL) {
@@ -1836,14 +1850,14 @@ static jbyteArray keyTypes(JNIEnv* e, SSL* ssl) {
  * Partly based on code from conscrypt:
  * https://android.googlesource.com/platform/external/conscrypt/+/master/src/main/native/org_conscrypt_NativeCrypto.cpp
  */
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(CRYPTO_BUFFER)* names) {
     CRYPTO_BUFFER* principal = NULL;
 #else
 static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) {
     unsigned char *buf = NULL;
     X509_NAME* principal = NULL;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     jobjectArray array = NULL;
     jbyteArray bArray = NULL;;
     int i;
@@ -1856,11 +1870,11 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
         return NULL;
     }
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     count = sk_CRYPTO_BUFFER_num(names);
 #else
     count = sk_X509_NAME_num(names);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     if (count <= 0) {
         return NULL;
@@ -1871,7 +1885,7 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
     }
 
     for (i = 0; i < count; i++) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         principal = sk_CRYPTO_BUFFER_value(names, i);
         length = CRYPTO_BUFFER_len(principal);
 #else
@@ -1885,11 +1899,11 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
             // In case of error just return an empty byte[][]
             return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
         }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
         bArray = (*e)->NewByteArray(e, length);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
          if (bArray == NULL) {
              return NULL;
          }
@@ -1902,7 +1916,7 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
         OPENSSL_free(buf);
         buf = NULL;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
@@ -1915,7 +1929,7 @@ static jobjectArray principalBytes(JNIEnv* e, const STACK_OF(X509_NAME)* names) 
 }
 #endif // LIBRESSL_VERSION_NUMBER
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 #if defined(LIBRESSL_VERSION_NUMBER)
     // Not supported with LibreSSL
@@ -1954,7 +1968,7 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     return 1;
 #endif /* defined(LIBRESSL_VERSION_NUMBER) */
 }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlong ctx, jobject callback)
 {
@@ -1962,8 +1976,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL)
     tcn_Throw(e, "Not supported using BoringSSL");
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported using AWS-LC");
 #else
     jobject oldCallback = c->cert_requested_callback;
     if (callback == NULL) {
@@ -2042,11 +2058,11 @@ static int certificate_cb(SSL* ssl, void* arg) {
     } else {
         types = keyTypes(e, ssl);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         issuers = principalBytes(e, SSL_get0_server_requested_CAs(ssl));
 #else
         issuers = principalBytes(e, SSL_get_client_CA_list(ssl));
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     }
 
     int ret = 0;
@@ -2091,7 +2107,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
 
 // Use weak linking with GCC as this will alow us to run the same packaged version with multiple
 // version of openssl.
-#if !defined(OPENSSL_IS_BORINGSSL) && (defined(__GNUC__) || defined(__GNUG__))
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) && (defined(__GNUC__) || defined(__GNUG__))
     if (!SSL_CTX_set_cert_cb) {
         tcn_ThrowException(e, "Requires OpenSSL 1.0.2+");
         return;
@@ -2141,7 +2157,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertificateCallback)(TCN_STDARGS, jlong 
 }
 
 // Support for SSL_PRIVATE_KEY_METHOD.
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t *out, size_t *out_len, size_t max_out, uint16_t signature_algorithm, const uint8_t *in, size_t in_len) {
     enum ssl_private_key_result_t ret = ssl_private_key_failure;
@@ -2338,14 +2354,14 @@ const SSL_PRIVATE_KEY_METHOD private_key_method = {
     &tcn_private_key_decrypt_java,
     &tcn_private_key_complete_java
 };
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 
 TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod0)(TCN_STDARGS, jlong ctx, jobject method) {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, /* void */);
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     char* name = NULL;
     char* combinedName = NULL;
 
@@ -2403,7 +2419,7 @@ error:
     free(combinedName);
 #else
     tcn_ThrowException(e, "Requires BoringSSL");
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 static int tcn_new_session_cb(SSL *ssl, SSL_SESSION *session) {
@@ -2595,7 +2611,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
     }
 }
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 static void keylog_cb(const SSL* ssl, const char *line) {
     if (line == NULL) {
         return;
@@ -2630,7 +2646,7 @@ static void keylog_cb(const SSL* ssl, const char *line) {
     (*e)->CallVoidMethod(e, state->ctx->keylog_callback, state->ctx->keylog_callback_method,
                 P2J(ssl), outputLine);
 }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setKeyLogCallback)(TCN_STDARGS, jlong ctx, jobject callback)
 {
@@ -2638,7 +2654,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setKeyLogCallback)(TCN_STDARGS, jlong c
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     jobject oldCallback = c->keylog_callback;
     if (callback == NULL) {
         c->keylog_callback = NULL;
@@ -2672,7 +2688,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setKeyLogCallback)(TCN_STDARGS, jlong c
     return JNI_TRUE;
 #else
     return JNI_FALSE;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong ctx, jbyteArray sidCtx)
@@ -2728,7 +2744,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, getSslCtx)(TCN_STDARGS, jlong ctx)
 }
 
 
-#if !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 static const int OCSP_CLIENT_ACK = 1;
 static const int OCSP_SERVER_ACK = SSL_TLSEXT_ERR_OK;
@@ -2747,7 +2763,7 @@ static int openssl_ocsp_callback(SSL *ssl, void *arg) {
     return *(const int*)arg;
 }
 
-#endif /* !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL) */
+#endif /* !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) */
 
 /**
  * Enables OCSP stapling for the given SSLContext
@@ -2758,13 +2774,13 @@ TCN_IMPLEMENT_CALL(void, SSLContext, enableOcsp)(TCN_STDARGS, jlong ctx, jboolea
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL)
+#if defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     tcn_ThrowException(e, "netty-tcnative was built without OCSP support");
 
 #elif defined(TCN_OCSP_NOT_SUPPORTED)
     tcn_ThrowException(e, "OCSP stapling is not supported");
 
-#elif !defined(OPENSSL_IS_BORINGSSL)
+#elif !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     //
     // The client and server use slightly different return values to signal
     // error and success to OpenSSL. We're going to do something naughty to
@@ -2795,7 +2811,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, disableOcsp)(TCN_STDARGS, jlong ctx) {
     TCN_CHECK_NULL(c, ctx, /* void */);
 
 // This does nothing in BoringSSL
-#if !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(OPENSSL_NO_OCSP) && !defined(TCN_OCSP_NOT_SUPPORTED) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     SSL_CTX_set_tlsext_status_cb(c->ctx, NULL);
     SSL_CTX_set_tlsext_status_arg(c->ctx, NULL);
 #endif
@@ -2845,7 +2861,7 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
         return 0;
     }
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     jclass algorithmClass = (*e)->GetObjectClass(e, algorithm);
     if (algorithmClass == NULL) {
@@ -2925,7 +2941,7 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
 #else
     tcn_Throw(e, "TLS Cert Compression only supported by BoringSSL");
     return 0;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 // JNI Method Registration Table Begin
