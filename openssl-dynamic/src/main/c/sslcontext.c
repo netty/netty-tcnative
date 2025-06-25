@@ -39,6 +39,11 @@
 #include "sslcontext.h"
 #include "cert_compress.h"
 
+// SSL_CREDENTIAL is a BoringSSL-specific feature
+#ifdef OPENSSL_IS_BORINGSSL
+#include <openssl/ssl_credential.h>
+#endif
+
 #define SSLCONTEXT_CLASSNAME "io/netty/internal/tcnative/SSLContext"
 
 static jweak    sslTask_class_weak;
@@ -1489,7 +1494,7 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
     jbyteArray bArray = NULL;
     jclass byteArrayClass = tcn_get_byte_array_class();
 
-    // Create the byte[][] array that holds all the certs
+    // Create the byte[][] array that holds all the certs
     if ((array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL)) == NULL) {
         return NULL;
     }
@@ -2923,6 +2928,29 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
 #endif // OPENSSL_IS_BORINGSSL
 }
 
+TCN_IMPLEMENT_CALL(jint, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlong cred) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    TCN_CHECK_NULL(c, ctx, 0);
+    
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
+    if (credential == NULL) {
+        tcn_ThrowNullPointerException(e, "SSL_CREDENTIAL pointer is null");
+        return 0;
+    }
+    
+    int result = SSL_CTX_add1_credential(c->ctx, credential);
+    if (result == 0) {
+        tcn_Throw(e, "Failed to add credential to SSL_CTX");
+        return 0;
+    }
+    return 1;
+#else
+    tcn_Throw(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
+    return 0;
+#endif // OPENSSL_IS_BORINGSSL
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(make, (II)J, SSLContext) },
@@ -2982,7 +3010,8 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCurvesList0, (JLjava/lang/String;)Z, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(setMaxCertList, (JI)V, SSLContext) }
+  { TCN_METHOD_TABLE_ENTRY(setMaxCertList, (JI)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)I, SSLContext) }
   // addCertificateCompressionAlgorithm0 --> needs dynamic method table
 };
 

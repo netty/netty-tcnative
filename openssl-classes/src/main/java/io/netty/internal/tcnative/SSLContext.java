@@ -774,4 +774,18 @@ public final class SSLContext {
      * @param size the maximum number of bytes
      */
     public static native void setMaxCertList(long ctx, int size);
+
+    /**
+     * Add an SSL_CREDENTIAL to the SSL_CTX instance.
+     * 
+     * <p>This is a BoringSSL-specific feature. See 
+     * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CTX_add1_credential">SSL_CTX_add1_credential</a>
+     * for detailed documentation.</p>
+     * 
+     * @param ctx the SSL_CTX instance (SSL_CTX *)
+     * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
+     * @return {@code 1} if successful, {@code 0} otherwise
+     * @throws Exception if an error occurred
+     */
+    public static native int addCredential(long ctx, long cred) throws Exception;
 }

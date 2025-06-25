@@ -19,4 +19,8 @@
 // JNI initialization hooks. Users of this file are responsible for calling these in the JNI_OnLoad and JNI_OnUnload methods.
 jint netty_internal_tcnative_SSL_JNI_OnLoad(JNIEnv* env, const char* packagePrefix);
 void netty_internal_tcnative_SSL_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix);
+
+// SSL credential management
+JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSL_addCredential(JNIEnv*, jclass, jlong, jlong);
+
 #endif /* NETTY_TCNATIVE_SSL_H_ */
