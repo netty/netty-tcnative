@@ -45,10 +45,7 @@
 #include "ssl_private.h"
 #include "ssl.h"
 
-// SSL_CREDENTIAL is a BoringSSL-specific feature
-#ifdef OPENSSL_IS_BORINGSSL
-#include <openssl/ssl_credential.h>
-#endif
+
 
 #define SSL_CLASSNAME  "io/netty/internal/tcnative/SSL"
 

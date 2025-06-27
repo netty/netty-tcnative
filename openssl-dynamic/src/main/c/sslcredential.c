@@ -22,10 +22,6 @@
 #include <openssl/x509.h>
 #include <openssl/err.h>
 
-// SSL_CREDENTIAL is a BoringSSL-specific feature
-#ifdef OPENSSL_IS_BORINGSSL
-#include <openssl/ssl_credential.h>
-#endif
 
 #include "tcn.h"
 #include "ssl_private.h"

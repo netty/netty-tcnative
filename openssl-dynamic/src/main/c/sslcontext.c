@@ -39,10 +39,7 @@
 #include "sslcontext.h"
 #include "cert_compress.h"
 
-// SSL_CREDENTIAL is a BoringSSL-specific feature
-#ifdef OPENSSL_IS_BORINGSSL
-#include <openssl/ssl_credential.h>
-#endif
+
 
 #define SSLCONTEXT_CLASSNAME "io/netty/internal/tcnative/SSLContext"
 
