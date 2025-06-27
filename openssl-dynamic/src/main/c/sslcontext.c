@@ -585,6 +585,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateChainFile)(TCN_STDARGS, j
 #elif defined(OPENSSL_IS_AWSLC)
     tcn_Throw(e, "Not supported using AWS-LC");
     return JNI_FALSE;
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported using AWS-LC");
+    return JNI_FALSE;
 #else
 
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -697,7 +700,8 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
 }
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
-static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file) {
+static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
+{
     BIO *bio = NULL;
     EVP_PKEY *key = NULL;
 
@@ -806,6 +810,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
 {
 #if defined(OPENSSL_IS_BORINGSSL)
     tcn_Throw(e, "Not supported using BoringSSL");
+    return JNI_FALSE;
+#elif defined(OPENSSL_IS_AWSLC)
+    tcn_Throw(e, "Not supported using AWS-LC");
     return JNI_FALSE;
 #elif defined(OPENSSL_IS_AWSLC)
     tcn_Throw(e, "Not supported using AWS-LC");
