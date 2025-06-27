@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.71.Final-SNAPSHOT</version>
+    <version>2.0.73.Final-SNAPSHOT</version>
   </parent>
   <artifactId>netty-tcnative-boringssl-static</artifactId>
   <packaging>jar</packaging>
@@ -88,11 +88,11 @@
     <linkStatic>true</linkStatic>
     <compileLibrary>true</compileLibrary>
     <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
-    <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto</msvcSslLibDirs>
+    <msvcSslLibDirs>${boringsslHome}</msvcSslLibDirs>
     <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
     <cflags>-Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
     <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
-    <ldflags>-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
+    <ldflags>-L${boringsslHome} -lssl -lcrypto</ldflags>
     <skipJapicmp>true</skipJapicmp>
     <!-- We need to use the same module name for all our "native" impls as only one should be loaded -->
     <javaModuleName>${javaDefaultModuleName}</javaModuleName>
@@ -121,8 +121,8 @@
         <boringsslBranch>853ca1ea1168dff08011e5d42d94609cc0ca2e27</boringsslBranch>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
-        <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
+        <msvcSslLibDirs>${boringsslBuildDir}</msvcSslLibDirs>
+        <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
         <jniArch>${os.detected.arch}</jniArch>
       </properties>
 
@@ -219,9 +219,9 @@
                             <then>
                               <!-- On *nix, add ASM flags to disable executable stack -->
                               <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                              <property name="cmakeCFlags" value="-std=c99 -O3 -fno-omit-frame-pointer" />
+                              <property name="cmakeCFlags" value="-w -std=c99 -O3 -fno-omit-frame-pointer" />
                               <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
-                              <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
+                              <property name="cmakeCxxFlags" value="-w -O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
                             </then>
                           </elseif>
                           <else>
@@ -376,7 +376,7 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir}/ssl -L${boringsslBuildDir}/crypto -L${boringsslBuildDir}/decrepit -ldecrepit -lssl -lcrypto</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
@@ -510,9 +510,9 @@
                             <then>
                               <!-- On *nix, add ASM flags to disable executable stack -->
                               <property name="cmakeAsmFlags" value="-Wa,--noexecstack" />
-                              <property name="cmakeCFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=stringop-overflow" />
+                              <property name="cmakeCFlags" value="-w -O3 -fno-omit-frame-pointer -Wno-error=stringop-overflow" />
                               <!-- We need to define __STDC_CONSTANT_MACROS and __STDC_FORMAT_MACROS when building boringssl on centos 6 -->
-                              <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
+                              <property name="cmakeCxxFlags" value="-w -O3 -fno-omit-frame-pointer -Wno-error=maybe-uninitialized -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
                             </then>
                           </elseif>
                           <else>
@@ -579,7 +579,7 @@
                     <if>
                       <equals arg1="${os.detected.name}" arg2="linux" />
                       <then>
-                        <property name="hawtjniLdflags" value="-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto -static-libstdc++ -l:libstdc++.a" />
+                        <property name="hawtjniLdflags" value="-L${boringsslHome} -lssl -lcrypto -static-libstdc++ -l:libstdc++.a" />
                       </then>
                       <else>
                         <property name="hawtjniLdflags" value="${ldflags}" />
@@ -702,7 +702,7 @@
         <boringsslHome>${boringsslSourceDir}/build</boringsslHome>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslSourceDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslHome}/ssl;${boringsslHome}/crypto</msvcSslLibDirs>
+        <msvcSslLibDirs>${boringsslHome}</msvcSslLibDirs>
         <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-aarch_64.jar</nativeJarFile>
@@ -1014,7 +1014,7 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslSourceDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto -static-libstdc++ -l:libstdc++.a</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslHome} -lssl -lcrypto -static-libstdc++ -l:libstdc++.a</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
                     <configureArg>CC=aarch64-none-linux-gnu-gcc</configureArg>
                   </configureArgs>
@@ -1050,14 +1050,6 @@
         <linkStatic>false</linkStatic>
         <compileLibrary>false</compileLibrary>
       </properties>
-
-      <repositories>
-        <repository>
-          <id>staged-releases</id>
-          <name>Staged Releases</name>
-          <url>https://oss.sonatype.org/service/local/repositories/${stagingRepositoryId}/content/</url>
-        </repository>
-      </repositories>
 
       <dependencies>
         <dependency>
@@ -1153,7 +1145,18 @@
           <version>${project.version}</version>
           <classifier>linux-aarch_64</classifier>
         </dependency>
-        <!-- Don't include osx as we dont deploy snapshots atm -->
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-tcnative-boringssl-static</artifactId>
+          <version>${project.version}</version>
+          <classifier>osx-x86_64</classifier>
+        </dependency>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-tcnative-boringssl-static</artifactId>
+          <version>${project.version}</version>
+          <classifier>osx-aarch_64</classifier>
+        </dependency>
         <dependency>
           <groupId>io.netty</groupId>
           <artifactId>netty-tcnative-boringssl-static</artifactId>
@@ -1461,7 +1464,7 @@
         <cmakeCxxFlags>-O3 -fno-omit-frame-pointer -target ${target} -Wno-error=range-loop-analysis</cmakeCxxFlags>
         <cflags>-target ${target} -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value -O3</cflags>
         <cppflags>-target ${target} -DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
-        <ldflags>-arch x86_64 -L${boringsslHome}/ssl -L${boringsslHome}/crypto -lssl -lcrypto</ldflags>
+        <ldflags>-arch x86_64 -L${boringsslHome} -lssl -lcrypto</ldflags>
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
         <nativeJarFile>${project.build.directory}/${project.build.finalName}-${os.detected.name}-x86_64.jar</nativeJarFile>
         <nativeLibOsParts>${os.detected.name}_x86_64</nativeLibOsParts>

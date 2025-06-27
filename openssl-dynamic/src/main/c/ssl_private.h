@@ -188,8 +188,8 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define TCN_X509_V_ERR_UNSPECIFIED (X509_V_ERR_UNSPECIFIED)
 #endif /*X509_V_ERR_UNSPECIFIED*/
 
-// BoringSSL compat
-#ifndef OPENSSL_IS_BORINGSSL
+// BoringSSL and AWS-LC compat
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 #ifndef SSL_ERROR_WANT_PRIVATE_KEY_OPERATION
 #define SSL_ERROR_WANT_PRIVATE_KEY_OPERATION -1
 #endif // SSL_ERROR_WANT_PRIVATE_KEY_OPERATION
@@ -251,7 +251,7 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define SSL_SIGN_RSA_PKCS1_MD5_SHA1 0xff01
 #endif // SSL_SIGN_RSA_PKCS1_MD5_SHA1
 
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 // OCSP stapling should be present in OpenSSL as of version 1.0.0 but
 // we've only tested 1.0.2 and we need to support 1.0.1 because the
@@ -306,9 +306,9 @@ typedef struct {
     int verify_mode;
 } tcn_ssl_verify_config_t;
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 extern const SSL_PRIVATE_KEY_METHOD private_key_method;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 struct tcn_ssl_ctxt_t {
     apr_pool_t*              pool;
@@ -341,7 +341,7 @@ struct tcn_ssl_ctxt_t {
     jmethodID                ssl_session_cache_creation_method;
     jmethodID                ssl_session_cache_get_method;
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     jobject                  ssl_private_key_method;
     jmethodID                ssl_private_key_sign_method;
     jmethodID                ssl_private_key_decrypt_method;
@@ -360,7 +360,7 @@ struct tcn_ssl_ctxt_t {
 
     jobject                  keylog_callback;
     jmethodID                keylog_callback_method;
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     tcn_ssl_verify_config_t  verify_config;
 
@@ -446,10 +446,10 @@ int         tcn_SSL_CTX_use_certificate_chain(SSL_CTX *, const char *, bool);
 int         tcn_SSL_CTX_use_certificate_chain_bio(SSL_CTX *, BIO *, bool);
 int         tcn_SSL_CTX_use_client_CA_bio(SSL_CTX *, BIO *);
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 X509        *tcn_load_pem_cert_bio(const char *, const BIO *);
 int         tcn_SSL_use_certificate_chain_bio(SSL *, BIO *, bool);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 EVP_PKEY    *tcn_load_pem_key_bio(const char *, const BIO *);
 int         tcn_set_verify_config(tcn_ssl_verify_config_t* c, jint tcn_mode, jint depth);
@@ -460,16 +460,16 @@ int         tcn_SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned
 int         tcn_SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert);
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 #if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) || LIBRESSL_VERSION_NUMBER >= 0x2090200fL
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 #define tcn_SSL_add1_chain_cert(ssl, x509) SSL_add1_chain_cert(ssl, x509)
 #define tcn_SSL_add0_chain_cert(ssl, x509) SSL_add0_chain_cert(ssl, x509)
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 #define tcn_SSL_get0_certificate_types(ssl, clist) SSL_get0_certificate_types(ssl, clist)
 #else
@@ -477,11 +477,11 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 #define tcn_SSL_add1_chain_cert(ssl, x509) SSL_ctrl(ssl, SSL_CTRL_CHAIN_CERT, 1, (char *) x509)
 #define tcn_SSL_add0_chain_cert(ssl, x509) SSL_ctrl(ssl, SSL_CTRL_CHAIN_CERT, 0, (char *) x509)
 #define tcn_SSL_get0_certificate_types(ssl, clist) SSL_ctrl(ssl, SSL_CTRL_GET_CLIENT_CERT_TYPES, 0, (char *)(clist))
-#endif // defined(OPENSSL_IS_BORINGSSL) || (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER))
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC) || (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER))
 
 #if defined(__GNUC__) || defined(__GNUG__)
     // only supported with GCC, this will be used to support different openssl versions at the same time.
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     extern int SSL_CTX_set_alpn_protos(SSL_CTX *ctx, const unsigned char *protos,
            unsigned protos_len) __attribute__((weak));
     extern void SSL_CTX_set_alpn_select_cb(SSL_CTX *ctx, int (*cb) (SSL *ssl, const unsigned char **out,
@@ -496,12 +496,12 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     extern int X509_VERIFY_PARAM_set1_host(X509_VERIFY_PARAM *param, const char *name, size_t namelen) __attribute__((weak));
     extern int SSL_CTX_set_num_tickets(SSL_CTX *ctx, size_t num_tickets) __attribute__((weak));
     extern int SSL_SESSION_up_ref(SSL_SESSION *session) __attribute__((weak));
-#endif // OPENSSL_IS_BORINGSSL
+#endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
     extern int SSL_get_sigalgs(SSL *s, int idx, int *psign, int *phash, int *psignhash, unsigned char *rsig, unsigned char *rhash) __attribute__((weak));
 #endif
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 #define tcn_SSL_CTX_set1_curves_list(ctx, s) SSL_CTX_set1_curves_list(ctx, s)
 #define tcn_SSL_set1_curves_list(ssl, s) SSL_set1_curves_list(ssl, s)
 #define tcn_SSL_set1_curves(ssl, clist, clistlen) SSL_set1_curves(ssl, clist, clistlen)
@@ -515,6 +515,6 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 #define tcn_SSL_CTX_set1_curves_list(ctx, s) SSL_CTX_ctrl(ctx, SSL_CTRL_SET_GROUPS_LIST, 0, (char *)(s))
 #define tcn_SSL_set1_curves_list(s, str) SSL_ctrl(s, SSL_CTRL_SET_GROUPS_LIST, 0, (char *)(str))
 #define tcn_SSL_set1_curves(s, glist, glistlen) SSL_ctrl(s, SSL_CTRL_SET_GROUPS, glistlen,(char *)(glist))
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 #endif /* SSL_PRIVATE_H */

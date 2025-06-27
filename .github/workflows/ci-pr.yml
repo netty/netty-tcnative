@@ -13,6 +13,12 @@ permissions:
 env:
   MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240
 
+# Cancel running jobs when a new push happens to the same branch as otherwise it will
+# tie up too many resources without providing much value.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-pr:
     runs-on: ubuntu-latest
@@ -29,6 +35,9 @@ jobs:
           - setup: centos7-aarch64
             docker-compose-build: "-f docker/docker-compose.centos-7.yaml build"
             docker-compose-run: "-f docker/docker-compose.centos-7.yaml run cross-compile-aarch64-build"
+          - setup: al2023-x86_64-aws_lc
+            docker-compose-build: "-f docker/docker-compose.al2023.yaml build"
+            docker-compose-run: "-f docker/docker-compose.al2023.yaml run build"
 
     name: ${{ matrix.setup }}
     steps:
@@ -68,7 +77,7 @@ jobs:
             **/hs_err*.log
 
   build-pr-windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     name: windows-x86_64
     steps:
       - uses: actions/checkout@v4
@@ -115,6 +124,59 @@ jobs:
         if: ${{ failure() }}
         with:
           name: build-pr-windows-target
+          path: |
+            **/target/surefire-reports/
+            **/hs_err*.log
+
+  build-pr-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - setup: macos-x86_64
+            os: macos-13
+          - setup: macos-aarch64
+            os: macos-15
+
+    runs-on: ${{ matrix.os }}
+    name:  ${{ matrix.setup }} build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '8'
+
+      # Cache .m2/repository
+      # Caching of maven dependencies
+      - uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: ~/.m2/repository
+          key: pr-${{ matrix.setup }}-maven-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            pr-${{ matrix.setup }}-maven-cache-
+
+      - name: Install tools via brew
+        run: brew bundle
+
+      - name: Build project
+        run: ./mvnw -B -ntp --file pom.xml -am -pl openssl-dynamic,boringssl-static clean package
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: build-pr-${{ matrix.setup }}-jars
+          path: |
+            **/target/*.jar
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: build-pr-${{ matrix.setup }}-target
           path: |
             **/target/surefire-reports/
             **/hs_err*.log

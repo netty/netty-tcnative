@@ -24,7 +24,7 @@
 
   <groupId>io.netty</groupId>
   <artifactId>netty-tcnative-parent</artifactId>
-  <version>2.0.71.Final-SNAPSHOT</version>
+  <version>2.0.73.Final-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Netty/TomcatNative [Parent]</name>
@@ -64,6 +64,14 @@
     </license>
   </licenses>
 
+  <distributionManagement>
+    <snapshotRepository>
+      <name>Central Portal Snapshots</name>
+      <id>central-portal-snapshots</id>
+      <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <properties>
     <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
     <checkstyle.skip>true</checkstyle.skip>
@@ -87,9 +95,9 @@
     <aprSha256>3375fa365d67bcf945e52b52cba07abea57ef530f40b281ffbe977a9251361db</aprSha256>
     <boringsslBranch>main</boringsslBranch>
     <!--
-      See https://boringssl.googlesource.com/boringssl/+/refs/heads/master for the latest commit
+      See https://boringssl.googlesource.com/boringssl/+/refs/heads/main for the latest commit
     -->
-    <boringsslCommitSha>b8c97f5b4bc5d4758612a0430e5c2792d0f9ca7f</boringsslCommitSha>
+    <boringsslCommitSha>cccf8525db8a57153d3cb3e22efed2db4b71a8ab</boringsslCommitSha>
     <libresslVersion>3.4.3</libresslVersion>
     <!--
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
@@ -101,6 +109,7 @@
     <opensslSha256>5d2be4036b478ef3cb0a854ca9b353072c3a0e26d8a56f8f0ab9fb6ed32d38d7</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
+    <aprBuildDir>${project.build.directory}/apr-build</aprBuildDir>
     <archBits>64</archBits>
     <linkStatic>false</linkStatic>
     <crossCompile>false</crossCompile>
@@ -488,6 +497,26 @@
           <autoVersionSubmodules>true</autoVersionSubmodules>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <version>0.7.0</version>
+        <configuration>
+          <publishingServerId>central</publishingServerId>
+          <skipPublishing>true</skipPublishing>
+          <autoPublish>false</autoPublish>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.7.0</version>
+        <configuration>
+          <serverId>central-portal-snapshots</serverId>
+          <nexusUrl>https://central.sonatype.com/repository/maven-snapshots</nexusUrl>
+          <skipRemoteStaging>true</skipRemoteStaging>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
@@ -536,14 +565,6 @@
           <family>windows</family>
         </os>
       </activation>
-      <properties>
-        <!--
-          We use APR 1.6.5 on windows as 1.7.0 doesn't compile anymore on the platforms we support
-          See also https://programmersought.com/article/94732742066/
-        -->
-        <aprVersion>1.6.5</aprVersion>
-        <aprSha256>70dcf9102066a2ff2ffc47e93c289c8e54c95d8dda23b503f9e61bb0cbd2d105</aprSha256>
-      </properties>
       <build>
         <plugins>
           <plugin>
@@ -598,25 +619,38 @@
                       </then>
                       <else>
                         <echo message="Building APR" />
+                        <mkdir dir="${aprBuildDir}" />
 
-                        <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
-                          <equals arg1="${archBits}" arg2="32" />
-                        </condition>
-                        <echo message="archBits=${archBits}. Using windowsRelease=${windowsRelease}" />
+                        <exec executable="cmake" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_BUILD_TYPE=RELEASE" />
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
+                          <arg value="-DCMAKE_POLICY_VERSION_MINIMUM=3.5" />
+                          <arg value="-DCMAKE_INSTALL_PREFIX=apr" />
+                          <arg value="-DAPR_BUILD_SHARED=OFF" />
+                          <arg value="-DMIN_WINDOWS_VER=0x0600" />
+                          <arg value="-GNinja" />
+                          <arg value="${aprSourceDir}" />
+                        </exec>
+
                         <!-- On Windows, force building APR with /MT for static linking -->
-                        <replace dir="${aprSourceDir}" token="/MD" value="/MT">
-                          <include name="*.mak" />
+                        <replace dir="${aprBuildDir}" token="/MD" value="/MT">
+                          <include name="build.ninja" />
                         </replace>
-                        <retry retrycount="3">
-                          <exec executable="nmake" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                            <arg line="/f Makefile.win ARCH=&quot;${windowsRelease}&quot; PREFIX=..\apr buildall install" />
-                          </exec>
-                        </retry>
+
+                        <exec executable="ninja" failonerror="true" dir="${aprBuildDir}" resolveexecutable="true" />
+
+                        <copy todir="${aprHome}/lib">
+                          <fileset dir="${aprBuildDir}/" includes="*.lib" />
+                        </copy>
+                        <copy todir="${aprHome}/include">
+                          <fileset dir="${aprBuildDir}/" includes="*.h" />
+                        </copy>
                         <copy todir="${aprHome}/include">
                           <fileset dir="${aprSourceDir}/include/arch/win32" includes="*.h" />
                         </copy>
-                        <copy todir="${aprHome}">
-                          <fileset dir="${aprSourceDir}/include/arch" includes="*.h" />
+                        <copy todir="${aprHome}/include">
+                          <fileset dir="${aprSourceDir}/include" includes="*.h" />
                         </copy>
                       </else>
                     </if>

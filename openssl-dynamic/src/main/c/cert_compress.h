@@ -17,7 +17,7 @@
 #ifndef NETTY_TCNATIVE_CERT_COMPRESS_H_
 #define NETTY_TCNATIVE_CERT_COMPRESS_H_
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 int zlib_decompress_java(SSL* ssl, CRYPTO_BUFFER** out, size_t uncompressed_len, const uint8_t* in, size_t in_len);
 int zlib_compress_java(SSL* ssl, CBB* out, const uint8_t* in, size_t in_len);
@@ -28,6 +28,6 @@ int brotli_compress_java(SSL* ssl, CBB* out, const uint8_t* in, size_t in_len);
 int zstd_decompress_java(SSL* ssl, CRYPTO_BUFFER** out, size_t uncompressed_len, const uint8_t* in, size_t in_len);
 int zstd_compress_java(SSL* ssl, CBB* out, const uint8_t* in, size_t in_len);
 
-#endif // OPENSSL_IS_BORINGSSL
+#endif // OPENSSL_IS_AWSLC
 
 #endif /* NETTY_TCNATIVE_CERT_COMPRESS_H_ */
