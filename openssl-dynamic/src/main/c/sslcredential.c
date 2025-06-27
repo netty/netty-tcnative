@@ -37,7 +37,7 @@
 #ifdef OPENSSL_IS_BORINGSSL
 static void throw_openssl_error(JNIEnv* env, const char* msg) {
     unsigned long err = ERR_get_error();
-    char err_buf[256];
+    char err_buf[ERR_LEN] = {0};
     ERR_error_string_n(err, err_buf, sizeof(err_buf));
     tcn_Throw(env, "%s: %s", msg, err_buf);
 }
@@ -46,7 +46,7 @@ static void throw_openssl_error(JNIEnv* env, const char* msg) {
 static void throw_unsupported_operation(JNIEnv* env, const char* operation) {
     jclass exceptionClass = (*env)->FindClass(env, "java/lang/UnsupportedOperationException");
     if (exceptionClass != NULL) {
-        char message[256];
+        char message[ERR_LEN] = {0};
         snprintf(message, sizeof(message), 
                 "%s is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.", 
                 operation);
