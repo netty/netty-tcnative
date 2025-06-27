@@ -2934,10 +2934,7 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlon
     
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (credential == NULL) {
-        tcn_ThrowNullPointerException(e, "SSL_CREDENTIAL pointer is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(credential, cred, 0);
     
     int result = SSL_CTX_add1_credential(c->ctx, credential);
     if (result == 0) {
