@@ -48,20 +48,14 @@ static void throw_openssl_error(JNIEnv* env, const char* msg) {
 JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newX509(
     JNIEnv* env, jclass clazz) {
     SSL_CREDENTIAL* cred = SSL_CREDENTIAL_new_x509();
-    if (cred == NULL) {
-        throw_openssl_error(env, "Failed to create SSL_CREDENTIAL");
-        return 0;
-    }
+    TCN_CHECK_NULL(cred, credential, 0);
     return (jlong)(intptr_t)cred;
 }
 
 JNIEXPORT void JNICALL Java_io_netty_internal_tcnative_SSLCredential_upRef(
     JNIEnv* env, jclass clazz, jlong cred) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return;
-    }
+    TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_up_ref(c);
 }
 
@@ -79,10 +73,8 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setPriv
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     EVP_PKEY* pkey = (EVP_PKEY*)(intptr_t)key;
     
-    if (c == NULL || pkey == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL or EVP_PKEY pointer is null");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(c, credential, JNI_FALSE);
+    TCN_CHECK_NULL(pkey, privateKey, JNI_FALSE);
 
     if (SSL_CREDENTIAL_set1_private_key(c, pkey) == 0) {
         throw_openssl_error(env, "Failed to set private key");
@@ -94,15 +86,8 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setPriv
 JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCertChain(
     JNIEnv* env, jclass clazz, jlong cred, jlongArray certs) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return JNI_FALSE;
-    }
-
-    if (certs == NULL) {
-        tcn_Throw(env, "Certificate array is null");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(c, credential, JNI_FALSE);
+    TCN_CHECK_NULL(certs, certificateArray, JNI_FALSE);
 
     jsize len = (*env)->GetArrayLength(env, certs);
     if (len == 0) {
@@ -111,10 +96,7 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCert
     }
 
     CRYPTO_BUFFER** cert_buffers = OPENSSL_malloc(sizeof(CRYPTO_BUFFER*) * len);
-    if (cert_buffers == NULL) {
-        tcn_Throw(env, "Failed to allocate memory for certificate chain");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(cert_buffers, certificateBuffers, JNI_FALSE);
 
     jlong* certs_elems = (*env)->GetLongArrayElements(env, certs, NULL);
     if (certs_elems == NULL) {
@@ -142,15 +124,8 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCert
 JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setOcspResponse(
     JNIEnv* env, jclass clazz, jlong cred, jbyteArray ocsp) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return JNI_FALSE;
-    }
-
-    if (ocsp == NULL) {
-        tcn_Throw(env, "OCSP data is null");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(c, credential, JNI_FALSE);
+    TCN_CHECK_NULL(ocsp, ocspData, JNI_FALSE);
 
     jsize len = (*env)->GetArrayLength(env, ocsp);
     jbyte* ocsp_data = (*env)->GetByteArrayElements(env, ocsp, NULL);
@@ -161,10 +136,7 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setOcsp
     CRYPTO_BUFFER* ocsp_buffer = CRYPTO_BUFFER_new((const uint8_t*)ocsp_data, len, NULL);
     (*env)->ReleaseByteArrayElements(env, ocsp, ocsp_data, JNI_ABORT);
 
-    if (ocsp_buffer == NULL) {
-        tcn_Throw(env, "Failed to create OCSP buffer");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(ocsp_buffer, ocspBuffer, JNI_FALSE);
 
     int result = SSL_CREDENTIAL_set1_ocsp_response(c, ocsp_buffer);
     CRYPTO_BUFFER_free(ocsp_buffer);
@@ -179,15 +151,8 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setOcsp
 JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSigningAlgorithmPrefs(
     JNIEnv* env, jclass clazz, jlong cred, jintArray prefs) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return JNI_FALSE;
-    }
-
-    if (prefs == NULL) {
-        tcn_Throw(env, "Preferences array is null");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(c, credential, JNI_FALSE);
+    TCN_CHECK_NULL(prefs, preferencesArray, JNI_FALSE);
 
     jsize len = (*env)->GetArrayLength(env, prefs);
     if (len == 0) {
@@ -196,10 +161,7 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSign
     }
 
     uint16_t* native_prefs = OPENSSL_malloc(sizeof(uint16_t) * len);
-    if (native_prefs == NULL) {
-        tcn_Throw(env, "Failed to allocate memory for signing algorithm preferences");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(native_prefs, signingAlgorithmPrefs, JNI_FALSE);
 
     jint* prefs_data = (*env)->GetIntArrayElements(env, prefs, NULL);
     if (prefs_data == NULL) {
@@ -227,15 +189,8 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSign
 JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCertificateProperties(
     JNIEnv* env, jclass clazz, jlong cred, jbyteArray cert_props) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return JNI_FALSE;
-    }
-
-    if (cert_props == NULL) {
-        tcn_Throw(env, "Certificate properties is null");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(c, credential, JNI_FALSE);
+    TCN_CHECK_NULL(cert_props, certificateProperties, JNI_FALSE);
 
     jsize len = (*env)->GetArrayLength(env, cert_props);
     jbyte* props_data = (*env)->GetByteArrayElements(env, cert_props, NULL);
@@ -246,10 +201,7 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCert
     CRYPTO_BUFFER* props_buffer = CRYPTO_BUFFER_new((const uint8_t*)props_data, len, NULL);
     (*env)->ReleaseByteArrayElements(env, cert_props, props_data, JNI_ABORT);
 
-    if (props_buffer == NULL) {
-        tcn_Throw(env, "Failed to create certificate properties buffer");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(props_buffer, certificatePropertiesBuffer, JNI_FALSE);
 
     int result = SSL_CREDENTIAL_set1_certificate_properties(c, props_buffer);
     CRYPTO_BUFFER_free(props_buffer);
@@ -264,15 +216,8 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCert
 JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSignedCertTimestampList(
     JNIEnv* env, jclass clazz, jlong cred, jbyteArray sct_list) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return JNI_FALSE;
-    }
-
-    if (sct_list == NULL) {
-        tcn_Throw(env, "SCT list is null");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(c, credential, JNI_FALSE);
+    TCN_CHECK_NULL(sct_list, sctList, JNI_FALSE);
 
     jsize len = (*env)->GetArrayLength(env, sct_list);
     jbyte* sct_data = (*env)->GetByteArrayElements(env, sct_list, NULL);
@@ -283,10 +228,7 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSign
     CRYPTO_BUFFER* sct_buffer = CRYPTO_BUFFER_new((const uint8_t*)sct_data, len, NULL);
     (*env)->ReleaseByteArrayElements(env, sct_list, sct_data, JNI_ABORT);
 
-    if (sct_buffer == NULL) {
-        tcn_Throw(env, "Failed to create SCT buffer");
-        return JNI_FALSE;
-    }
+    TCN_CHECK_NULL(sct_buffer, sctBuffer, JNI_FALSE);
 
     int result = SSL_CREDENTIAL_set1_signed_cert_timestamp_list(c, sct_buffer);
     CRYPTO_BUFFER_free(sct_buffer);
@@ -301,10 +243,7 @@ JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSign
 JNIEXPORT void JNICALL Java_io_netty_internal_tcnative_SSLCredential_setMustMatchIssuer(
     JNIEnv* env, jclass clazz, jlong cred, jboolean match) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return;
-    }
+    TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_set_must_match_issuer(c, match == JNI_TRUE ? 1 : 0);
 }
 
@@ -314,10 +253,8 @@ JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setPrivateK
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     const SSL_PRIVATE_KEY_METHOD* m = (const SSL_PRIVATE_KEY_METHOD*)(intptr_t)method;
     
-    if (c == NULL || m == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL or SSL_PRIVATE_KEY_METHOD pointer is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(c, credential, 0);
+    TCN_CHECK_NULL(m, privateKeyMethod, 0);
 
     return SSL_CREDENTIAL_set_private_key_method(c, m);
 }
@@ -326,15 +263,8 @@ JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setPrivateK
 JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setTrustAnchorId(
     JNIEnv* env, jclass clazz, jlong cred, jbyteArray id) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return 0;
-    }
-
-    if (id == NULL) {
-        tcn_Throw(env, "Trust anchor ID is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(c, credential, 0);
+    TCN_CHECK_NULL(id, trustAnchorId, 0);
 
     jsize len = (*env)->GetArrayLength(env, id);
     jbyte* id_data = (*env)->GetByteArrayElements(env, id, NULL);
@@ -356,20 +286,14 @@ JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setTrustAnc
 JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setExData(
     JNIEnv* env, jclass clazz, jlong cred, jint idx, jlong arg) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(c, credential, 0);
     return SSL_CREDENTIAL_set_ex_data(c, idx, (void*)(intptr_t)arg);
 }
 
 JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_getExData(
     JNIEnv* env, jclass clazz, jlong cred, jint idx) {
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
-    if (c == NULL) {
-        tcn_Throw(env, "SSL_CREDENTIAL pointer is null");
-        return 0;
-    }
+    TCN_CHECK_NULL(c, credential, 0);
     return (jlong)(intptr_t)SSL_CREDENTIAL_get_ex_data(c, idx);
 }
 
