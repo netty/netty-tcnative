@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.71.Final-SNAPSHOT</version>
+    <version>2.0.73.Final-SNAPSHOT</version>
   </parent>
   <artifactId>netty-tcnative-classes</artifactId>
   <packaging>jar</packaging>
@@ -35,4 +35,22 @@
     <linkStatic>false</linkStatic>
     <javaModuleName>io.netty.tcnative.classes.openssl</javaModuleName>
   </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.3.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

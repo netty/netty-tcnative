@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.71.Final-SNAPSHOT</version>
+    <version>2.0.73.Final-SNAPSHOT</version>
   </parent>
   <artifactId>netty-tcnative-libressl-static</artifactId>
   <packaging>jar</packaging>
@@ -345,6 +345,7 @@
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
                           <arg value="-DCMAKE_C_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer -fPIC" />
+                          <arg value="-DCMAKE_POLICY_VERSION_MINIMUM=3.5" />
                           <arg value="${cmakeOsxDeploymentTarget}" />
                           <arg value="-GNinja" />
                           <arg value="${libresslSourceDir}" />
