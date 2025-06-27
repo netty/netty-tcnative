@@ -33,6 +33,63 @@
 
 #define SSLCREDENTIAL_CLASSNAME "io/netty/internal/tcnative/SSLCredential"
 
+// Forward declarations for all JNI functions
+JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newX509(JNIEnv* env, jclass clazz);
+JNIEXPORT void JNICALL Java_io_netty_internal_tcnative_SSLCredential_upRef(JNIEnv* env, jclass clazz, jlong cred);
+JNIEXPORT void JNICALL Java_io_netty_internal_tcnative_SSLCredential_free(JNIEnv* env, jclass clazz, jlong cred);
+JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setPrivateKey(JNIEnv* env, jclass clazz, jlong cred, jlong key);
+JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCertChain(JNIEnv* env, jclass clazz, jlong cred, jlongArray certs);
+JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setOcspResponse(JNIEnv* env, jclass clazz, jlong cred, jbyteArray ocsp);
+JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSigningAlgorithmPrefs(JNIEnv* env, jclass clazz, jlong cred, jintArray prefs);
+JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCertificateProperties(JNIEnv* env, jclass clazz, jlong cred, jbyteArray cert_props);
+JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSignedCertTimestampList(JNIEnv* env, jclass clazz, jlong cred, jbyteArray sct_list);
+JNIEXPORT void JNICALL Java_io_netty_internal_tcnative_SSLCredential_setMustMatchIssuer(JNIEnv* env, jclass clazz, jlong cred, jboolean match);
+JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setPrivateKeyMethod(JNIEnv* env, jclass clazz, jlong cred, jlong method);
+JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setTrustAnchorId(JNIEnv* env, jclass clazz, jlong cred, jbyteArray id);
+JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setExData(JNIEnv* env, jclass clazz, jlong cred, jint idx, jlong arg);
+JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_getExData(JNIEnv* env, jclass clazz, jlong cred, jint idx);
+JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_getExNewIndex(JNIEnv* env, jclass clazz, jlong argl, jlong argp, jlong free_func);
+JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newDelegated(JNIEnv* env, jclass clazz);
+JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setDelegatedCredential(JNIEnv* env, jclass clazz, jlong cred, jbyteArray dc);
+JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Client(JNIEnv* env, jclass clazz, jbyteArray identity, jbyteArray password);
+JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Server(JNIEnv* env, jclass clazz, jbyteArray identity, jbyteArray password);
+
+// JNI Method Registration Table - same for both BoringSSL and non-BoringSSL builds
+static const JNINativeMethod methods[] = {
+    // Core functions
+    { "newX509", "()J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newX509 },
+    { "upRef", "(J)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_upRef },
+    { "free", "(J)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_free },
+    
+    // Configuration
+    { "setPrivateKey", "(JJ)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setPrivateKey },
+    { "setCertChain", "(J[J)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setCertChain },
+    { "setOcspResponse", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setOcspResponse },
+    { "setSigningAlgorithmPrefs", "(J[I)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setSigningAlgorithmPrefs },
+    { "setCertificateProperties", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setCertificateProperties },
+    { "setSignedCertTimestampList", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setSignedCertTimestampList },
+    { "setMustMatchIssuer", "(JZ)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_setMustMatchIssuer },
+    
+    // Private key methods
+    { "setPrivateKeyMethod", "(JJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setPrivateKeyMethod },
+    
+    // Trust anchor configuration
+    { "setTrustAnchorId", "(J[B)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setTrustAnchorId },
+    
+    // Ex data support
+    { "setExData", "(JIJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setExData },
+    { "getExData", "(JI)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_getExData },
+    { "getExNewIndex", "(JJJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_getExNewIndex },
+    
+    // Delegated credentials
+    { "newDelegated", "()J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newDelegated },
+    { "setDelegatedCredential", "(J[B)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setDelegatedCredential },
+
+    // SPAKE2+ support
+    { "newSpake2PlusV1Client", "([B[B)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Client },
+    { "newSpake2PlusV1Server", "([B[B)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Server },
+};
+
 // SSL_CREDENTIAL is a BoringSSL-specific feature
 #ifdef OPENSSL_IS_BORINGSSL
 
@@ -329,52 +386,6 @@ JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newSpake2P
     return 0;
 }
 
-// JNI initialization
-static const JNINativeMethod methods[] = {
-    // Core functions
-    { "newX509", "()J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newX509 },
-    { "upRef", "(J)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_upRef },
-    { "free", "(J)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_free },
-    
-    // Configuration
-    { "setPrivateKey", "(JJ)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setPrivateKey },
-    { "setCertChain", "(J[J)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setCertChain },
-    { "setOcspResponse", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setOcspResponse },
-    { "setSigningAlgorithmPrefs", "(J[I)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setSigningAlgorithmPrefs },
-    { "setCertificateProperties", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setCertificateProperties },
-    { "setSignedCertTimestampList", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setSignedCertTimestampList },
-    { "setMustMatchIssuer", "(JZ)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_setMustMatchIssuer },
-    
-    // Private key methods
-    { "setPrivateKeyMethod", "(JJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setPrivateKeyMethod },
-    
-    // Trust anchor configuration
-    { "setTrustAnchorId", "(J[B)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setTrustAnchorId },
-    
-    // Ex data support
-    { "setExData", "(JIJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setExData },
-    { "getExData", "(JI)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_getExData },
-    { "getExNewIndex", "(JJJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_getExNewIndex },
-    
-    // Delegated credentials
-    { "newDelegated", "()J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newDelegated },
-    { "setDelegatedCredential", "(J[B)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setDelegatedCredential },
-
-    // SPAKE2+ support
-    { "newSpake2PlusV1Client", "([B[B)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Client },
-    { "newSpake2PlusV1Server", "([B[B)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Server },
-};
-
-JNIEXPORT jint JNICALL netty_internal_tcnative_SSLCREDENTIAL_JNI_OnLoad(
-    JNIEnv* env, const char* packagePrefix) {
-    return netty_jni_util_register_natives(env, packagePrefix, SSLCREDENTIAL_CLASSNAME, methods, sizeof(methods) / sizeof(methods[0]));
-}
-
-JNIEXPORT void JNICALL netty_internal_tcnative_SSLCREDENTIAL_JNI_OnUnLoad(
-    JNIEnv* env, const char* packagePrefix) {
-    netty_jni_util_unregister_natives(env, packagePrefix, SSLCREDENTIAL_CLASSNAME);
-}
-
 #else // !OPENSSL_IS_BORINGSSL
 
 // Stub implementations for non-BoringSSL builds
@@ -503,29 +514,9 @@ JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newSpake2P
     return 0;
 }
 
-// JNI registration for non-BoringSSL builds
-static const JNINativeMethod methods[] = {
-    { "newX509", "()J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newX509 },
-    { "upRef", "(J)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_upRef },
-    { "free", "(J)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_free },
-    { "setPrivateKey", "(JJ)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setPrivateKey },
-    { "setCertChain", "(J[J)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setCertChain },
-    { "setOcspResponse", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setOcspResponse },
-    { "setSigningAlgorithmPrefs", "(J[I)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setSigningAlgorithmPrefs },
-    { "setCertificateProperties", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setCertificateProperties },
-    { "setSignedCertTimestampList", "(J[B)Z", (void*)Java_io_netty_internal_tcnative_SSLCredential_setSignedCertTimestampList },
-    { "setMustMatchIssuer", "(JZ)V", (void*)Java_io_netty_internal_tcnative_SSLCredential_setMustMatchIssuer },
-    { "setPrivateKeyMethod", "(JJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setPrivateKeyMethod },
-    { "setTrustAnchorId", "(J[B)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setTrustAnchorId },
-    { "setExData", "(JIJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setExData },
-    { "getExData", "(JI)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_getExData },
-    { "getExNewIndex", "(JJJ)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_getExNewIndex },
-    { "newDelegated", "()J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newDelegated },
-    { "setDelegatedCredential", "(J[B)I", (void*)Java_io_netty_internal_tcnative_SSLCredential_setDelegatedCredential },
-    { "newSpake2PlusV1Client", "([B[B)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Client },
-    { "newSpake2PlusV1Server", "([B[B)J", (void*)Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Server },
-};
+#endif // OPENSSL_IS_BORINGSSL
 
+// JNI registration functions - same for both BoringSSL and non-BoringSSL builds
 JNIEXPORT jint JNICALL netty_internal_tcnative_SSLCREDENTIAL_JNI_OnLoad(
     JNIEnv* env, const char* packagePrefix) {
     return netty_jni_util_register_natives(env, packagePrefix, SSLCREDENTIAL_CLASSNAME, methods, sizeof(methods) / sizeof(methods[0]));
@@ -535,5 +526,3 @@ JNIEXPORT void JNICALL netty_internal_tcnative_SSLCREDENTIAL_JNI_OnUnLoad(
     JNIEnv* env, const char* packagePrefix) {
     netty_jni_util_unregister_natives(env, packagePrefix, SSLCREDENTIAL_CLASSNAME);
 }
-
-#endif // OPENSSL_IS_BORINGSSL
