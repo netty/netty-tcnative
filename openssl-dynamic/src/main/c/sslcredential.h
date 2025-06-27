@@ -27,39 +27,6 @@ extern "C" {
 jint netty_internal_tcnative_SSLCredential_JNI_OnLoad(JNIEnv* env, const char* packagePrefix);
 void netty_internal_tcnative_SSLCredential_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix);
 
-// Core SSL_CREDENTIAL functions
-JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newX509(JNIEnv*, jclass);
-JNIEXPORT void JNICALL Java_io_netty_internal_tcnative_SSLCredential_upRef(JNIEnv*, jclass, jlong);
-JNIEXPORT void JNICALL Java_io_netty_internal_tcnative_SSLCredential_free(JNIEnv*, jclass, jlong);
-
-// SSL_CREDENTIAL configuration methods
-JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setPrivateKey(JNIEnv*, jclass, jlong, jlong);
-JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCertChain(JNIEnv*, jclass, jlong, jlongArray);
-JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setOcspResponse(JNIEnv*, jclass, jlong, jbyteArray);
-JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSigningAlgorithmPrefs(JNIEnv*, jclass, jlong, jintArray);
-JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setCertificateProperties(JNIEnv*, jclass, jlong, jbyteArray);
-JNIEXPORT jboolean JNICALL Java_io_netty_internal_tcnative_SSLCredential_setSignedCertTimestampList(JNIEnv*, jclass, jlong, jbyteArray);
-JNIEXPORT void JNICALL Java_io_netty_internal_tcnative_SSLCredential_setMustMatchIssuer(JNIEnv*, jclass, jlong, jboolean);
-
-// Private key methods
-JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setPrivateKeyMethod(JNIEnv*, jclass, jlong, jlong);
-
-// Trust anchor configuration
-JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setTrustAnchorId(JNIEnv*, jclass, jlong, jbyteArray);
-
-// Ex data support
-JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setExData(JNIEnv*, jclass, jlong, jint, jlong);
-JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_getExData(JNIEnv*, jclass, jlong, jint);
-JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_getExNewIndex(JNIEnv*, jclass, jlong, jlong, jlong);
-
-// Delegated credentials
-JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newDelegated(JNIEnv*, jclass);
-JNIEXPORT jint JNICALL Java_io_netty_internal_tcnative_SSLCredential_setDelegatedCredential(JNIEnv*, jclass, jlong, jbyteArray);
-
-// SPAKE2+ support
-JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Client(JNIEnv*, jclass, jbyteArray, jbyteArray);
-JNIEXPORT jlong JNICALL Java_io_netty_internal_tcnative_SSLCredential_newSpake2PlusV1Server(JNIEnv*, jclass, jbyteArray, jbyteArray);
-
 #ifdef __cplusplus
 }
 #endif
