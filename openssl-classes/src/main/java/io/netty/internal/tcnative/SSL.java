@@ -980,10 +980,9 @@ public final class SSL {
      * 
      * @param ssl the SSL instance (SSL *)
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @return {@code 1} if successful, {@code 0} otherwise
      * @throws Exception if an error occurred
      */
-    public static native int addCredential(long ssl, long cred) throws Exception;
+    public static native void addCredential(long ssl, long cred) throws Exception;
 
     /**
      * Get the selected credential from an SSL instance.

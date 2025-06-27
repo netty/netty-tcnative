@@ -784,8 +784,7 @@ public final class SSLContext {
      * 
      * @param ctx the SSL_CTX instance (SSL_CTX *)
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @return {@code 1} if successful, {@code 0} otherwise
      * @throws Exception if an error occurred
      */
-    public static native int addCredential(long ctx, long cred) throws Exception;
+    public static native void addCredential(long ctx, long cred) throws Exception;
 }

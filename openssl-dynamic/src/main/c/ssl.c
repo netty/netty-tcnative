@@ -2668,23 +2668,21 @@ TCN_IMPLEMENT_CALL(void, SSL, setRenegotiateMode)(TCN_STDARGS, jlong ssl, jint m
 #endif
 }
 
-TCN_IMPLEMENT_CALL(jint, SSL, addCredential)(TCN_STDARGS, jlong ssl, jlong cred) {
+TCN_IMPLEMENT_CALL(void, SSL, addCredential)(TCN_STDARGS, jlong ssl, jlong cred) {
     SSL *ssl_ = J2P(ssl, SSL *);
-    TCN_CHECK_NULL(ssl_, ssl, 0);
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
     
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
-    TCN_CHECK_NULL(credential, cred, 0);
+    TCN_CHECK_NULL(credential, credential, /* void */);
     
     int result = SSL_add1_credential(ssl_, credential);
     if (result == 0) {
         tcn_Throw(e, "Failed to add credential to SSL");
-        return 0;
+        return;
     }
-    return 1;
 #else
     tcn_Throw(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
-    return 0;
 #endif // OPENSSL_IS_BORINGSSL
 }
 
@@ -2782,7 +2780,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getSession, (J)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(isSessionReused, (J)Z, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setRenegotiateMode, (JI)V, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)I, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getSelectedCredential, (J)J, SSL) }
 };
 

@@ -79,10 +79,9 @@ public final class SSLCredential {
      * 
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @param key the private key (EVP_PKEY *)
-     * @return {@code true} if successful, {@code false} otherwise
      * @throws Exception if an error occurred
      */
-    public static native boolean setPrivateKey(long cred, long key) throws Exception;
+    public static native void setPrivateKey(long cred, long key) throws Exception;
 
     /**
      * Set the certificate chain for an SSL_CREDENTIAL.
@@ -93,10 +92,9 @@ public final class SSLCredential {
      * 
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @param chain the certificate chain (STACK_OF(X509) *)
-     * @return {@code true} if successful, {@code false} otherwise
      * @throws Exception if an error occurred
      */
-    public static native boolean setCertChain(long cred, long[] chain) throws Exception;
+    public static native void setCertChain(long cred, long[] chain) throws Exception;
 
     /**
      * Set the OCSP response for an SSL_CREDENTIAL.
@@ -107,10 +105,9 @@ public final class SSLCredential {
      * 
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @param response the OCSP response bytes
-     * @return {@code true} if successful, {@code false} otherwise
      * @throws Exception if an error occurred
      */
-    public static native boolean setOcspResponse(long cred, byte[] response) throws Exception;
+    public static native void setOcspResponse(long cred, byte[] response) throws Exception;
 
     /**
      * Set the signing algorithm preferences for an SSL_CREDENTIAL.
@@ -121,10 +118,9 @@ public final class SSLCredential {
      * 
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @param prefs the signing algorithm preferences
-     * @return {@code true} if successful, {@code false} otherwise
      * @throws Exception if an error occurred
      */
-    public static native boolean setSigningAlgorithmPrefs(long cred, int[] prefs) throws Exception;
+    public static native void setSigningAlgorithmPrefs(long cred, int[] prefs) throws Exception;
 
     /**
      * Set the certificate properties for an SSL_CREDENTIAL.
@@ -135,10 +131,9 @@ public final class SSLCredential {
      * 
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @param properties the certificate properties
-     * @return {@code true} if successful, {@code false} otherwise
      * @throws Exception if an error occurred
      */
-    public static native boolean setCertificateProperties(long cred, byte[] properties) throws Exception;
+    public static native void setCertificateProperties(long cred, byte[] properties) throws Exception;
 
     /**
      * Set the signed certificate timestamp list for an SSL_CREDENTIAL.
@@ -149,10 +144,9 @@ public final class SSLCredential {
      * 
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @param sctList the signed certificate timestamp list
-     * @return {@code true} if successful, {@code false} otherwise
      * @throws Exception if an error occurred
      */
-    public static native boolean setSignedCertTimestampList(long cred, byte[] sctList) throws Exception;
+    public static native void setSignedCertTimestampList(long cred, byte[] sctList) throws Exception;
 
     /**
      * Set whether the issuer must match for an SSL_CREDENTIAL.
@@ -167,19 +161,7 @@ public final class SSLCredential {
      */
     public static native void setMustMatchIssuer(long cred, boolean mustMatch) throws Exception;
 
-    /**
-     * Set the private key method for an SSL_CREDENTIAL.
-     * 
-     * <p>This is a BoringSSL-specific feature that allows custom private key operations. See 
-     * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CREDENTIAL_set_private_key_method">SSL_CREDENTIAL_set_private_key_method</a>
-     * for detailed documentation.</p>
-     * 
-     * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @param method the private key method (SSL_PRIVATE_KEY_METHOD *)
-     * @return {@code 1} if successful, {@code 0} otherwise
-     * @throws Exception if an error occurred
-     */
-    public static native int setPrivateKeyMethod(long cred, long method) throws Exception;
+
 
     /**
      * Set the trust anchor ID for an SSL_CREDENTIAL.
@@ -190,54 +172,11 @@ public final class SSLCredential {
      * 
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @param id the trust anchor ID
-     * @return {@code 1} if successful, {@code 0} otherwise
      * @throws Exception if an error occurred
      */
-    public static native int setTrustAnchorId(long cred, byte[] id) throws Exception;
+    public static native void setTrustAnchorId(long cred, byte[] id) throws Exception;
 
-    /**
-     * Set external data for an SSL_CREDENTIAL.
-     * 
-     * <p>This is a BoringSSL-specific feature for storing application-specific data. See 
-     * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CREDENTIAL_set_ex_data">SSL_CREDENTIAL_set_ex_data</a>
-     * for detailed documentation.</p>
-     * 
-     * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @param idx the index
-     * @param data the external data
-     * @return {@code 1} if successful, {@code 0} otherwise
-     * @throws Exception if an error occurred
-     */
-    public static native int setExData(long cred, int idx, long data) throws Exception;
 
-    /**
-     * Get external data from an SSL_CREDENTIAL.
-     * 
-     * <p>This is a BoringSSL-specific feature for retrieving application-specific data. See 
-     * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CREDENTIAL_get_ex_data">SSL_CREDENTIAL_get_ex_data</a>
-     * for detailed documentation.</p>
-     * 
-     * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @param idx the index
-     * @return the external data
-     * @throws Exception if an error occurred
-     */
-    public static native long getExData(long cred, int idx) throws Exception;
-
-    /**
-     * Get a new external data index for an SSL_CREDENTIAL.
-     * 
-     * <p>This is a BoringSSL-specific feature for external data management. See 
-     * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CREDENTIAL_get_ex_new_index">SSL_CREDENTIAL_get_ex_new_index</a>
-     * for detailed documentation.</p>
-     * 
-     * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @param arg1 first argument
-     * @param arg2 second argument
-     * @return the new external data index
-     * @throws Exception if an error occurred
-     */
-    public static native int getExNewIndex(long cred, long arg1, long arg2) throws Exception;
 
     /**
      * Create a new delegated SSL_CREDENTIAL.
@@ -260,36 +199,9 @@ public final class SSLCredential {
      * 
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @param delegatedCred the delegated credential bytes
-     * @return {@code 1} if successful, {@code 0} otherwise
      * @throws Exception if an error occurred
      */
-    public static native int setDelegatedCredential(long cred, byte[] delegatedCred) throws Exception;
+    public static native void setDelegatedCredential(long cred, byte[] delegatedCred) throws Exception;
 
-    /**
-     * Create a new SPAKE2+ V1 client SSL_CREDENTIAL.
-     * 
-     * <p>This is a BoringSSL-specific feature for SPAKE2+ password-authenticated key exchange. See 
-     * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CREDENTIAL_new_spake2plusv1_client">SSL_CREDENTIAL_new_spake2plusv1_client</a>
-     * for detailed documentation.</p>
-     * 
-     * @param password the password
-     * @param identity the identity
-     * @return the SPAKE2+ V1 client SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @throws Exception if an error occurred
-     */
-    public static native long newSpake2PlusV1Client(byte[] password, byte[] identity) throws Exception;
 
-    /**
-     * Create a new SPAKE2+ V1 server SSL_CREDENTIAL.
-     * 
-     * <p>This is a BoringSSL-specific feature for SPAKE2+ password-authenticated key exchange. See 
-     * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CREDENTIAL_new_spake2plusv1_server">SSL_CREDENTIAL_new_spake2plusv1_server</a>
-     * for detailed documentation.</p>
-     * 
-     * @param password the password
-     * @param identity the identity
-     * @return the SPAKE2+ V1 server SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @throws Exception if an error occurred
-     */
-    public static native long newSpake2PlusV1Server(byte[] password, byte[] identity) throws Exception;
 } 

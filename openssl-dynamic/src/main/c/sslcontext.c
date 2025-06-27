@@ -694,8 +694,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setTmpDHLength)(TCN_STDARGS, jlong ctx, jin
 }
 
 #ifndef OPENSSL_IS_BORINGSSL
-static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
-{
+static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file) {
     BIO *bio = NULL;
     EVP_PKEY *key = NULL;
 
@@ -2928,23 +2927,21 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
 #endif // OPENSSL_IS_BORINGSSL
 }
 
-TCN_IMPLEMENT_CALL(jint, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlong cred) {
+TCN_IMPLEMENT_CALL(void, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlong cred) {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    TCN_CHECK_NULL(c, ctx, 0);
+    TCN_CHECK_NULL(c, ctx, /* void */);
     
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
-    TCN_CHECK_NULL(credential, cred, 0);
+    TCN_CHECK_NULL(credential, credential, /* void */);
     
     int result = SSL_CTX_add1_credential(c->ctx, credential);
     if (result == 0) {
         tcn_Throw(e, "Failed to add credential to SSL_CTX");
-        return 0;
+        return;
     }
-    return 1;
 #else
     tcn_Throw(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
-    return 0;
 #endif // OPENSSL_IS_BORINGSSL
 }
 
@@ -3008,7 +3005,7 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCurvesList0, (JLjava/lang/String;)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setMaxCertList, (JI)V, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)I, SSLContext) }
+  { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)V, SSLContext) }
   // addCertificateCompressionAlgorithm0 --> needs dynamic method table
 };
 
