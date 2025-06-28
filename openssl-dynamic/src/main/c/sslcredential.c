@@ -278,8 +278,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setMustMatchIssuer)(TCN_STDARGS, jlong c
 #endif
 }
 
-
-
 // Trust anchor configuration
 TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cred, jbyteArray id) {
 #ifdef OPENSSL_IS_BORINGSSL
