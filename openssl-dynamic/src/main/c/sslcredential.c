@@ -303,8 +303,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cre
 #endif
 }
 
-
-
 // Delegated credentials
 TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
 #ifdef OPENSSL_IS_BORINGSSL
