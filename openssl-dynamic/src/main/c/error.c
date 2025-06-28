@@ -35,6 +35,7 @@
 static jclass exceptionClass;
 static jclass nullPointerExceptionClass;
 static jclass illegalArgumentExceptionClass;
+static jclass unsupportedOperationExceptionClass;
 static jclass oomeClass;
 
 
@@ -54,6 +55,11 @@ void tcn_ThrowNullPointerException(JNIEnv *env, const char *msg)
 void tcn_ThrowIllegalArgumentException(JNIEnv *env, const char *msg)
 {
     (*env)->ThrowNew(env, illegalArgumentExceptionClass, msg);
+}
+
+void tcn_ThrowUnsupportedOperationException(JNIEnv *env, const char *msg)
+{
+    (*env)->ThrowNew(env, unsupportedOperationExceptionClass, msg);
 }
 
 void tcn_Throw(JNIEnv *env, const char *fmt, ...)
@@ -86,6 +92,7 @@ jint netty_internal_tcnative_Error_JNI_OnLoad(JNIEnv* env, const char* packagePr
     NETTY_JNI_UTIL_LOAD_CLASS(env, exceptionClass, "java/lang/Exception", error);
     NETTY_JNI_UTIL_LOAD_CLASS(env, nullPointerExceptionClass, "java/lang/NullPointerException", error);
     NETTY_JNI_UTIL_LOAD_CLASS(env, illegalArgumentExceptionClass, "java/lang/IllegalArgumentException", error);
+    NETTY_JNI_UTIL_LOAD_CLASS(env, unsupportedOperationExceptionClass, "java/lang/UnsupportedOperationException", error);
     NETTY_JNI_UTIL_LOAD_CLASS(env, oomeClass, "java/lang/OutOfMemoryError", error);
     return NETTY_JNI_UTIL_JNI_VERSION;
 error:
@@ -96,5 +103,6 @@ void netty_internal_tcnative_Error_JNI_OnUnLoad(JNIEnv* env, const char* package
      NETTY_JNI_UTIL_UNLOAD_CLASS(env, exceptionClass);
      NETTY_JNI_UTIL_UNLOAD_CLASS(env, nullPointerExceptionClass);
      NETTY_JNI_UTIL_UNLOAD_CLASS(env, illegalArgumentExceptionClass);
+     NETTY_JNI_UTIL_UNLOAD_CLASS(env, unsupportedOperationExceptionClass);
      NETTY_JNI_UTIL_UNLOAD_CLASS(env, oomeClass);
  }

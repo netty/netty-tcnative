@@ -2957,7 +2957,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlon
         tcn_Throw(e, "Failed to add credential to SSL_CTX");
     }
 #else
-    tcn_Throw(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
 #endif // OPENSSL_IS_BORINGSSL
 }
 
