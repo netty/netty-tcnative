@@ -45,8 +45,6 @@
 #include "ssl_private.h"
 #include "ssl.h"
 
-
-
 #define SSL_CLASSNAME  "io/netty/internal/tcnative/SSL"
 
 static int ssl_initialized = 0;
