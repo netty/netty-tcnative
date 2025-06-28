@@ -2682,7 +2682,6 @@ TCN_IMPLEMENT_CALL(void, SSL, addCredential)(TCN_STDARGS, jlong ssl, jlong cred)
     int result = SSL_add1_credential(ssl_, credential);
     if (result == 0) {
         tcn_Throw(e, "Failed to add credential to SSL");
-        return;
     }
 #else
     tcn_Throw(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
