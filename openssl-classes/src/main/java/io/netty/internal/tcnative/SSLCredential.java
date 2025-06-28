@@ -174,8 +174,6 @@ public final class SSLCredential {
      */
     public static native void setTrustAnchorId(long cred, byte[] id) throws Exception;
 
-
-
     /**
      * Create a new delegated SSL_CREDENTIAL.
      * 
