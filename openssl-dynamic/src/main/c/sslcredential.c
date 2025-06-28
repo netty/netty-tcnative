@@ -228,7 +228,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, j
 
     if (result == 0) {
         throw_openssl_error(e, "Failed to set certificate properties");
-        return;
     }
 #else
     throw_unsupported_operation(e, "SSL_CREDENTIAL_set1_certificate_properties");
