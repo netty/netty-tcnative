@@ -200,7 +200,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, j
 
     if (result == 0) {
         throw_openssl_error(e, "Failed to set signing algorithm preferences");
-        return;
     }
 #else
     throw_unsupported_operation(e, "SSL_CREDENTIAL_set1_signing_algorithm_prefs");
