@@ -2961,7 +2961,6 @@ TCN_IMPLEMENT_CALL(void, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlon
     int result = SSL_CTX_add1_credential(c->ctx, credential);
     if (result == 0) {
         tcn_Throw(e, "Failed to add credential to SSL_CTX");
-        return;
     }
 #else
     tcn_Throw(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
