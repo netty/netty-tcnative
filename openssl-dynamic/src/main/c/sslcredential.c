@@ -161,7 +161,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setOcspResponse)(TCN_STDARGS, jlong cred
 
     if (result == 0) {
         throw_openssl_error(e, "Failed to set OCSP response");
-        return;
     }
 #else
     throw_unsupported_operation(e, "SSL_CREDENTIAL_set1_ocsp_response");
