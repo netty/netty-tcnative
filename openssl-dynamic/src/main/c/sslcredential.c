@@ -137,6 +137,9 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setOcspResponse)(TCN_STDARGS, jlong cred
     TCN_CHECK_NULL(ocsp, ocspData, /* void */);
 
     jsize len = (*e)->GetArrayLength(e, ocsp);
+    if (len <= 0) {
+        return;
+    }
     jbyte* ocsp_data = (*e)->GetByteArrayElements(e, ocsp, NULL);
     if (ocsp_data == NULL) {
         return;
@@ -165,8 +168,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, j
     TCN_CHECK_NULL(prefs, preferencesArray, /* void */);
 
     jsize len = (*e)->GetArrayLength(e, prefs);
-    if (len == 0) {
-        tcn_Throw(e, "Preferences array is empty");
+    if (len <= 0) {
         return;
     }
 
@@ -204,6 +206,9 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, j
     TCN_CHECK_NULL(cert_props, certificateProperties, /* void */);
 
     jsize len = (*e)->GetArrayLength(e, cert_props);
+    if (len <= 0) {
+        return;
+    }
     jbyte* props_data = (*e)->GetByteArrayElements(e, cert_props, NULL);
     if (props_data == NULL) {
         return;
@@ -232,6 +237,9 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS,
     TCN_CHECK_NULL(sct_list, sctList, /* void */);
 
     jsize len = (*e)->GetArrayLength(e, sct_list);
+    if (len <= 0) {
+        return;
+    }
     jbyte* sct_data = (*e)->GetByteArrayElements(e, sct_list, NULL);
     if (sct_data == NULL) {
         return;
@@ -271,6 +279,9 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cre
     TCN_CHECK_NULL(id, trustAnchorId, /* void */);
 
     jsize len = (*e)->GetArrayLength(e, id);
+    if (len <= 0) {
+        return;
+    }
     jbyte* id_data = (*e)->GetByteArrayElements(e, id, NULL);
     if (id_data == NULL) {
         return;
@@ -310,6 +321,9 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setDelegatedCredential)(TCN_STDARGS, jlo
     TCN_CHECK_NULL(dc, delegatedCredential, /* void */);
 
     jsize len = (*e)->GetArrayLength(e, dc);
+    if (len <= 0) {
+        return;
+    }
     jbyte* dc_data = (*e)->GetByteArrayElements(e, dc, NULL);
     if (dc_data == NULL) {
         return;
