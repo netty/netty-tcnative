@@ -258,7 +258,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS,
 
     if (result == 0) {
         throw_openssl_error(e, "Failed to set signed certificate timestamp list");
-        return;
     }
 #else
     throw_unsupported_operation(e, "SSL_CREDENTIAL_set1_signed_cert_timestamp_list");
