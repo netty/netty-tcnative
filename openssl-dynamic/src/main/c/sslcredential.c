@@ -368,7 +368,7 @@ static const JNINativeMethod method_table[] = {
     
     // Delegated credentials
     { TCN_METHOD_TABLE_ENTRY(newDelegated, ()J, SSLCredential) },
-    { TCN_METHOD_TABLE_ENTRY(setDelegatedCredential, (J[B)V, SSLCredential) },
+    { TCN_METHOD_TABLE_ENTRY(setDelegatedCredential, (J[B)V, SSLCredential) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
