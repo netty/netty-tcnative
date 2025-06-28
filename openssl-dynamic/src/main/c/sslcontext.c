@@ -814,9 +814,6 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
 #elif defined(OPENSSL_IS_AWSLC)
     tcn_Throw(e, "Not supported using AWS-LC");
     return JNI_FALSE;
-#elif defined(OPENSSL_IS_AWSLC)
-    tcn_Throw(e, "Not supported using AWS-LC");
-    return JNI_FALSE;
 #else
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
