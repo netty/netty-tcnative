@@ -133,7 +133,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, j
 
     if (result == 0) {
         throw_openssl_error(e, "Failed to set certificate chain");
-        return;
     }
 #else
     throw_unsupported_operation(e, "SSL_CREDENTIAL_set1_cert_chain");
