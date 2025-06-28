@@ -347,8 +347,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setDelegatedCredential)(TCN_STDARGS, jlo
 #endif
 }
 
-
-
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
     // Core functions
