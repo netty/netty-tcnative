@@ -161,8 +161,6 @@ public final class SSLCredential {
      */
     public static native void setMustMatchIssuer(long cred, boolean mustMatch) throws Exception;
 
-
-
     /**
      * Set the trust anchor ID for an SSL_CREDENTIAL.
      * 
