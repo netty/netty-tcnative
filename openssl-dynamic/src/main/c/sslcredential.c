@@ -94,7 +94,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setPrivateKey)(TCN_STDARGS, jlong cred, 
 
     if (SSL_CREDENTIAL_set1_private_key(c, pkey) == 0) {
         throw_openssl_error(e, "Failed to set private key");
-        return;
     }
 #else
     throw_unsupported_operation(e, "SSL_CREDENTIAL_set1_private_key");
