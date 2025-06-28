@@ -201,5 +201,4 @@ public final class SSLCredential {
      */
     public static native void setDelegatedCredential(long cred, byte[] delegatedCred) throws Exception;
 
-
 } 
