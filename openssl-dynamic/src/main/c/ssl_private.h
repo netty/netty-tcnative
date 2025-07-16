@@ -65,6 +65,7 @@
 #include <openssl/x509v3.h>
 #include <openssl/hmac.h>
 #include <openssl/dh.h>
+#include <openssl/sha.h>
 #if OPENSSL_VERSION_NUMBER >= 0x30000000
 #include <openssl/core_names.h>
 #endif
