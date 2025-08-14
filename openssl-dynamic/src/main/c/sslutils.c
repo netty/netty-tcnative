@@ -78,17 +78,15 @@ const char* TCN_UNKNOWN_AUTH_METHOD = "UNKNOWN";
  * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
  */
 const char* tcn_SSL_cipher_authentication_method(const SSL_CIPHER* cipher){
-#if defined(OPENSSL_IS_BORINGSSL)
-	return SSL_CIPHER_get_kx_name(cipher);
-#elif defined(OPENSSL_IS_AWSLC)
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     const char* name = SSL_CIPHER_get_kx_name(cipher);
-    if(strcmp(name, "GENERIC") == 0) {
+    if (strcmp(name, "GENERIC") == 0) {
         // Only TLS 1.3 will report the kx name as generic.
         // Map this UNKNOWN, which will signal to Java to validate that
         // the certificate's keyUsage has at least the digitalSignature bit set.
         // (Per the SunJCE implementation).
         // This is done in the OpenSSL implementation a bit further down.
-        return "UNKNOWN";
+        return TCN_UNKNOWN_AUTH_METHOD;
     }
     return name;
 #elif OPENSSL_VERSION_NUMBER >= 0x10100000L && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x2070000fL)
