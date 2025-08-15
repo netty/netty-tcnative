@@ -189,7 +189,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     // When using BoringSSL or AWS-LC we want to use CRYPTO_BUFFER to reduce memory usage and minimize overhead as
-    // we do not need X509* at all and just need the raw bytes of the certificates to construct our Java 
+    // we do not need X509* at all and just need the raw bytes of the certificates to construct our Java
     // X509Certificate.
     //
     // See https://github.com/google/boringssl/blob/chromium-stable/PORTING.md#crypto_buffer
@@ -1508,7 +1508,7 @@ static jbyteArray get_certs(JNIEnv *e, SSL* ssl, STACK_OF(X509)* chain) {
     jbyteArray bArray = NULL;
     jclass byteArrayClass = tcn_get_byte_array_class();
 
-    // Create the byte[][] array that holds all the certs
+    // Create the byte[][] array that holds all the certs
     if ((array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL)) == NULL) {
         return NULL;
     }
@@ -2944,6 +2944,23 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlong cred) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
+    TCN_CHECK_NULL(credential, credential, /* void */);
+
+    int result = SSL_CTX_add1_credential(c->ctx, credential);
+    if (result == 0) {
+        tcn_Throw(e, "Failed to add credential to SSL_CTX");
+    }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
+#endif // OPENSSL_IS_BORINGSSL
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(make, (II)J, SSLContext) },
@@ -3003,7 +3020,8 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCurvesList0, (JLjava/lang/String;)Z, SSLContext) },
-  { TCN_METHOD_TABLE_ENTRY(setMaxCertList, (JI)V, SSLContext) }
+  { TCN_METHOD_TABLE_ENTRY(setMaxCertList, (JI)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)V, SSLContext) }
   // addCertificateCompressionAlgorithm0 --> needs dynamic method table
 };
 

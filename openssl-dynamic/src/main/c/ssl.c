@@ -1321,7 +1321,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getPeerCertChain)(TCN_STDARGS,
         return NULL;
     }
 
-    // Create the byte[][] array that holds all the certs
+    // Create the byte[][] array that holds all the certs
     if ((array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL)) == NULL) {
         // Out of memory
         return NULL;
@@ -1617,7 +1617,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
         return NULL;
     }
 
-    // Create the byte[][] array that holds all the certs
+    // Create the byte[][] array that holds all the certs
     if ((array = (*e)->NewObjectArray(e, len, tcn_get_string_class(), NULL)) == NULL) {
         // Out of memory
         return NULL;
@@ -2669,6 +2669,39 @@ TCN_IMPLEMENT_CALL(void, SSL, setRenegotiateMode)(TCN_STDARGS, jlong ssl, jint m
 #endif
 }
 
+TCN_IMPLEMENT_CALL(void, SSL, addCredential)(TCN_STDARGS, jlong ssl, jlong cred) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, /* void */);
+    
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
+    TCN_CHECK_NULL(credential, credential, /* void */);
+    
+    int result = SSL_add1_credential(ssl_, credential);
+    if (result == 0) {
+        tcn_Throw(e, "Failed to add credential to SSL");
+    }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
+#endif // OPENSSL_IS_BORINGSSL
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+    
+#ifdef OPENSSL_IS_BORINGSSL
+    const SSL_CREDENTIAL* credential = SSL_get0_selected_credential(ssl_);
+    if (credential == NULL) {
+        return 0;
+    }
+    return (jlong)(intptr_t)credential;
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
+    return 0;
+#endif // OPENSSL_IS_BORINGSSL
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(bioLengthByteBuffer, (J)I, SSL) },
@@ -2746,7 +2779,9 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(getTask, (J)Ljava/lang/Runnable;, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getSession, (J)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(isSessionReused, (J)Z, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(setRenegotiateMode, (JI)V, SSL) }
+  { TCN_METHOD_TABLE_ENTRY(setRenegotiateMode, (JI)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)V, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getSelectedCredential, (J)J, SSL) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
