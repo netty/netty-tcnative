@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.73.Final</version>
+    <version>2.0.74.Final-SNAPSHOT</version>
   </parent>
   <artifactId>netty-tcnative-classes</artifactId>
   <packaging>jar</packaging>
