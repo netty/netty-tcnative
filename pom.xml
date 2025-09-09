@@ -97,7 +97,7 @@
     <!--
       See https://boringssl.googlesource.com/boringssl/+/refs/heads/main for the latest commit
     -->
-    <boringsslCommitSha>cccf8525db8a57153d3cb3e22efed2db4b71a8ab</boringsslCommitSha>
+    <boringsslCommitSha>0226f30467f540a3f62ef48d453f93927da199b6</boringsslCommitSha>
     <libresslVersion>3.4.3</libresslVersion>
     <!--
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
