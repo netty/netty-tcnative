@@ -35,14 +35,6 @@ This product contains the Maven wrapper scripts from 'Maven Wrapper', that provi
   * HOMEPAGE:
     * https://github.com/takari/maven-wrapper
 
-This product contains small piece of code to support AIX, taken from netbsd.
-
-  * LICENSE:
-    * license/LICENSE.aix-netbsd.txt (OpenSSL License)
-  * HOMEPAGE:
-    * https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/src/crypto/external/bsd/openssl/dist
-
-
 This product contains code from boringssl.
 
   * LICENSE
