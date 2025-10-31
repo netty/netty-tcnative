@@ -267,7 +267,7 @@
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
                     <configureArg>--with-apr=/usr/local/opt/apr/</configureArg>
-                    <configureArg>--with-ssl=/usr/local/opt/openssl@1.1/</configureArg>
+                    <configureArg>--with-ssl=/usr/local/opt/openssl@${openssl.lib.version}/</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
@@ -306,7 +306,7 @@
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
                     <configureArg>--with-apr=/opt/homebrew/opt/apr/</configureArg>
-                    <configureArg>--with-ssl=/opt/homebrew/opt/openssl@1.1/</configureArg>
+                    <configureArg>--with-ssl=/opt/homebrew/opt/openssl@${openssl.lib.version}/</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
