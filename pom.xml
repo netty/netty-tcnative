@@ -103,8 +103,9 @@
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
     -->
     <libresslSha256>ff88bffe354818b3ccf545e3cafe454c5031c7a77217074f533271d63c37f08d</libresslSha256>
-    <opensslMinorVersion>3.1</opensslMinorVersion>
-    <opensslPatchVersion>6</opensslPatchVersion>
+    <opensslMinorVersion>3.6</opensslMinorVersion>
+    <opensslPatchVersion>0</opensslPatchVersion>
+    <openssl.lib.version>3.6</openssl.lib.version>
     <opensslVersion>${opensslMinorVersion}.${opensslPatchVersion}</opensslVersion>
     <opensslSha256>5d2be4036b478ef3cb0a854ca9b353072c3a0e26d8a56f8f0ab9fb6ed32d38d7</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
