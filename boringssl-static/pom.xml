@@ -21,7 +21,7 @@
     <artifactId>netty-tcnative-parent</artifactId>
     <version>2.0.75.Final-SNAPSHOT</version>
   </parent>
-  <artifactId>netty-tcnative-boringssl-static</artifactId>
+  <artifactId>${project.artifactId}</artifactId>
   <packaging>jar</packaging>
 
   <name>Netty/TomcatNative [BoringSSL - Static]</name>
@@ -99,6 +99,7 @@
     <!-- 10.13 is the minimum required by BoringSSL -->
     <macOsxDeploymentTarget>MACOSX_DEPLOYMENT_TARGET=10.13</macOsxDeploymentTarget>
     <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13</cmakeOsxDeploymentTarget>
+    <project.artifactId>netty-tcnative-boringssl-static</project.artifactId>
   </properties>
 
   <dependencies>
@@ -124,6 +125,7 @@
         <msvcSslLibDirs>${boringsslBuildDir}</msvcSslLibDirs>
         <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
         <jniArch>${os.detected.arch}</jniArch>
+        <project.artifactId>netty-tcnative-boringssl-static-fips</project.artifactId>
       </properties>
 
       <build>
@@ -177,6 +179,7 @@
                 <Apr-Version>${aprVersion}</Apr-Version>
                 <BoringSSL-Revision>${boringsslBuildNumber}</BoringSSL-Revision>
                 <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
+                <BoringSSL-FIPS-Compliant>true</BoringSSL-FIPS-Compliant>
               </instructions>
             </configuration>
           </plugin>
@@ -444,6 +447,7 @@
                 <Apr-Version>${aprVersion}</Apr-Version>
                 <BoringSSL-Revision>${boringsslCommitSha}</BoringSSL-Revision>
                 <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
+                <BoringSSL-FIPS-Compliant>false</BoringSSL-FIPS-Compliant>
               </instructions>
             </configuration>
           </plugin>
