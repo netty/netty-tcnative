@@ -2670,26 +2670,26 @@ TCN_IMPLEMENT_CALL(void, SSL, setRenegotiateMode)(TCN_STDARGS, jlong ssl, jint m
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, addCredential)(TCN_STDARGS, jlong ssl, jlong cred) {
+    if (!check_credential_api(e)) return;
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
-    
+
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(credential, credential, /* void */);
-    
+
     int result = SSL_add1_credential(ssl_, credential);
     if (result == 0) {
         tcn_Throw(e, "Failed to add credential to SSL");
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
-#endif // OPENSSL_IS_BORINGSSL
+#endif
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
+    if (!check_credential_api(e)) return 0;
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, 0);
-    
+
 #ifdef OPENSSL_IS_BORINGSSL
     const SSL_CREDENTIAL* credential = SSL_get0_selected_credential(ssl_);
     if (credential == NULL) {
@@ -2697,9 +2697,8 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
     }
     return (jlong)(intptr_t)credential;
 #else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
-    return 0;
-#endif // OPENSSL_IS_BORINGSSL
+    return 0;  // Unreachable - check_credential_api throws
+#endif
 }
 
 // JNI Method Registration Table Begin
