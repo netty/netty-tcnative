@@ -88,36 +88,30 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setPrivateKey)(TCN_STDARGS, jlong cred, 
 #endif
 }
 
-TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, jlongArray certs) {
+TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, jlong certChainStack) {
     if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
-    TCN_CHECK_NULL(certs, certificateArray, /* void */);
 
-    jsize len = (*e)->GetArrayLength(e, certs);
+    STACK_OF(CRYPTO_BUFFER)* stack = (STACK_OF(CRYPTO_BUFFER)*)(intptr_t)certChainStack;
+    TCN_CHECK_NULL(stack, certificateChainStack, /* void */);
+
+    int len = sk_CRYPTO_BUFFER_num(stack);
     if (len == 0) {
-        tcn_Throw(e, "Certificate array is empty");
+        tcn_Throw(e, "Certificate chain stack is empty");
         return;
     }
 
+    // Extract CRYPTO_BUFFER pointers from stack
     CRYPTO_BUFFER** cert_buffers = OPENSSL_malloc(sizeof(CRYPTO_BUFFER*) * len);
     TCN_CHECK_NULL(cert_buffers, certificateBuffers, /* void */);
 
-    jlong* certs_elems = (*e)->GetLongArrayElements(e, certs, NULL);
-    if (certs_elems == NULL) {
-        OPENSSL_free(cert_buffers);
-        return;
-    }
-
-    for (jsize i = 0; i < len; i++) {
-        cert_buffers[i] = (CRYPTO_BUFFER*)(intptr_t)certs_elems[i];
+    for (int i = 0; i < len; i++) {
+        cert_buffers[i] = sk_CRYPTO_BUFFER_value(stack, i);
     }
 
     int result = SSL_CREDENTIAL_set1_cert_chain(c, cert_buffers, len);
-    
-    // Clean up
-    (*e)->ReleaseLongArrayElements(e, certs, certs_elems, JNI_ABORT);
     OPENSSL_free(cert_buffers);
 
     if (result == 0) {
@@ -344,7 +338,7 @@ static const JNINativeMethod method_table[] = {
     
     // Configuration
     { TCN_METHOD_TABLE_ENTRY(setPrivateKey, (JJ)V, SSLCredential) },
-    { TCN_METHOD_TABLE_ENTRY(setCertChain, (J[J)V, SSLCredential) },
+    { TCN_METHOD_TABLE_ENTRY(setCertChain, (JJ)V, SSLCredential) },
     { TCN_METHOD_TABLE_ENTRY(setOcspResponse, (J[B)V, SSLCredential) },
     { TCN_METHOD_TABLE_ENTRY(setSigningAlgorithmPrefs, (J[I)V, SSLCredential) },
     { TCN_METHOD_TABLE_ENTRY(setCertificateProperties, (J[B)V, SSLCredential) },

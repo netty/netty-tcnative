@@ -85,16 +85,16 @@ public final class SSLCredential {
 
     /**
      * Set the certificate chain for an SSL_CREDENTIAL.
-     * 
-     * <p>This is a BoringSSL-specific feature. See 
+     *
+     * <p>This is a BoringSSL-specific feature. See
      * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CREDENTIAL_set1_cert_chain">SSL_CREDENTIAL_set1_cert_chain</a>
      * for detailed documentation.</p>
-     * 
+     *
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
-     * @param chain the certificate chain (STACK_OF(X509) *)
+     * @param chain the certificate chain (STACK_OF(CRYPTO_BUFFER) *)
      * @throws Exception if an error occurred
      */
-    public static native void setCertChain(long cred, long[] chain) throws Exception;
+    public static native void setCertChain(long cred, long chain) throws Exception;
 
     /**
      * Set the OCSP response for an SSL_CREDENTIAL.
