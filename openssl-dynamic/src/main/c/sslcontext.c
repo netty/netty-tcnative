@@ -2945,6 +2945,7 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, addCertificateCompressionAlgorithm0)(TCN_ST
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlong cred) {
+    if (!check_credential_api(e)) return;
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     TCN_CHECK_NULL(c, ctx, /* void */);
 
@@ -2956,9 +2957,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlon
     if (result == 0) {
         tcn_Throw(e, "Failed to add credential to SSL_CTX");
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API is only supported by BoringSSL");
-#endif // OPENSSL_IS_BORINGSSL
+#endif
 }
 
 // JNI Method Registration Table Begin
