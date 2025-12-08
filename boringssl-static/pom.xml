@@ -119,11 +119,11 @@
         <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}/boringssl</boringsslCheckoutDir>
         <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
         <!--   Latest FIPS compliant boringSSL commit   -->
-        <boringsslBranch>853ca1ea1168dff08011e5d42d94609cc0ca2e27</boringsslBranch>
+        <boringsslBranch>6d503ae1cf8b2e25162435225610b8c1f063d6f4</boringsslBranch>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslBuildDir}</msvcSslLibDirs>
-        <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
+        <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
+        <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
         <jniArch>${os.detected.arch}</jniArch>
         <project.artifactId>netty-tcnative-boringssl-static-fips</project.artifactId>
       </properties>
@@ -236,10 +236,9 @@
                         </if>
                         <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
-                          <arg value="-DCMAKE_C_COMPILER=clang" />
-                          <arg value="-DCMAKE_CXX_COMPILER=clang++" />
+                          <arg value="-DCMAKE_C_COMPILER=clang-12" />
+                          <arg value="-DCMAKE_CXX_COMPILER=clang++-12" />
                           <arg value="-DFIPS=1" />
                           <arg value="-GNinja" />
                           <arg value="${boringsslCheckoutDir}" />
@@ -261,7 +260,7 @@
                             <!-- This is needed to generate bssl execute file to verify isfips property-->
                             <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
                             </exec>
-                            <exec executable="./tool/bssl" failonerror="false" dir="${boringsslBuildDir}" outputproperty="boringssl.isfips.result">
+                            <exec executable="./bssl" failonerror="false" dir="${boringsslBuildDir}" outputproperty="boringssl.isfips.result">
                               <arg value="isfips" />
                             </exec>
                             <if>
@@ -379,7 +378,7 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto -ldecrepit -lstdc++</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
