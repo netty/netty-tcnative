@@ -194,6 +194,7 @@
     <ClCompile Include=".\src\native_constants.c" />
     <ClCompile Include=".\src\ssl.c" />
     <ClCompile Include=".\src\sslcontext.c" />
+    <ClCompile Include=".\src\sslcredential.c" />
     <ClCompile Include=".\src\sslsession.c" />
     <ClCompile Include=".\src\sslutils.c" />
   </ItemGroup>

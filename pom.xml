@@ -302,6 +302,9 @@
             <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
             <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
             <oldVersionPattern>\d+\.\d+\.\d+\.Final</oldVersionPattern>
+            <excludes>
+              <exclude>io.netty.internal.tcnative.SSLCredential#setCertChain(long,long[])</exclude>
+            </excludes>
           </parameter>
           <skip>${skipJapicmp}</skip>
         </configuration>
