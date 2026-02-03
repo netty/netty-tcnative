@@ -104,10 +104,10 @@
     -->
     <libresslSha256>ff88bffe354818b3ccf545e3cafe454c5031c7a77217074f533271d63c37f08d</libresslSha256>
     <opensslMinorVersion>3.6</opensslMinorVersion>
-    <opensslPatchVersion>0</opensslPatchVersion>
+    <opensslPatchVersion>1</opensslPatchVersion>
     <openssl.lib.version>3.6</openssl.lib.version>
     <opensslVersion>${opensslMinorVersion}.${opensslPatchVersion}</opensslVersion>
-    <opensslSha256>5d2be4036b478ef3cb0a854ca9b353072c3a0e26d8a56f8f0ab9fb6ed32d38d7</opensslSha256>
+    <opensslSha256>b1bfedcd5b289ff22aee87c9d600f515767ebf45f77168cb6d64f231f518a82e</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
     <aprBuildDir>${project.build.directory}/apr-build</aprBuildDir>
