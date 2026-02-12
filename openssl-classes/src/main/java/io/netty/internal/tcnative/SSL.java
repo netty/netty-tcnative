@@ -973,11 +973,11 @@ public final class SSL {
 
     /**
      * Add an SSL_CREDENTIAL to the SSL instance.
-     * 
-     * <p>This is a BoringSSL-specific feature. See 
+     *
+     * <p>This is a BoringSSL/AWS-LC-specific feature. See
      * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_add1_credential">SSL_add1_credential</a>
      * for detailed documentation.</p>
-     * 
+     *
      * @param ssl the SSL instance (SSL *)
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @throws Exception if an error occurred
@@ -986,11 +986,11 @@ public final class SSL {
 
     /**
      * Get the selected credential from an SSL instance.
-     * 
-     * <p>This is a BoringSSL-specific feature. See 
+     *
+     * <p>This is a BoringSSL/AWS-LC-specific feature. See
      * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_get0_selected_credential">SSL_get0_selected_credential</a>
      * for detailed documentation.</p>
-     * 
+     *
      * @param ssl the SSL instance (SSL *)
      * @return the selected credential (SSL_CREDENTIAL *) or {@code 0} if none
      * @throws Exception if an error occurred

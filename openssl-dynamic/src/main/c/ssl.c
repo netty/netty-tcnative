@@ -2674,7 +2674,7 @@ TCN_IMPLEMENT_CALL(void, SSL, addCredential)(TCN_STDARGS, jlong ssl, jlong cred)
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(credential, credential, /* void */);
 
@@ -2690,7 +2690,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     const SSL_CREDENTIAL* credential = SSL_get0_selected_credential(ssl_);
     if (credential == NULL) {
         return 0;
