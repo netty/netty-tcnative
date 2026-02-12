@@ -30,7 +30,7 @@
 #define SSLCREDENTIAL_CLASSNAME "io/netty/internal/tcnative/SSLCredential"
 
 // Helper functions
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 static void throw_openssl_error(JNIEnv* env, const char* msg) {
     unsigned long err = ERR_get_error();
     char err_buf[ERR_LEN] = {0};
@@ -44,7 +44,7 @@ static void throw_openssl_error(JNIEnv* env, const char* msg) {
 // Core SSL_CREDENTIAL functions
 TCN_IMPLEMENT_CALL(jlong, SSLCredential, newX509)(TCN_STDARGS) {
     if (!check_credential_api(e)) return 0;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* cred = SSL_CREDENTIAL_new_x509();
     TCN_CHECK_NULL(cred, credential, 0);
     return (jlong)(intptr_t)cred;
@@ -55,7 +55,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLCredential, newX509)(TCN_STDARGS) {
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, upRef)(TCN_STDARGS, jlong cred) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_up_ref(c);
@@ -64,7 +64,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, upRef)(TCN_STDARGS, jlong cred) {
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, free)(TCN_STDARGS, jlong cred) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     if (c != NULL) {
         SSL_CREDENTIAL_free(c);
@@ -75,10 +75,10 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, free)(TCN_STDARGS, jlong cred) {
 // SSL_CREDENTIAL configuration methods
 TCN_IMPLEMENT_CALL(void, SSLCredential, setPrivateKey)(TCN_STDARGS, jlong cred, jlong key) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     EVP_PKEY* pkey = (EVP_PKEY*)(intptr_t)key;
-    
+
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(pkey, privateKey, /* void */);
 
@@ -90,7 +90,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setPrivateKey)(TCN_STDARGS, jlong cred, 
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, jlong certChainStack) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
 
@@ -122,7 +122,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, j
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setOcspResponse)(TCN_STDARGS, jlong cred, jbyteArray ocsp) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(ocsp, ocspData, /* void */);
@@ -152,7 +152,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setOcspResponse)(TCN_STDARGS, jlong cred
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, jlong cred, jintArray prefs) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(prefs, preferencesArray, /* void */);
@@ -176,7 +176,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, j
     }
 
     int result = SSL_CREDENTIAL_set1_signing_algorithm_prefs(c, native_prefs, len);
-    
+
     // Clean up
     (*e)->ReleaseIntArrayElements(e, prefs, prefs_data, JNI_ABORT);
     OPENSSL_free(native_prefs);
@@ -189,7 +189,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, j
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, jlong cred, jbyteArray cert_props) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(cert_props, certificateProperties, /* void */);
@@ -219,7 +219,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, j
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS, jlong cred, jbyteArray sct_list) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(sct_list, sctList, /* void */);
@@ -249,7 +249,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS,
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setMustMatchIssuer)(TCN_STDARGS, jlong cred, jboolean match) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_set_must_match_issuer(c, match == JNI_TRUE ? 1 : 0);
@@ -259,7 +259,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setMustMatchIssuer)(TCN_STDARGS, jlong c
 // Trust anchor configuration
 TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cred, jbyteArray id) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(id, trustAnchorId, /* void */);
@@ -286,7 +286,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cre
 // Delegated credentials
 TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
     if (!check_credential_api(e)) return 0;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* credential = SSL_CREDENTIAL_new_delegated();
     if (credential == NULL) {
         throw_openssl_error(e, "Failed to create delegated SSL_CREDENTIAL");
@@ -300,7 +300,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setDelegatedCredential)(TCN_STDARGS, jlong cred, jbyteArray dc) {
     if (!check_credential_api(e)) return;
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(dc, delegatedCredential, /* void */);
