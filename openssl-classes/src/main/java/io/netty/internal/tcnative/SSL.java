@@ -358,6 +358,13 @@ public final class SSL {
     public static native String getVersion(long ssl);
 
     /**
+     * SSL_version
+     * @param ssl the SSL instance (SSL *)
+     * @return numeric protocol version (e.g. 0x0304 for TLSv1.3)
+     */
+    public static native int getVersionInt(long ssl);
+
+    /**
      * SSL_do_handshake
      * @param ssl the SSL instance (SSL *)
      * @return the return code of {@code SSL_do_handshake}.

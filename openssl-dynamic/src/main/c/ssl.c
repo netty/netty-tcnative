@@ -1209,6 +1209,17 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getVersion)(TCN_STDARGS,
     return AJP_TO_JSTRING(SSL_get_version(ssl_));
 }
 
+// Read which protocol version was negotiated for the given SSL as integer *.
+TCN_IMPLEMENT_CALL(jint, SSL, getVersionInt)(TCN_STDARGS, jlong ssl /* SSL * */)
+{
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+
+    // Returns one of TLS1_VERSION, TLS1_1_VERSION, TLS1_2_VERSION, TLS1_3_VERSION, etc.
+    return (jint) SSL_version(ssl_);
+}
+
 // Is the handshake over yet?
 TCN_IMPLEMENT_CALL(jint, SSL, isInInit)(TCN_STDARGS,
                                         jlong ssl /* SSL * */) {
@@ -2729,6 +2740,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(shutdownSSL, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getCipherForSSL, (J)Ljava/lang/String;, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getVersion, (J)Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getVersionInt, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(isInInit, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(doHandshake, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getNextProtoNegotiated, (J)Ljava/lang/String;, SSL) },
