@@ -519,7 +519,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 // SSL_CREDENTIAL API runtime detection for FIPS compatibility
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 // Use weak symbols to detect if SSL_CREDENTIAL API is available at runtime
 // FIPS BoringSSL builds (fips-20230428 and earlier) don't have these symbols
 __attribute__((weak)) extern SSL_CREDENTIAL* SSL_CREDENTIAL_new_x509(void);
@@ -554,6 +554,6 @@ __attribute__((unused)) static inline int check_credential_api(JNIEnv* e) {
     tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
     return 0;
 }
-#endif // OPENSSL_IS_BORINGSSL
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
 #endif /* SSL_PRIVATE_H */

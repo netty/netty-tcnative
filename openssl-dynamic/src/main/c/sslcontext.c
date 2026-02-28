@@ -2949,7 +2949,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, addCredential)(TCN_STDARGS, jlong ctx, jlon
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(credential, credential, /* void */);
 
