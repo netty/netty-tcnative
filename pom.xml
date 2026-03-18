@@ -75,7 +75,7 @@
   <properties>
     <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
     <checkstyle.skip>true</checkstyle.skip>
-    <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
+    <enforcer.plugin.version>3.0.0</enforcer.plugin.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.release>8</maven.compiler.release>
