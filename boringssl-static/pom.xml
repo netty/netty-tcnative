@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.75.Final-SNAPSHOT</version>
+    <version>2.0.76.Final-SNAPSHOT</version>
   </parent>
   <artifactId>${project.artifactId}</artifactId>
   <packaging>jar</packaging>
@@ -119,11 +119,11 @@
         <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}/boringssl</boringsslCheckoutDir>
         <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
         <!--   Latest FIPS compliant boringSSL commit   -->
-        <boringsslBranch>853ca1ea1168dff08011e5d42d94609cc0ca2e27</boringsslBranch>
+        <boringsslBranch>6d503ae1cf8b2e25162435225610b8c1f063d6f4</boringsslBranch>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
-        <msvcSslLibDirs>${boringsslBuildDir}</msvcSslLibDirs>
-        <msvcSslLibs>ssl.lib;crypto.lib</msvcSslLibs>
+        <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
+        <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
         <jniArch>${os.detected.arch}</jniArch>
         <project.artifactId>netty-tcnative-boringssl-static-fips</project.artifactId>
       </properties>
@@ -236,10 +236,9 @@
                         </if>
                         <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
-                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
-                          <arg value="-DCMAKE_C_COMPILER=clang" />
-                          <arg value="-DCMAKE_CXX_COMPILER=clang++" />
+                          <arg value="-DCMAKE_C_COMPILER=clang-12" />
+                          <arg value="-DCMAKE_CXX_COMPILER=clang++-12" />
                           <arg value="-DFIPS=1" />
                           <arg value="-GNinja" />
                           <arg value="${boringsslCheckoutDir}" />
@@ -261,7 +260,7 @@
                             <!-- This is needed to generate bssl execute file to verify isfips property-->
                             <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
                             </exec>
-                            <exec executable="./tool/bssl" failonerror="false" dir="${boringsslBuildDir}" outputproperty="boringssl.isfips.result">
+                            <exec executable="./bssl" failonerror="false" dir="${boringsslBuildDir}" outputproperty="boringssl.isfips.result">
                               <arg value="isfips" />
                             </exec>
                             <if>
@@ -379,7 +378,7 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto -ldecrepit -lstdc++</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
@@ -718,22 +717,6 @@
       </properties>
 
       <build>
-        <pluginManagement>
-          <plugins>
-            <plugin>
-              <artifactId>maven-enforcer-plugin</artifactId>
-              <version>1.4.1</version>
-              <dependencies>
-                <!-- Provides the 'requireFilesContent' enforcer rule. -->
-                <dependency>
-                  <groupId>com.ceilfors.maven.plugin</groupId>
-                  <artifactId>enforcer-rules</artifactId>
-                  <version>1.2.0</version>
-                </dependency>
-              </dependencies>
-            </plugin>
-          </plugins>
-        </pluginManagement>
         <plugins>
           <plugin>
             <artifactId>maven-enforcer-plugin</artifactId>
@@ -752,15 +735,6 @@
                       <property>os.detected.classifier</property>
                       <regex>^linux-x86_64.*</regex>
                     </requireProperty>
-                    <requireFilesContent>
-                      <message>
-                        Cross compile and Release process must be performed on RHEL 7.6 or its derivatives.
-                      </message>
-                      <files>
-                        <file>/etc/redhat-release</file>
-                      </files>
-                      <content>release 7.6</content>
-                    </requireFilesContent>
                   </rules>
                   <ignoreCache>true</ignoreCache>
                 </configuration>

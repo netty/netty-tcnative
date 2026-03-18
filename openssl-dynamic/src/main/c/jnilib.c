@@ -48,6 +48,7 @@
 #include "ssl.h"
 #include "sslcontext.h"
 #include "sslsession.h"
+#include "sslcredential.h"
 #include "error.h"
 
 apr_pool_t *tcn_global_pool = NULL;
@@ -158,6 +159,7 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, char const* 
     int sessionOnLoadCalled = 0;
     int sslOnLoadCalled = 0;
     int contextOnLoadCalled = 0;
+    int credentialOnLoadCalled = 0;
 
     if (netty_jni_util_register_natives(env, packagePrefix, LIBRARY_CLASSNAME, method_table, method_table_size) != 0) {
         goto error;
@@ -193,6 +195,11 @@ static jint netty_internal_tcnative_Library_JNI_OnLoad(JNIEnv* env, char const* 
         goto error;
     }
     sessionOnLoadCalled = 1;
+
+    if (netty_internal_tcnative_SSLCredential_JNI_OnLoad(env, packagePrefix) == JNI_ERR) {
+        goto error;
+    }
+    credentialOnLoadCalled = 1;
 
     apr_version_t apv;
     int apvn;
@@ -250,6 +257,9 @@ error:
     if (sessionOnLoadCalled == 1) {
         netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env, packagePrefix);
     }
+    if (credentialOnLoadCalled == 1) {
+        netty_internal_tcnative_SSLCredential_JNI_OnUnLoad(env, packagePrefix);
+    }
     return JNI_ERR;
 }
 
@@ -267,6 +277,7 @@ static void netty_internal_tcnative_Library_JNI_OnUnload(JNIEnv* env) {
     netty_internal_tcnative_SSL_JNI_OnUnLoad(env, staticPackagePrefix);
     netty_internal_tcnative_SSLContext_JNI_OnUnLoad(env, staticPackagePrefix);
     netty_internal_tcnative_SSLSession_JNI_OnUnLoad(env, staticPackagePrefix);
+    netty_internal_tcnative_SSLCredential_JNI_OnUnLoad(env, staticPackagePrefix);
     free((void *) staticPackagePrefix);
     staticPackagePrefix = NULL;
 }

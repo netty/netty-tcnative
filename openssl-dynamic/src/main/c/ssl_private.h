@@ -518,4 +518,42 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 #define tcn_SSL_set1_curves(s, glist, glistlen) SSL_ctrl(s, SSL_CTRL_SET_GROUPS, glistlen,(char *)(glist))
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
+// SSL_CREDENTIAL API runtime detection for FIPS compatibility
+#ifdef OPENSSL_IS_BORINGSSL
+// Use weak symbols to detect if SSL_CREDENTIAL API is available at runtime
+// FIPS BoringSSL builds (fips-20230428 and earlier) don't have these symbols
+__attribute__((weak)) extern SSL_CREDENTIAL* SSL_CREDENTIAL_new_x509(void);
+__attribute__((weak)) extern SSL_CREDENTIAL* SSL_CREDENTIAL_new_delegated(void);
+__attribute__((weak)) extern void SSL_CREDENTIAL_free(SSL_CREDENTIAL*);
+__attribute__((weak)) extern void SSL_CREDENTIAL_up_ref(SSL_CREDENTIAL*);
+__attribute__((weak)) extern int SSL_CREDENTIAL_set1_private_key(SSL_CREDENTIAL*, EVP_PKEY*);
+__attribute__((weak)) extern int SSL_CREDENTIAL_set1_cert_chain(SSL_CREDENTIAL*, CRYPTO_BUFFER *const*, size_t);
+__attribute__((weak)) extern int SSL_CREDENTIAL_set1_trust_anchor_id(SSL_CREDENTIAL*, const uint8_t*, size_t);
+__attribute__((weak)) extern void SSL_CREDENTIAL_set_must_match_issuer(SSL_CREDENTIAL*, int);
+__attribute__((weak)) extern int SSL_CREDENTIAL_set1_ocsp_response(SSL_CREDENTIAL*, CRYPTO_BUFFER*);
+__attribute__((weak)) extern int SSL_CREDENTIAL_set1_signed_cert_timestamp_list(SSL_CREDENTIAL*, CRYPTO_BUFFER*);
+__attribute__((weak)) extern int SSL_CREDENTIAL_set1_certificate_properties(SSL_CREDENTIAL*, CRYPTO_BUFFER*);
+__attribute__((weak)) extern int SSL_CREDENTIAL_set1_signing_algorithm_prefs(SSL_CREDENTIAL*, const uint16_t*, size_t);
+__attribute__((weak)) extern int SSL_CREDENTIAL_set1_delegated_credential(SSL_CREDENTIAL*, CRYPTO_BUFFER*);
+__attribute__((weak)) extern int SSL_add1_credential(SSL*, SSL_CREDENTIAL*);
+__attribute__((weak)) extern int SSL_CTX_add1_credential(SSL_CTX*, SSL_CREDENTIAL*);
+__attribute__((weak)) extern const SSL_CREDENTIAL* SSL_get0_selected_credential(const SSL*);
+
+// Check if credential API is available and throw if not
+// Returns 1 if available, 0 if not (with exception thrown)
+static inline int check_credential_api(JNIEnv* e) {
+    if (SSL_CREDENTIAL_new_x509 == NULL) {
+        tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+        return 0;
+    }
+    return 1;
+}
+
+#else
+__attribute__((unused)) static inline int check_credential_api(JNIEnv* e) {
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
+}
+#endif // OPENSSL_IS_BORINGSSL
+
 #endif /* SSL_PRIVATE_H */

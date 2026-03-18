@@ -24,7 +24,7 @@
 
   <groupId>io.netty</groupId>
   <artifactId>netty-tcnative-parent</artifactId>
-  <version>2.0.75.Final-SNAPSHOT</version>
+  <version>2.0.76.Final-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Netty/TomcatNative [Parent]</name>
@@ -75,7 +75,7 @@
   <properties>
     <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
     <checkstyle.skip>true</checkstyle.skip>
-    <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
+    <enforcer.plugin.version>3.0.0</enforcer.plugin.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.release>8</maven.compiler.release>
@@ -103,10 +103,11 @@
       See https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256 for the SHA256 signature
     -->
     <libresslSha256>ff88bffe354818b3ccf545e3cafe454c5031c7a77217074f533271d63c37f08d</libresslSha256>
-    <opensslMinorVersion>3.1</opensslMinorVersion>
-    <opensslPatchVersion>6</opensslPatchVersion>
+    <opensslMinorVersion>3.6</opensslMinorVersion>
+    <opensslPatchVersion>1</opensslPatchVersion>
+    <openssl.lib.version>3.6</openssl.lib.version>
     <opensslVersion>${opensslMinorVersion}.${opensslPatchVersion}</opensslVersion>
-    <opensslSha256>5d2be4036b478ef3cb0a854ca9b353072c3a0e26d8a56f8f0ab9fb6ed32d38d7</opensslSha256>
+    <opensslSha256>b1bfedcd5b289ff22aee87c9d600f515767ebf45f77168cb6d64f231f518a82e</opensslSha256>
     <aprHome>${project.build.directory}/apr</aprHome>
     <aprSourceDir>${project.build.directory}/apr-source</aprSourceDir>
     <aprBuildDir>${project.build.directory}/apr-build</aprBuildDir>
@@ -160,14 +161,6 @@
         <plugin>
           <artifactId>maven-enforcer-plugin</artifactId>
           <version>${enforcer.plugin.version}</version>
-          <dependencies>
-            <!-- Provides the 'requireFilesContent' enforcer rule. -->
-            <dependency>
-              <groupId>com.ceilfors.maven.plugin</groupId>
-              <artifactId>enforcer-rules</artifactId>
-              <version>1.2.0</version>
-            </dependency>
-          </dependencies>
         </plugin>
         <plugin>
           <groupId>org.fusesource.hawtjni</groupId>
@@ -302,6 +295,9 @@
             <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
             <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
             <oldVersionPattern>\d+\.\d+\.\d+\.Final</oldVersionPattern>
+            <excludes>
+              <exclude>io.netty.internal.tcnative.SSLCredential#setCertChain(long,long[])</exclude>
+            </excludes>
           </parameter>
           <skip>${skipJapicmp}</skip>
         </configuration>
@@ -843,27 +839,10 @@
                       <property>os.detected.classifier</property>
                       <regex>^linux-x86_64$</regex>
                     </requireProperty>
-                    <requireFilesContent>
-                      <message>
-                        Release process must be performed on RHEL 6.8 or its derivatives.
-                      </message>
-                      <files>
-                        <file>/etc/redhat-release</file>
-                      </files>
-                      <content>release 6.</content>
-                    </requireFilesContent>
                   </rules>
                 </configuration>
               </execution>
             </executions>
-            <dependencies>
-              <!-- Provides the 'requireFilesContent' enforcer rule. -->
-              <dependency>
-                <groupId>com.ceilfors.maven.plugin</groupId>
-                <artifactId>enforcer-rules</artifactId>
-                <version>1.2.0</version>
-              </dependency>
-            </dependencies>
           </plugin>
         </plugins>
       </build>

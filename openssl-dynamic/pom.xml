@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-tcnative-parent</artifactId>
-    <version>2.0.75.Final-SNAPSHOT</version>
+    <version>2.0.76.Final-SNAPSHOT</version>
   </parent>
   <artifactId>netty-tcnative</artifactId>
   <packaging>jar</packaging>
@@ -267,7 +267,7 @@
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
                     <configureArg>--with-apr=/usr/local/opt/apr/</configureArg>
-                    <configureArg>--with-ssl=/usr/local/opt/openssl@1.1/</configureArg>
+                    <configureArg>--with-ssl=/usr/local/opt/openssl@${openssl.lib.version}/</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
@@ -306,7 +306,7 @@
                   <configureArgs>
                     <configureArg>${macOsxDeploymentTarget}</configureArg>
                     <configureArg>--with-apr=/opt/homebrew/opt/apr/</configureArg>
-                    <configureArg>--with-ssl=/opt/homebrew/opt/openssl@1.1/</configureArg>
+                    <configureArg>--with-ssl=/opt/homebrew/opt/openssl@${openssl.lib.version}/</configureArg>
                   </configureArgs>
                 </configuration>
                 <goals>
@@ -345,18 +345,6 @@
                 </archive>
               </configuration>
             </plugin>
-            <plugin>
-              <artifactId>maven-enforcer-plugin</artifactId>
-              <version>1.4.1</version>
-              <dependencies>
-                <!-- Provides the 'requireFilesContent' enforcer rule. -->
-                <dependency>
-                  <groupId>com.ceilfors.maven.plugin</groupId>
-                  <artifactId>enforcer-rules</artifactId>
-                  <version>1.2.0</version>
-                </dependency>
-              </dependencies>
-            </plugin>
           </plugins>
         </pluginManagement>
 
@@ -378,15 +366,6 @@
                       <property>os.detected.classifier</property>
                       <regex>^linux-x86_64.*</regex>
                     </requireProperty>
-                    <requireFilesContent>
-                      <message>
-                        Cross compile and Release process must be performed on RHEL 7.6 or its derivatives.
-                      </message>
-                      <files>
-                        <file>/etc/redhat-release</file>
-                      </files>
-                      <content>release 7.6</content>
-                    </requireFilesContent>
                     <requireProperty>
                       <property>aprArmHome</property>
                       <message>The folder of APR for aarch64 must be specified by hand. Please try -DaprArmHome=</message>

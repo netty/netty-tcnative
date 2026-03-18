@@ -43,39 +43,38 @@ static void throw_openssl_error(JNIEnv* env, const char* msg) {
 
 // Core SSL_CREDENTIAL functions
 TCN_IMPLEMENT_CALL(jlong, SSLCredential, newX509)(TCN_STDARGS) {
+    if (!check_credential_api(e)) return 0;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* cred = SSL_CREDENTIAL_new_x509();
     TCN_CHECK_NULL(cred, credential, 0);
     return (jlong)(intptr_t)cred;
 #else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_new_x509 is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
-    return 0;
+    return 0;  // Unreachable - check_credential_api throws
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, upRef)(TCN_STDARGS, jlong cred) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_up_ref(c);
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_up_ref is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, free)(TCN_STDARGS, jlong cred) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     if (c != NULL) {
         SSL_CREDENTIAL_free(c);
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_free is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 // SSL_CREDENTIAL configuration methods
 TCN_IMPLEMENT_CALL(void, SSLCredential, setPrivateKey)(TCN_STDARGS, jlong cred, jlong key) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     EVP_PKEY* pkey = (EVP_PKEY*)(intptr_t)key;
@@ -86,51 +85,43 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setPrivateKey)(TCN_STDARGS, jlong cred, 
     if (SSL_CREDENTIAL_set1_private_key(c, pkey) == 0) {
         throw_openssl_error(e, "Failed to set private key");
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_private_key is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
-TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, jlongArray certs) {
+TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, jlong certChainStack) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
-    TCN_CHECK_NULL(certs, certificateArray, /* void */);
 
-    jsize len = (*e)->GetArrayLength(e, certs);
+    STACK_OF(CRYPTO_BUFFER)* stack = (STACK_OF(CRYPTO_BUFFER)*)(intptr_t)certChainStack;
+    TCN_CHECK_NULL(stack, certificateChainStack, /* void */);
+
+    int len = sk_CRYPTO_BUFFER_num(stack);
     if (len == 0) {
-        tcn_Throw(e, "Certificate array is empty");
+        tcn_Throw(e, "Certificate chain stack is empty");
         return;
     }
 
+    // Extract CRYPTO_BUFFER pointers from stack
     CRYPTO_BUFFER** cert_buffers = OPENSSL_malloc(sizeof(CRYPTO_BUFFER*) * len);
     TCN_CHECK_NULL(cert_buffers, certificateBuffers, /* void */);
 
-    jlong* certs_elems = (*e)->GetLongArrayElements(e, certs, NULL);
-    if (certs_elems == NULL) {
-        OPENSSL_free(cert_buffers);
-        return;
-    }
-
-    for (jsize i = 0; i < len; i++) {
-        cert_buffers[i] = (CRYPTO_BUFFER*)(intptr_t)certs_elems[i];
+    for (int i = 0; i < len; i++) {
+        cert_buffers[i] = sk_CRYPTO_BUFFER_value(stack, i);
     }
 
     int result = SSL_CREDENTIAL_set1_cert_chain(c, cert_buffers, len);
-    
-    // Clean up
-    (*e)->ReleaseLongArrayElements(e, certs, certs_elems, JNI_ABORT);
     OPENSSL_free(cert_buffers);
 
     if (result == 0) {
         throw_openssl_error(e, "Failed to set certificate chain");
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_cert_chain is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setOcspResponse)(TCN_STDARGS, jlong cred, jbyteArray ocsp) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -156,12 +147,11 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setOcspResponse)(TCN_STDARGS, jlong cred
     if (result == 0) {
         throw_openssl_error(e, "Failed to set OCSP response");
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_ocsp_response is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, jlong cred, jintArray prefs) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -194,12 +184,11 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, j
     if (result == 0) {
         throw_openssl_error(e, "Failed to set signing algorithm preferences");
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_signing_algorithm_prefs is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, jlong cred, jbyteArray cert_props) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -225,12 +214,11 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, j
     if (result == 0) {
         throw_openssl_error(e, "Failed to set certificate properties");
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_certificate_properties is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS, jlong cred, jbyteArray sct_list) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -256,23 +244,21 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS,
     if (result == 0) {
         throw_openssl_error(e, "Failed to set signed certificate timestamp list");
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_signed_cert_timestamp_list is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setMustMatchIssuer)(TCN_STDARGS, jlong cred, jboolean match) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_set_must_match_issuer(c, match == JNI_TRUE ? 1 : 0);
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set_must_match_issuer is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 // Trust anchor configuration
 TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cred, jbyteArray id) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -294,13 +280,12 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cre
         throw_openssl_error(e, "Failed to set trust anchor ID");
         return;
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_trust_anchor_id is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
 // Delegated credentials
 TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
+    if (!check_credential_api(e)) return 0;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* credential = SSL_CREDENTIAL_new_delegated();
     if (credential == NULL) {
@@ -309,12 +294,12 @@ TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
     }
     return (jlong)(intptr_t)credential;
 #else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_new_delegated is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
-    return 0;
+    return 0;  // Unreachable - check_credential_api throws
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setDelegatedCredential)(TCN_STDARGS, jlong cred, jbyteArray dc) {
+    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -341,8 +326,6 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setDelegatedCredential)(TCN_STDARGS, jlo
         throw_openssl_error(e, "Failed to set delegated credential");
         return;
     }
-#else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_delegated_credential is not supported. SSL_CREDENTIAL API is a BoringSSL-specific feature.");
 #endif
 }
 
@@ -355,7 +338,7 @@ static const JNINativeMethod method_table[] = {
     
     // Configuration
     { TCN_METHOD_TABLE_ENTRY(setPrivateKey, (JJ)V, SSLCredential) },
-    { TCN_METHOD_TABLE_ENTRY(setCertChain, (J[J)V, SSLCredential) },
+    { TCN_METHOD_TABLE_ENTRY(setCertChain, (JJ)V, SSLCredential) },
     { TCN_METHOD_TABLE_ENTRY(setOcspResponse, (J[B)V, SSLCredential) },
     { TCN_METHOD_TABLE_ENTRY(setSigningAlgorithmPrefs, (J[I)V, SSLCredential) },
     { TCN_METHOD_TABLE_ENTRY(setCertificateProperties, (J[B)V, SSLCredential) },
