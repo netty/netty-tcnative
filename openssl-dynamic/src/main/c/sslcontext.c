@@ -1383,6 +1383,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     }
 
     if ((b = (*e)->GetByteArrayElements(e, keys, NULL)) == NULL) {
+      OPENSSL_free(ticket_keys);
       tcn_ThrowException(e, "GetByteArrayElements() returned null");
       return;
     }
