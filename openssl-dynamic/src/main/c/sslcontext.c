@@ -1004,6 +1004,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos0)(TCN_STDARGS, jlong ctx, jbyt
 
         int next_protos_len = (*e)->GetArrayLength(e, next_protos);
         c->next_proto_data = OPENSSL_malloc(next_protos_len);
+        if (c->next_proto_data == NULL) {
+            tcn_throwOutOfMemoryError(e, "OPENSSL_malloc failed");
+            return;
+        }
         c->next_proto_len = next_protos_len;
         (*e)->GetByteArrayRegion(e, next_protos, 0, next_protos_len, (jbyte*) c->next_proto_data);
 
@@ -1037,6 +1041,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos0)(TCN_STDARGS, jlong ctx, jby
 
             int alpn_protos_len = (*e)->GetArrayLength(e, alpn_protos);
             c->alpn_proto_data = OPENSSL_malloc(alpn_protos_len);
+            if (c->alpn_proto_data == NULL) {
+                tcn_throwOutOfMemoryError(e, "OPENSSL_malloc failed");
+                return;
+            }
             c->alpn_proto_len = alpn_protos_len;
             (*e)->GetByteArrayRegion(e, alpn_protos, 0, alpn_protos_len, (jbyte*) c->alpn_proto_data);
 
