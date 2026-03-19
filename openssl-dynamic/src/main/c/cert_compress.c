@@ -100,18 +100,19 @@ static int decompress(jobject compression_algorithm, jmethodID decompress_method
     if (uncompressed_len != resultLen) {
         return 0; // Unexpected uncompressed length
     }
-    uint8_t* outData;
-    if (!((*out) = CRYPTO_BUFFER_alloc(&outData, uncompressed_len))) {
-        return 0; // Unable to allocate certificate decompression buffer
-    }
     jbyte* resultData = (*e)->GetByteArrayElements(e, resultArray, NULL);
     if (resultData == NULL) {
+        return 0;
+    }
+    uint8_t* outData;
+    if (!((*out) = CRYPTO_BUFFER_alloc(&outData, uncompressed_len))) {
+        // Unable to allocate certificate decompression buffer
+        (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
         return 0;
     }
     memcpy(outData, resultData, uncompressed_len);
     (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
     return 1; // Success
-
 }
 
 int zlib_compress_java(SSL* ssl, CBB* out, const uint8_t* in, size_t in_len)
