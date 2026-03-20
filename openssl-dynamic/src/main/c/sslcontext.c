@@ -1438,7 +1438,7 @@ static const char* authentication_method(const SSL* ssl) {
 #else
             // Directly access the struct to get the current cipher as SSL_get_current_cipher(...)
             // does not exists prior openssl 1.1.0
-            cipher = ssl->s3->tmp.new_cipher
+            cipher = ssl->s3->tmp.new_cipher;
 #endif
             if (cipher == NULL) {
                 // No cipher available so return UNKNOWN.
