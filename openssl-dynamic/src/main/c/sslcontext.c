@@ -180,6 +180,15 @@ static apr_status_t ssl_context_cleanup(void *data)
     return APR_SUCCESS;
 }
 
+static void ssl_info_callback(const SSL *ssl, int where, int ret) {
+    tcn_ssl_state_t* state = NULL;
+    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
+        if ((state = tcn_SSL_get_app_state(ssl)) != NULL) {
+            state->handshakeCount++;
+        }
+    }
+}
+
 /* Initialize server context */
 TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mode)
 {
@@ -444,6 +453,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     /* Set default password callback */
     SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *) tcn_SSL_password_callback);
     SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *) c->password);
+
+    // Add callback to keep track of handshakes.
+    SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     if (mode != SSL_MODE_SERVER) {

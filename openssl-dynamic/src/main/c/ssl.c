@@ -899,15 +899,6 @@ TCN_IMPLEMENT_CALL(jint, SSL, getLastErrorNumber)(TCN_STDARGS) {
     return ERR_get_error();
 }
 
-static void ssl_info_callback(const SSL *ssl, int where, int ret) {
-    tcn_ssl_state_t* state = NULL;
-    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
-        if ((state = tcn_SSL_get_app_state(ssl)) != NULL) {
-            state->handshakeCount++;
-        }
-    }
-}
-
 static tcn_ssl_state_t* new_ssl_state(tcn_ssl_ctxt_t* ctx) {
     if (ctx == NULL) {
         return NULL;
@@ -961,9 +952,6 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
 
     // Set the app_data2 before all the others because it may be used in SSL_free.
     tcn_SSL_set_app_state(ssl, state);
-
-    // Add callback to keep track of handshakes.
-    SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
 
     if (server) {
         SSL_set_accept_state(ssl);
