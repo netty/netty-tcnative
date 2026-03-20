@@ -1672,6 +1672,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCurves0)(TCN_STDARGS, jlong ssl, jintArray 
     }
     int len = (*e)->GetArrayLength(e, curves);
     jint *nativeCurves = (*e)->GetIntArrayElements(e, curves, NULL);
+    if (nativeCurves == NULL) {
+        return JNI_FALSE;
+    }
     int ret = tcn_SSL_set1_curves(ssl_, (int *) nativeCurves, len);
     (*e)->ReleaseIntArrayElements(e, curves, nativeCurves, JNI_ABORT);
     return ret == 1 ? JNI_TRUE : JNI_FALSE;
