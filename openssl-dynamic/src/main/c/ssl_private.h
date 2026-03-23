@@ -294,9 +294,8 @@ typedef struct tcn_ssl_ctxt_t tcn_ssl_ctxt_t;
 
 typedef struct {
     unsigned char   key_name[SSL_SESSION_TICKET_KEY_NAME_LEN];
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
-    unsigned char hmac_key[SSL_SESSION_TICKET_HMAC_KEY_LEN];
-#else
+    unsigned char   hmac_key[SSL_SESSION_TICKET_HMAC_KEY_LEN];
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
     OSSL_PARAM mac_params[3];
 #endif
     unsigned char   aes_key[SSL_SESSION_TICKET_AES_KEY_LEN];

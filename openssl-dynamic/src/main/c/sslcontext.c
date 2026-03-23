@@ -1411,10 +1411,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     for (i = 0; i < cnt; ++i) {
         key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
         memcpy(ticket_keys[i].key_name, key, 16);
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
         memcpy(ticket_keys[i].hmac_key, key + 16, 16);
-#else
-        ticket_keys[i].mac_params[0] = OSSL_PARAM_construct_octet_string(OSSL_MAC_PARAM_KEY, key + 16, 16);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        ticket_keys[i].mac_params[0] = OSSL_PARAM_construct_octet_string(OSSL_MAC_PARAM_KEY, ticket_keys[i].hmac_key, 16);
         ticket_keys[i].mac_params[1] = OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, "sha256", 0);
         ticket_keys[i].mac_params[2] = OSSL_PARAM_construct_end();
 #endif
