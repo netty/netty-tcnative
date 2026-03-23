@@ -163,7 +163,9 @@ static apr_status_t ssl_context_cleanup(void *data)
         }
         c->alpn_proto_len = 0;
 
-        apr_thread_rwlock_destroy(c->mutex);
+        if (c->mutex != NULL) {
+            apr_thread_rwlock_destroy(c->mutex);
+        }
 
         if (c->ticket_keys != NULL) {
             OPENSSL_free(c->ticket_keys);
@@ -463,7 +465,10 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
         SSL_CTX_set_allow_unknown_alpn_protos(ctx, 1);
     }
 #endif
-    apr_thread_rwlock_create(&c->mutex, p);
+    if (apr_thread_rwlock_create(&c->mutex, p) != APR_SUCCESS) {
+        tcn_ThrowAPRException(e, apr_get_os_error());
+        goto cleanup;
+    }
     /*
      * Let us cleanup the ssl context when the pool is destroyed
      */
