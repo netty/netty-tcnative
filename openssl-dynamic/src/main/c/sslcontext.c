@@ -1845,11 +1845,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
 #else
         SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, NULL);
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    }
 
-        // Delete the reference to the previous specified verifier if needed.
-        if (oldVerifier != NULL) {
-            (*e)->DeleteGlobalRef(e, oldVerifier);
-        }
+    // Delete the reference to the previous specified verifier if needed.
+    if (oldVerifier != NULL) {
+        (*e)->DeleteGlobalRef(e, oldVerifier);
     }
 }
 
