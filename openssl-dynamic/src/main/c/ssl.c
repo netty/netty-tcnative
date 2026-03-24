@@ -2184,6 +2184,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
         data = NULL;
 
         if (buffer == NULL || sk_CRYPTO_BUFFER_push(chain, buffer) <= 0) {
+            CRYPTO_BUFFER_free(buffer); // safe with NULL; frees buffer if push failed
 #else
     chain = sk_X509_new_null();
     while ((cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL)) != NULL) {
