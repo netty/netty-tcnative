@@ -1707,7 +1707,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 
         // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
         // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-        if (result == X509_V_ERR_UNSPECIFIED && len < sk_CRYPTO_BUFFER_num(chain)) {
+        if (result == X509_V_ERR_UNSPECIFIED && state->task_array_len < state->task_chain_num) {
             result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
         }
         goto complete;
@@ -1747,6 +1747,8 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
         if ((state->ssl_task = tcn_ssl_task_new(e, task)) == NULL) {
             goto complete;
         }
+        state->task_array_len = len;
+        state->task_chain_num = sk_CRYPTO_BUFFER_num(chain);
 
          // Signal back that we want to suspend the handshake.
         ret = ssl_verify_retry;
