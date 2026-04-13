@@ -1631,6 +1631,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
             return NULL;
         }
         (*e)->SetObjectArrayElement(e, array, i, c_name);
+        (*e)->DeleteLocalRef(e, c_name);
     }
     return array;
 }
@@ -1994,6 +1995,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
             return NULL;
         }
         (*e)->SetObjectArrayElement(e, array, i, methodString);
+        (*e)->DeleteLocalRef(e, methodString);
     }
     return array;
 }
