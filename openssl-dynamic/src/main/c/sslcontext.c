@@ -2670,6 +2670,10 @@ static void keylog_cb(const SSL* ssl, const char *line) {
     // Execute the java callback
     (*e)->CallVoidMethod(e, state->ctx->keylog_callback, state->ctx->keylog_callback_method,
                 P2J(ssl), outputLine);
+    // Clear the exception if any was thrown as otherwise we might corrupt the JNI state
+    if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
+        (*e)->ExceptionClear(e);
+    }
 }
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
