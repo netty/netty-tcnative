@@ -1645,6 +1645,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSL, setCurvesList0)(TCN_STDARGS, jlong ssl, jstrin
         return JNI_FALSE;
     }
     const char *nativeString = (*e)->GetStringUTFChars(e, curves, 0);
+    if (nativeString == NULL) {
+        return JNI_FALSE;
+    }
     int ret = tcn_SSL_set1_curves_list(ssl_, nativeString);
     (*e)->ReleaseStringUTFChars(e, curves, nativeString);
 
@@ -1958,6 +1961,9 @@ TCN_IMPLEMENT_CALL(void, SSL, setHostNameValidation)(TCN_STDARGS, jlong ssl, jin
     }
 
     const char *hostname = (*e)->GetStringUTFChars(e, hostnameString, JNI_FALSE);
+    if (hostname == NULL) {
+        return;
+    }
 
     if (X509_VERIFY_PARAM_set1_host(param, hostname, hostnameLen) != 1) {
         char err[ERR_LEN];

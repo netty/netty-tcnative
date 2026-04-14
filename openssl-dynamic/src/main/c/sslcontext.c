@@ -2862,6 +2862,9 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCurvesList0)(TCN_STDARGS, jlong ctx,
         return JNI_FALSE;
     }
     const char *nativeString = (*e)->GetStringUTFChars(e, curves, 0);
+    if (nativeString == NULL) {
+        return JNI_FALSE;
+    }
     int ret = tcn_SSL_CTX_set1_curves_list(c->ctx, nativeString);
     (*e)->ReleaseStringUTFChars(e, curves, nativeString);
 
