@@ -38,6 +38,8 @@ public interface KeyLogCallback {
      * <p>
      * <strong>Warning:</strong> The log output will contain secret key material, and can be used to decrypt
      * TLS sessions! The log output should be handled with the same care given to the private keys.
+     * <p>
+     * This method is expected to never throw any {@link Throwable} as everything will just be silently discarded.
      *
      * @param ssl  the SSL instance
      * @param line an array of the key types on client-mode or {@code null} on server-mode.
