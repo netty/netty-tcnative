@@ -75,7 +75,7 @@
   <properties>
     <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
     <checkstyle.skip>true</checkstyle.skip>
-    <enforcer.plugin.version>3.0.0</enforcer.plugin.version>
+    <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.release>8</maven.compiler.release>
@@ -161,6 +161,14 @@
         <plugin>
           <artifactId>maven-enforcer-plugin</artifactId>
           <version>${enforcer.plugin.version}</version>
+          <dependencies>
+            <!-- Provides the 'requireFilesContent' enforcer rule. -->
+            <dependency>
+              <groupId>com.ceilfors.maven.plugin</groupId>
+              <artifactId>enforcer-rules</artifactId>
+              <version>1.2.0</version>
+            </dependency>
+          </dependencies>
         </plugin>
         <plugin>
           <groupId>org.fusesource.hawtjni</groupId>
@@ -839,10 +847,27 @@
                       <property>os.detected.classifier</property>
                       <regex>^linux-x86_64$</regex>
                     </requireProperty>
+                    <requireFilesContent>
+                      <message>
+                        Release process must be performed on RHEL 6.8 or its derivatives.
+                      </message>
+                      <files>
+                        <file>/etc/redhat-release</file>
+                      </files>
+                      <content>release 6.</content>
+                    </requireFilesContent>
                   </rules>
                 </configuration>
               </execution>
             </executions>
+            <dependencies>
+              <!-- Provides the 'requireFilesContent' enforcer rule. -->
+              <dependency>
+                <groupId>com.ceilfors.maven.plugin</groupId>
+                <artifactId>enforcer-rules</artifactId>
+                <version>1.2.0</version>
+              </dependency>
+            </dependencies>
           </plugin>
         </plugins>
       </build>

@@ -717,6 +717,22 @@
       </properties>
 
       <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-enforcer-plugin</artifactId>
+              <version>1.4.1</version>
+              <dependencies>
+                <!-- Provides the 'requireFilesContent' enforcer rule. -->
+                <dependency>
+                  <groupId>com.ceilfors.maven.plugin</groupId>
+                  <artifactId>enforcer-rules</artifactId>
+                  <version>1.2.0</version>
+                </dependency>
+              </dependencies>
+            </plugin>
+          </plugins>
+        </pluginManagement>
         <plugins>
           <plugin>
             <artifactId>maven-enforcer-plugin</artifactId>
@@ -735,6 +751,15 @@
                       <property>os.detected.classifier</property>
                       <regex>^linux-x86_64.*</regex>
                     </requireProperty>
+                    <requireFilesContent>
+                      <message>
+                        Cross compile and Release process must be performed on RHEL 7.6 or its derivatives.
+                      </message>
+                      <files>
+                        <file>/etc/redhat-release</file>
+                      </files>
+                      <content>release 7.6</content>
+                    </requireFilesContent>
                   </rules>
                   <ignoreCache>true</ignoreCache>
                 </configuration>
