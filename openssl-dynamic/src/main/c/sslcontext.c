@@ -365,7 +365,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     TCN_THROW_IF_ERR(apr_pool_create(&p, tcn_global_pool), p);
 
     if ((c = apr_pcalloc(p, sizeof(tcn_ssl_ctxt_t))) == NULL) {
-        tcn_ThrowAPRException(e, apr_get_os_error());
+        char err[ERR_LEN] = {0};
+        apr_strerror(apr_get_os_error(), err, ERR_LEN);
+        tcn_Throw(e, "Unable to allocate memory for tcn_ssl_ctxt_t via apr_pcalloc(...) (%s)", err);
         goto cleanup;
     }
 
@@ -466,7 +468,9 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     }
 #endif
     if (apr_thread_rwlock_create(&c->mutex, p) != APR_SUCCESS) {
-        tcn_ThrowAPRException(e, apr_get_os_error());
+        char err[ERR_LEN] = {0};
+        apr_strerror(apr_get_os_error(), err, ERR_LEN);
+        tcn_Throw(e, "Unable to create lock via to apr_thread_rwlock_create(...) (%s)", err);
         goto cleanup;
     }
     /*
