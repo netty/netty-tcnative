@@ -769,7 +769,11 @@
   +                             See https://stackoverflow.com/a/1605497/1074097
   +                           -->
                               <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
-                                <arg line="--disable-shared --prefix=${aprHome} --host=aarch64-linux-gnu CC=aarch64-none-linux-gnu-gcc CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ac_cv_have_decl_sys_siglist=no ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8" />
+                                  <!--
+                                     Also ensure that we can use locks as detection fails when cross-compiling.
+                                     See https://github.com/netty/netty-tcnative/issues/974
+                                  -->
+                                <arg line="--disable-shared --prefix=${aprHome} --host=aarch64-linux-gnu CC=aarch64-none-linux-gnu-gcc CFLAGS='-O3 -fno-omit-frame-pointer -fPIC -DHAVE_PTHREAD_RWLOCKS=1' ac_cv_have_decl_sys_siglist=no ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8" />
                               </exec>
                               <!--
                                 Make will fail when it tries to use the gen_test_char program.
@@ -792,11 +796,8 @@
                               <!--
                                 Disable the detection of sys_siglist and just use apr's own implementation to workaround problems when trying to use static jars on alpine linux
                                 See https://github.com/netty/netty-tcnative/issues/853
-
-                                Also ensure that we ca use locks as detection fails when cross-compiling.
-                                See https://github.com/netty/netty-tcnative/issues/974
                               -->
-                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget} ac_cv_have_decl_sys_siglist=no HAVE_PTHREAD_RWLOCKS=1" />
+                              <arg line="--disable-shared --prefix=${aprHome} CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ${macOsxDeploymentTarget} ac_cv_have_decl_sys_siglist=no" />
                             </exec>
                             <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
                             <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
