@@ -2,7 +2,8 @@ ARG debian_version=7
 FROM --platform=linux/amd64 debian:$debian_version
 # needed to do again after FROM due to docker limitation
 ARG debian_version
-
+ARG openssl_version=3.6.1
+ENV OPENSSL_VERSION $openssl_version
 ENV SOURCE_DIR /root/source
 ENV CMAKE_VERSION_BASE 3.8
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
@@ -36,6 +37,7 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
  make \
  patch \
  perl-base=5.14.2-21+deb7u3 \
+ perl-modules=5.14.2-21+deb7u3 \
  tar \
  unzip \
  wget \
@@ -52,6 +54,21 @@ RUN wget -q --no-check-certificate https://github.com/ninja-build/ninja/releases
 RUN wget -q https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz && tar zxf go$GO_VERSION.linux-amd64.tar.gz && mv go /opt/ && echo 'PATH=/opt/go/bin:$PATH' >> ~/.bashrc && echo 'export GOROOT=/opt/go/' >> ~/.bashrc
 
 RUN wget -q --no-check-certificate https://github.com/netty/netty-tcnative/releases/download/gcc-precompile/gcc-$GCC_VERSION.tar.gz && tar zxf gcc-$GCC_VERSION.tar.gz && mv gcc-$GCC_VERSION /opt/ && echo 'PATH=/opt/gcc-$GCC_VERSION/bin:$PATH' >> ~/.bashrc && echo 'export CC=/opt/gcc-$GCC_VERSION/bin/gcc' >> ~/.bashrc && echo 'export CXX=/opt/gcc-$GCC_VERSION/bin/g++' >> ~/.bashrc
+
+# Build OpenSSL 3.x from source using the custom GCC
+RUN set -x && \
+  export CC=/opt/gcc-$GCC_VERSION/bin/gcc && \
+  wget --no-check-certificate https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION/openssl-$OPENSSL_VERSION.tar.gz && \
+  tar xvf openssl-$OPENSSL_VERSION.tar.gz && \
+  (cd openssl-$OPENSSL_VERSION && \
+  ./Configure linux-x86_64 --prefix=/opt/openssl-$OPENSSL_VERSION --libdir=lib shared no-apps && \
+  make -j2 install_sw) && \
+  rm -rf openssl-$OPENSSL_VERSION openssl-$OPENSSL_VERSION.tar.gz
+
+ENV LDFLAGS="-L/opt/openssl-${OPENSSL_VERSION}/lib -lssl -lcrypto"
+ENV CFLAGS="-I/opt/openssl-${OPENSSL_VERSION}/include"
+ENV PKG_CONFIG_PATH="/opt/openssl-${OPENSSL_VERSION}/lib/pkgconfig"
+ENV LD_LIBRARY_PATH="/opt/openssl-${OPENSSL_VERSION}/lib"
 
 RUN rm -rf $SOURCE_DIR
 
