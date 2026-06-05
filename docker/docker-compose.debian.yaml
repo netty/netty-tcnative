@@ -7,6 +7,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.debian
+      args:
+        openssl_version: "${OPENSSL_VERSION}"
 
   common: &common
     image: netty-tcnative-debian:default

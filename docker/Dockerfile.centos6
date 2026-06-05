@@ -1,5 +1,7 @@
 FROM --platform=linux/amd64 centos:6.10
 
+ARG openssl_version=3.6.1
+ENV OPENSSL_VERSION $openssl_version
 ENV SOURCE_DIR /root/source
 ENV CMAKE_VERSION_BASE 3.26
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.4
@@ -26,6 +28,8 @@ RUN yum install -y \
  openssl-devel \
  patch \
  perl \
+ perl-IPC-Cmd \
+ perl-Time-Piece \
  perl-parent \
  perl-devel \
  tar \
@@ -48,6 +52,21 @@ RUN sed -i -e 's/^mirrorlist/#mirrorlist/g' -e 's/^#baseurl=http:\/\/mirror.cent
 
 RUN yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
 RUN echo 'source /opt/rh/devtoolset-9/enable' >> ~/.bashrc
+
+# Build OpenSSL 3.x from source using devtoolset-9
+RUN set -x && \
+  source /opt/rh/devtoolset-9/enable && \
+  wget --no-check-certificate https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION/openssl-$OPENSSL_VERSION.tar.gz && \
+  tar xvf openssl-$OPENSSL_VERSION.tar.gz && \
+  (cd openssl-$OPENSSL_VERSION && \
+  ./Configure linux-x86_64 --prefix=/opt/openssl-$OPENSSL_VERSION --libdir=lib shared no-apps && \
+  make -j2 install_sw) && \
+  rm -rf openssl-$OPENSSL_VERSION openssl-$OPENSSL_VERSION.tar.gz
+
+ENV LDFLAGS="-L/opt/openssl-${OPENSSL_VERSION}/lib -lssl -lcrypto"
+ENV CFLAGS="-I/opt/openssl-${OPENSSL_VERSION}/include"
+ENV PKG_CONFIG_PATH="/opt/openssl-${OPENSSL_VERSION}/lib/pkgconfig"
+ENV LD_LIBRARY_PATH="/opt/openssl-${OPENSSL_VERSION}/lib"
 
 RUN rm -rf $SOURCE_DIR
 

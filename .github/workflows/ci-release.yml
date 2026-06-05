@@ -138,6 +138,10 @@ jobs:
       - name: Create local staging directory
         run: mkdir -p ~/local-staging
 
+      - name: Extract OpenSSL version from pom.xml
+        working-directory: ./prepare-release-workspace/
+        run: echo "OPENSSL_VERSION=$(./mvnw -q -Dexpression=opensslVersion -N help:evaluate --no-transfer-progress | tail -1)" >> $GITHUB_ENV
+
       - name: Build docker image
         working-directory: ./prepare-release-workspace/
         run: docker compose ${{ matrix.docker-compose-build }}

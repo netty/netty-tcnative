@@ -96,6 +96,7 @@
 
                 <!-- Append the Bundle-NativeCode section -->
                 <manifest file="${nativeJarWorkdir}/META-INF/MANIFEST.MF" mode="update">
+                  <!--suppress MavenModelInspection -->
                   <attribute name="Bundle-NativeCode" value="${tcnativeManifest}" />
                 </manifest>
 
@@ -119,6 +120,7 @@
                     </or>
                   </not>
                 </condition>
+                <!--suppress MavenModelInspection -->
                 <attachartifact file="${nativeJarFile}" classifier="${classifier}" type="jar" />
               </target>
             </configuration>
@@ -330,6 +332,8 @@
         <nativeLibOsParts>${os.detected.name}_aarch_64</nativeLibOsParts>
         <jniArch>aarch_64</jniArch>
         <javaModuleNameClassifier>${os.detected.name}.aarch_64</javaModuleNameClassifier>
+        <opensslArmHome>/opt/openssl-${opensslVersion}-share</opensslArmHome>
+        <aprArmHome></aprArmHome>
       </properties>
 
       <build>
@@ -369,10 +373,6 @@
                     <requireProperty>
                       <property>aprArmHome</property>
                       <message>The folder of APR for aarch64 must be specified by hand. Please try -DaprArmHome=</message>
-                    </requireProperty>
-                    <requireProperty>
-                      <property>opensslArmHome</property>
-                      <message>The folder of OpenSSL for aarch64 must be specified by hand. Please try -DopensslArmHome=</message>
                     </requireProperty>
                   </rules>
                   <ignoreCache>true</ignoreCache>
