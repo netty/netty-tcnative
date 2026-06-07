@@ -52,6 +52,9 @@ jobs:
           restore-keys: |
             build-pr-${{ matrix.setup }}-m2-repository-cache-
 
+      - name: Extract OpenSSL version from pom.xml
+        run: echo "OPENSSL_VERSION=$(./mvnw -q -Dexpression=opensslVersion -DforceStdout -N help:evaluate --no-transfer-progress)" >> $GITHUB_ENV
+
       - name: Build docker image
         run: docker compose ${{ matrix.docker-compose-build }}
 
