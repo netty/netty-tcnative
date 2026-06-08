@@ -52,7 +52,7 @@ RUN set -x && \
   tar xvf openssl-$OPENSSL_VERSION.tar.gz && \
   (cd openssl-$OPENSSL_VERSION && \
   ./Configure linux-aarch64 --cross-compile-prefix=aarch64-none-linux-gnu- --prefix=/opt/openssl-$OPENSSL_VERSION-share --libdir=lib shared no-apps && \
-  make -j2 install_sw) && \
+  make -j1 install_sw) && \
   rm -rf openssl-$OPENSSL_VERSION openssl-$OPENSSL_VERSION.tar.gz
 
 # Install cmake
