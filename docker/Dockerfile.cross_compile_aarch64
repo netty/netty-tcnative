@@ -38,7 +38,10 @@ RUN set -x && \
   wget --no-check-certificate https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
   tar xvf apr-$APR_VERSION.tar.gz && \
   pushd apr-$APR_VERSION && \
-  CC=aarch64-none-linux-gnu-gcc CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ./configure --prefix=/opt/apr-$APR_VERSION-share --host=aarch64-none-linux-gnu ac_cv_have_decl_sys_siglist=no ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8 && \
+  # ac_cv_search_crypt=no: prevents APR from linking against libcrypt.so.1 (CentOS 7),
+  # which is absent on AL2023+/RHEL9+ (replaced by libcrypt.so.2). Mirrors apr_crypt.patch
+  # applied by the Maven build for x86_64.
+  CC=aarch64-none-linux-gnu-gcc CFLAGS='-O3 -fno-omit-frame-pointer -fPIC' ./configure --prefix=/opt/apr-$APR_VERSION-share --host=aarch64-none-linux-gnu ac_cv_have_decl_sys_siglist=no ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=8 ac_cv_search_crypt=no && \
   make || true && \
   pushd tools && \
   gcc -Wall -O2 -DCROSS_COMPILE gen_test_char.c -s -o gen_test_char && \

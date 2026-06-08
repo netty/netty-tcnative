@@ -333,7 +333,6 @@
         <jniArch>aarch_64</jniArch>
         <javaModuleNameClassifier>${os.detected.name}.aarch_64</javaModuleNameClassifier>
         <opensslArmHome>/opt/openssl-${opensslVersion}-share</opensslArmHome>
-        <aprArmHome></aprArmHome>
       </properties>
 
       <build>
@@ -396,6 +395,7 @@
                   <forceConfigure>${forceConfigure}</forceConfigure>
                   <configureArgs>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
+                    <!--suppress MavenModelInspection -->
                     <configureArg>--with-apr=${aprArmHome}</configureArg>
                     <configureArg>--with-ssl=${opensslArmHome}</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
