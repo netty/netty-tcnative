@@ -65,6 +65,8 @@ jobs:
         run: echo "OPENSSL_VERSION=$(./mvnw -q -Dexpression=opensslVersion -DforceStdout -N help:evaluate --no-transfer-progress)" >> $GITHUB_ENV
 
       - name: Build docker image
+        env:
+          BUILDX_BAKE_ENTITLEMENTS_FS: "0"
         run: docker buildx bake ${{ matrix.docker-bake-args }} --load --set "*.cache-from=type=gha,scope=${{ matrix.setup }}" --set "*.cache-to=type=gha,scope=${{ matrix.setup }},mode=max"
 
       - name: Build project
