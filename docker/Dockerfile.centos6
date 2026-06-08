@@ -61,12 +61,8 @@ RUN set -x && \
   (cd openssl-$OPENSSL_VERSION && \
   ./Configure linux-x86_64 --prefix=/opt/openssl-$OPENSSL_VERSION --libdir=lib shared no-asm no-apps && \
   make -j1 install_sw) && \
-  rm -rf openssl-$OPENSSL_VERSION openssl-$OPENSSL_VERSION.tar.gz
-
-ENV LDFLAGS="-L/opt/openssl-${OPENSSL_VERSION}/lib -lssl -lcrypto"
-ENV CFLAGS="-I/opt/openssl-${OPENSSL_VERSION}/include"
-ENV PKG_CONFIG_PATH="/opt/openssl-${OPENSSL_VERSION}/lib/pkgconfig"
-ENV LD_LIBRARY_PATH="/opt/openssl-${OPENSSL_VERSION}/lib"
+  rm -rf openssl-$OPENSSL_VERSION openssl-$OPENSSL_VERSION.tar.gz && \
+  ln -sf /opt/openssl-$OPENSSL_VERSION /usr/local/ssl
 
 RUN rm -rf $SOURCE_DIR
 
