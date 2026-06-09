@@ -2333,7 +2333,6 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
         return;
     }
 
-
     // The first cert was loaded via SSL_use_certificate so skip it.
     for (i = 1; i < numCerts; ++i) {
 

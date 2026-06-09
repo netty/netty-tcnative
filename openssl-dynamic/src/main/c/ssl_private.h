@@ -473,7 +473,6 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 #define tcn_SSL_add1_chain_cert(ssl, x509) SSL_add1_chain_cert(ssl, x509)
 #define tcn_SSL_add0_chain_cert(ssl, x509) SSL_add0_chain_cert(ssl, x509)
-#define tcn_SSL_clear_chain_certs(ssl) SSL_clear_chain_certs(ssl)
 #endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
 #define tcn_SSL_get0_certificate_types(ssl, clist) SSL_get0_certificate_types(ssl, clist)
