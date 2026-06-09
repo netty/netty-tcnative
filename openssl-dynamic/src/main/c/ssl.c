@@ -2316,6 +2316,24 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
         }
     }
 
+    // Clear the chain; the loop below appends certificates to the
+    // chain, and in TLS 1.3, this can be called again after the
+    // server sends a HelloRetryRequest. Without clearing the
+    // certificate chain that results in duplicate entries.
+    if (tcn_SSL_clear_chain_certs(ssl_) != 1) {
+        int errCode = ERR_get_error();
+        if (errCode == 0) {
+            tcn_Throw(e, "Could not clear certificate chain (unknown)");
+        } else {
+            ERR_error_string_n(errCode, err, ERR_LEN);
+            ERR_clear_error();
+
+            tcn_Throw(e, "Could not clear certificate chain (%s)", err);
+        }
+        return;
+    }
+
+
     // The first cert was loaded via SSL_use_certificate so skip it.
     for (i = 1; i < numCerts; ++i) {
 
