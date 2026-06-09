@@ -2320,7 +2320,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
     // chain, and in TLS 1.3, this can be called again after the
     // server sends a HelloRetryRequest. Without clearing the
     // certificate chain that results in duplicate entries.
-    if (tcn_SSL_clear_chain_certs(ssl_) != 1) {
+    if (SSL_clear_chain_certs(ssl_) != 1) {
         int errCode = ERR_get_error();
         if (errCode == 0) {
             tcn_Throw(e, "Could not clear certificate chain (unknown)");
