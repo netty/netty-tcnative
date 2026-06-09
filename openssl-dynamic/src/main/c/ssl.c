@@ -2316,6 +2316,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
         }
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     // Clear the chain; the loop below appends certificates to the
     // chain, and in TLS 1.3, this can be called again after the
     // server sends a HelloRetryRequest. Without clearing the
@@ -2332,6 +2333,7 @@ TCN_IMPLEMENT_CALL(void, SSL, setKeyMaterial)(TCN_STDARGS, jlong ssl, jlong chai
         }
         return;
     }
+#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
     // The first cert was loaded via SSL_use_certificate so skip it.
     for (i = 1; i < numCerts; ++i) {
