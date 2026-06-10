@@ -138,6 +138,17 @@ jobs:
       - name: Create local staging directory
         run: mkdir -p ~/local-staging
 
+      - name: Extract OpenSSL version from pom.xml
+        working-directory: ./prepare-release-workspace/
+        run: echo "OPENSSL_VERSION=$(./mvnw -q -Dexpression=opensslVersion -DforceStdout -N help:evaluate --no-transfer-progress)" >> $GITHUB_ENV
+
+      - name: Extract OpenSSL SHA256 from pom.xml
+        working-directory: ./prepare-release-workspace/
+        run: echo "OPENSSL_SHA256=$(./mvnw -q -Dexpression=opensslSha256 -DforceStdout -N help:evaluate --no-transfer-progress)" >> $GITHUB_ENV
+
+      # Release builds intentionally use docker compose (not buildx bake) for a clean,
+      # cache-free build. OPENSSL_VERSION is still extracted above so docker-compose can
+      # interpolate it as a build arg.
       - name: Build docker image
         working-directory: ./prepare-release-workspace/
         run: docker compose ${{ matrix.docker-compose-build }}
