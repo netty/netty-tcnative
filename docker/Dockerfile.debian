@@ -3,7 +3,9 @@ FROM --platform=linux/amd64 debian:$debian_version
 # needed to do again after FROM due to docker limitation
 ARG debian_version
 ARG openssl_version=3.6.1
+ARG openssl_sha256
 ENV OPENSSL_VERSION $openssl_version
+ENV OPENSSL_SHA256 $openssl_sha256
 ENV SOURCE_DIR /root/source
 ENV CMAKE_VERSION_BASE 3.8
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.2
@@ -60,6 +62,7 @@ RUN set -x && \
   export CC=/opt/gcc-$GCC_VERSION/bin/gcc && \
   # --no-check-certificate: Debian 7 ships with outdated CA bundles that can't verify modern GitHub TLS certs
   wget --no-check-certificate https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION/openssl-$OPENSSL_VERSION.tar.gz && \
+  echo "$OPENSSL_SHA256  openssl-$OPENSSL_VERSION.tar.gz" | sha256sum -c - && \
   tar xvf openssl-$OPENSSL_VERSION.tar.gz && \
   (cd openssl-$OPENSSL_VERSION && \
   # no-asm: the custom GCC on Debian 7 cannot reliably compile OpenSSL's hand-tuned x86_64 assembly

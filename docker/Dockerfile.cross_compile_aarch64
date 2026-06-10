@@ -2,10 +2,12 @@ FROM --platform=linux/amd64 centos:7.9.2009
 
 ARG gcc_version=10.2-2020.11
 ARG openssl_version=3.6.1
+ARG openssl_sha256
 ARG apr_version=1.7.6
 ENV SOURCE_DIR /root/source
 ENV GCC_VERSION $gcc_version
 ENV OPENSSL_VERSION $openssl_version
+ENV OPENSSL_SHA256 $openssl_sha256
 ENV MAVEN_VERSION 3.9.1
 ENV APR_VERSION $apr_version
 ENV CMAKE_VERSION_BASE 3.26
@@ -52,6 +54,7 @@ RUN set -x && \
 # Cross compile OpenSSL for aarch64 - share
 RUN set -x && \
   wget https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION/openssl-$OPENSSL_VERSION.tar.gz && \
+  echo "$OPENSSL_SHA256  openssl-$OPENSSL_VERSION.tar.gz" | sha256sum -c - && \
   tar xvf openssl-$OPENSSL_VERSION.tar.gz && \
   (cd openssl-$OPENSSL_VERSION && \
   ./Configure linux-aarch64 --cross-compile-prefix=aarch64-none-linux-gnu- --prefix=/opt/openssl-$OPENSSL_VERSION-share --libdir=lib shared no-apps && \

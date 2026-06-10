@@ -60,6 +60,9 @@ jobs:
       - name: Extract OpenSSL version from pom.xml
         run: echo "OPENSSL_VERSION=$(./mvnw -q -Dexpression=opensslVersion -DforceStdout -N help:evaluate --no-transfer-progress)" >> $GITHUB_ENV
 
+      - name: Extract OpenSSL SHA256 from pom.xml
+        run: echo "OPENSSL_SHA256=$(./mvnw -q -Dexpression=opensslSha256 -DforceStdout -N help:evaluate --no-transfer-progress)" >> $GITHUB_ENV
+
       - name: Build docker image
         working-directory: docker
         env:

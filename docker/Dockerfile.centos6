@@ -1,7 +1,9 @@
 FROM --platform=linux/amd64 centos:6.10
 
 ARG openssl_version=3.6.1
+ARG openssl_sha256
 ENV OPENSSL_VERSION $openssl_version
+ENV OPENSSL_SHA256 $openssl_sha256
 ENV SOURCE_DIR /root/source
 ENV CMAKE_VERSION_BASE 3.26
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.4
@@ -58,6 +60,7 @@ RUN set -x && \
   source /opt/rh/devtoolset-9/enable && \
   # --no-check-certificate: CentOS 6 ships with outdated CA bundles that can't verify modern GitHub TLS certs
   wget --no-check-certificate https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION/openssl-$OPENSSL_VERSION.tar.gz && \
+  echo "$OPENSSL_SHA256  openssl-$OPENSSL_VERSION.tar.gz" | sha256sum -c - && \
   tar xvf openssl-$OPENSSL_VERSION.tar.gz && \
   (cd openssl-$OPENSSL_VERSION && \
   # no-asm: devtoolset-9 on CentOS 6 cannot reliably compile OpenSSL's hand-tuned x86_64 assembly
