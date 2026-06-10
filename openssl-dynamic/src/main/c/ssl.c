@@ -2726,6 +2726,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
     return (jlong)(intptr_t)credential;
 #else
     tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
 #endif
 }
 
