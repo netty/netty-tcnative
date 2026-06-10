@@ -2700,11 +2700,9 @@ TCN_IMPLEMENT_CALL(void, SSL, setRenegotiateMode)(TCN_STDARGS, jlong ssl, jint m
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, addCredential)(TCN_STDARGS, jlong ssl, jlong cred) {
-    if (!check_credential_api(e)) return;
+#ifdef OPENSSL_IS_BORINGSSL
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
-
-#ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(credential, credential, /* void */);
 
@@ -2712,22 +2710,23 @@ TCN_IMPLEMENT_CALL(void, SSL, addCredential)(TCN_STDARGS, jlong ssl, jlong cred)
     if (result == 0) {
         tcn_Throw(e, "Failed to add credential to SSL");
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
-    if (!check_credential_api(e)) return 0;
+#ifdef OPENSSL_IS_BORINGSSL
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_CHECK_NULL(ssl_, ssl, 0);
-
-#ifdef OPENSSL_IS_BORINGSSL
     const SSL_CREDENTIAL* credential = SSL_get0_selected_credential(ssl_);
     if (credential == NULL) {
         return 0;
     }
     return (jlong)(intptr_t)credential;
 #else
-    return 0;  // Unreachable - check_credential_api throws
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
 #endif
 }
 

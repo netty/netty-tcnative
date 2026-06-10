@@ -43,38 +43,39 @@ static void throw_openssl_error(JNIEnv* env, const char* msg) {
 
 // Core SSL_CREDENTIAL functions
 TCN_IMPLEMENT_CALL(jlong, SSLCredential, newX509)(TCN_STDARGS) {
-    if (!check_credential_api(e)) return 0;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* cred = SSL_CREDENTIAL_new_x509();
     TCN_CHECK_NULL(cred, credential, 0);
     return (jlong)(intptr_t)cred;
 #else
-    return 0;  // Unreachable - check_credential_api throws
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, upRef)(TCN_STDARGS, jlong cred) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_up_ref(c);
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, free)(TCN_STDARGS, jlong cred) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     if (c != NULL) {
         SSL_CREDENTIAL_free(c);
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 // SSL_CREDENTIAL configuration methods
 TCN_IMPLEMENT_CALL(void, SSLCredential, setPrivateKey)(TCN_STDARGS, jlong cred, jlong key) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     EVP_PKEY* pkey = (EVP_PKEY*)(intptr_t)key;
@@ -85,11 +86,12 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setPrivateKey)(TCN_STDARGS, jlong cred, 
     if (SSL_CREDENTIAL_set1_private_key(c, pkey) == 0) {
         throw_openssl_error(e, "Failed to set private key");
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, jlong certChainStack) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -117,11 +119,12 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertChain)(TCN_STDARGS, jlong cred, j
     if (result == 0) {
         throw_openssl_error(e, "Failed to set certificate chain");
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setOcspResponse)(TCN_STDARGS, jlong cred, jbyteArray ocsp) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -147,11 +150,12 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setOcspResponse)(TCN_STDARGS, jlong cred
     if (result == 0) {
         throw_openssl_error(e, "Failed to set OCSP response");
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, jlong cred, jintArray prefs) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -184,11 +188,12 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, j
     if (result == 0) {
         throw_openssl_error(e, "Failed to set signing algorithm preferences");
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, jlong cred, jbyteArray cert_props) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -214,11 +219,12 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, j
     if (result == 0) {
         throw_openssl_error(e, "Failed to set certificate properties");
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS, jlong cred, jbyteArray sct_list) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -244,21 +250,23 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS,
     if (result == 0) {
         throw_openssl_error(e, "Failed to set signed certificate timestamp list");
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setMustMatchIssuer)(TCN_STDARGS, jlong cred, jboolean match) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_set_must_match_issuer(c, match == JNI_TRUE ? 1 : 0);
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 // Trust anchor configuration
 TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cred, jbyteArray id) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -280,12 +288,13 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cre
         throw_openssl_error(e, "Failed to set trust anchor ID");
         return;
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
 // Delegated credentials
 TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
-    if (!check_credential_api(e)) return 0;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* credential = SSL_CREDENTIAL_new_delegated();
     if (credential == NULL) {
@@ -294,12 +303,12 @@ TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
     }
     return (jlong)(intptr_t)credential;
 #else
-    return 0;  // Unreachable - check_credential_api throws
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
 #endif
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setDelegatedCredential)(TCN_STDARGS, jlong cred, jbyteArray dc) {
-    if (!check_credential_api(e)) return;
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
@@ -326,6 +335,8 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setDelegatedCredential)(TCN_STDARGS, jlo
         throw_openssl_error(e, "Failed to set delegated credential");
         return;
     }
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
 #endif
 }
 
