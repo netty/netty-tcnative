@@ -49,6 +49,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLCredential, newX509)(TCN_STDARGS) {
     return (jlong)(intptr_t)cred;
 #else
     tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
 #endif
 }
 
@@ -303,6 +304,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
     return (jlong)(intptr_t)credential;
 #else
     tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
 #endif
 }
 
