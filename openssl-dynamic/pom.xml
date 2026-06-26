@@ -414,8 +414,8 @@
       </build>
     </profile>
 
-    <!-- Activated by -DopensslHome=DIR; overrides configureArgs to pass --with-ssl so the
-         native configure picks up OpenSSL 3.x built from source instead of the system 1.0.x. -->
+    <!-- Activated by -DopensslHome=DIR; passes the custom OpenSSL install path to configure
+         so the native build picks up OpenSSL 3.x from source instead of the system 1.0.x. -->
     <profile>
       <id>with-openssl-home</id>
       <activation>
