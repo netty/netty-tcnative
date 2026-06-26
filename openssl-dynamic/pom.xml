@@ -413,5 +413,40 @@
         </plugins>
       </build>
     </profile>
+
+    <!-- Activated by -DopensslHome=DIR; passes the custom OpenSSL install path to configure
+         so the native build picks up OpenSSL 3.x from source instead of the system 1.0.x. -->
+    <profile>
+      <id>with-openssl-home</id>
+      <activation>
+        <property>
+          <name>opensslHome</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <configuration>
+                  <configureArgs>
+                    <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
+                    <configureArg>--with-ssl=${opensslHome}</configureArg>
+                  </configureArgs>
+                </configuration>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 </project>
