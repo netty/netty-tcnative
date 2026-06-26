@@ -28,11 +28,11 @@ services:
 
   build-clean:
     <<: *common
-    command: /bin/bash -cl "./mvnw clean package"
+    command: /bin/bash -cl "./mvnw clean package -DopensslHome=/opt/openssl-$$OPENSSL_VERSION"
 
   build:
     <<: *common
-    command: /bin/bash -cl "./mvnw clean package"
+    command: /bin/bash -cl "./mvnw clean package -DopensslHome=/opt/openssl-$$OPENSSL_VERSION"
 
   stage-snapshot:
     <<: *common
@@ -42,7 +42,7 @@ services:
       - ~/.m2/repository:/root/.m2/repository
       - ~/local-staging:/root/local-staging
       - ..:/code
-    command: /bin/bash -cl "./mvnw -Pstage -am -pl openssl-dynamic,boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipTests=true"
+    command: /bin/bash -cl "./mvnw -Pstage -am -pl openssl-dynamic,boringssl-static clean package org.sonatype.plugins:nexus-staging-maven-plugin:deploy -DaltStagingDirectory=/root/local-staging -DskipTests=true -DopensslHome=/opt/openssl-$$OPENSSL_VERSION"
 
   stage-release:
     <<: *common
@@ -52,7 +52,7 @@ services:
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ~/local-staging:/root/local-staging
       - ..:/code
-    command: /bin/bash -cl "cat <(echo -e \"${GPG_PRIVATE_KEY}\") | gpg --batch --import && ./mvnw -B -Pstage -am -pl openssl-dynamic,boringssl-static clean javadoc:jar package gpg:sign org.sonatype.central:central-publishing-maven-plugin:publish -DskipTests=true -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEYNAME}"
+    command: /bin/bash -cl "cat <(echo -e \"${GPG_PRIVATE_KEY}\") | gpg --batch --import && ./mvnw -B -Pstage -am -pl openssl-dynamic,boringssl-static clean javadoc:jar package gpg:sign org.sonatype.central:central-publishing-maven-plugin:publish -DskipTests=true -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEYNAME} -DopensslHome=/opt/openssl-$$OPENSSL_VERSION"
 
   deploy:
     <<: *common
@@ -62,7 +62,7 @@ services:
       - ~/.m2/repository:/root/.m2/repository
       - ~/.m2/settings.xml:/root/.m2/settings.xml
       - ..:/code
-    command: /bin/bash -cl "./mvnw clean deploy -DskipTests=true"
+    command: /bin/bash -cl "./mvnw clean deploy -DskipTests=true -DopensslHome=/opt/openssl-$$OPENSSL_VERSION"
 
   shell:
     <<: *common
