@@ -673,6 +673,32 @@ public final class SSL {
     public static native String[] authenticationMethods(long ssl);
 
     /**
+     * Return the authentication methods packed into an {@code int}, avoiding {@code String[]} allocation.
+     * Each bit corresponds to an OpenSSL {@code SSL_a*} authentication constant (see sslutils.c):
+     * <p>
+     * Common (produced by all code paths):
+     * <ul>
+     *     <li>{@code 0x0001} (SSL_aRSA)   - RSA authentication (RSA, DHE_RSA, ECDHE_RSA)</li>
+     *     <li>{@code 0x0002} (SSL_aDSS)   - DSS authentication (DHE_DSS)</li>
+     *     <li>{@code 0x0004} (SSL_aNULL)  - no auth / anonymous (DH_anon, ECDH_anon)</li>
+     *     <li>{@code 0x0040} (SSL_aECDSA) - ECDSA authentication (ECDHE_ECDSA)</li>
+     * </ul>
+     * Legacy (only possible on OpenSSL &lt; 1.1.0):
+     * <ul>
+     *     <li>{@code 0x0008} (SSL_aDH)     - Fixed DH auth</li>
+     *     <li>{@code 0x0010} (SSL_aECDH)   - Fixed ECDH auth</li>
+     *     <li>{@code 0x0020} (SSL_aKRB5)   - KRB5 auth</li>
+     *     <li>{@code 0x0080} (SSL_aPSK)    - PSK auth</li>
+     *     <li>{@code 0x0100} (SSL_aGOST94) - GOST R 34.10-94 auth</li>
+     *     <li>{@code 0x0200} (SSL_aGOST01) - GOST R 34.10-2001 auth</li>
+     * </ul>
+     *
+     * @param ssl the SSL instance (SSL*)
+     * @return the packed authentication methods as a bitmask
+     */
+    public static native int authenticationMethodsPacked(long ssl);
+
+    /**
      * Set BIO of PEM-encoded Server CA Certificates
      * <p>
      * This directive sets the optional all-in-one file where you can assemble the
