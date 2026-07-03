@@ -1600,7 +1600,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getGroupName)(TCN_STDARGS, jlong ssl) {
 
     TCN_CHECK_NULL(ssl_, ssl, JNI_FALSE);
 
-#if defined(LIBRESSL_VERSION_NUMBER)
+#if defined(LIBRESSL_VERSION_NUMBER) || (OPENSSL_VERSION_NUMBER < 0x30200000L)
     return NULL;
 #else
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
