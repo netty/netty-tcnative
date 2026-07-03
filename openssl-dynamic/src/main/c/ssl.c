@@ -1595,6 +1595,31 @@ TCN_IMPLEMENT_CALL(jint, SSL, getMaxWrapOverhead)(TCN_STDARGS, jlong ssl)
 #endif
 }
 
+TCN_IMPLEMENT_CALL(jstring, SSL, getGroupName)(TCN_STDARGS, jlong ssl) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    TCN_CHECK_NULL(ssl_, ssl, JNI_FALSE);
+
+#if defined(LIBRESSL_VERSION_NUMBER)
+    return NULL;
+#else
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    int id = SSL_get_group_id(ssl_);
+    if (id == 0) {
+        return NULL;
+    }
+
+    const char* name = SSL_get_group_name(id);
+#else
+    const char* name =SSL_get0_group_name(ssl_);
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    if (name == NULL) {
+        return NULL;
+    }
+    return (*e)->NewStringUTF(e, name);
+#endif // defined(LIBRESSL_VERSION_NUMBER)
+}
+
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 {
     STACK_OF(SSL_CIPHER) *sk = NULL;
@@ -2810,7 +2835,8 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(isSessionReused, (J)Z, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setRenegotiateMode, (JI)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)V, SSL) },
-  { TCN_METHOD_TABLE_ENTRY(getSelectedCredential, (J)J, SSL) }
+  { TCN_METHOD_TABLE_ENTRY(getSelectedCredential, (J)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getGroupName, (J)Ljava/lang/String;, SSL) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);

@@ -1003,4 +1003,13 @@ public final class SSL {
      * @throws Exception if an error occurred
      */
     public static native long getSelectedCredential(long ssl) throws Exception;
+
+    /**
+     * Get the name of the group used by ssl's most recently completed handshake, or {@code null} if not applicable.
+     *
+     * @param ssl   the SSL instance (SSL *)
+     * @return      the name of the group or {@code null}
+     * @throws Exception if an error occurred
+     */
+    public static native String getGroupName(long ssl) throws Exception;
 }
