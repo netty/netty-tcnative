@@ -1600,9 +1600,6 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getGroupName)(TCN_STDARGS, jlong ssl) {
 
     TCN_CHECK_NULL(ssl_, ssl, JNI_FALSE);
 
-#if defined(LIBRESSL_VERSION_NUMBER) || (OPENSSL_VERSION_NUMBER < 0x30200000L)
-    return NULL;
-#else
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     int id = SSL_get_group_id(ssl_);
     if (id == 0) {
@@ -1610,14 +1607,19 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getGroupName)(TCN_STDARGS, jlong ssl) {
     }
 
     const char* name = SSL_get_group_name(id);
-#else
-    const char* name =SSL_get0_group_name(ssl_);
-#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     if (name == NULL) {
         return NULL;
     }
     return (*e)->NewStringUTF(e, name);
-#endif // defined(LIBRESSL_VERSION_NUMBER)
+#elif defined(LIBRESSL_VERSION_NUMBER) || (OPENSSL_VERSION_NUMBER < 0x30200000L)
+    return NULL;
+#else
+    const char* name =SSL_get0_group_name(ssl_);
+    if (name == NULL) {
+        return NULL;
+    }
+    return (*e)->NewStringUTF(e, name);
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
