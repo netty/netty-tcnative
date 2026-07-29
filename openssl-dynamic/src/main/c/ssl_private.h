@@ -463,6 +463,8 @@ int         tcn_SSL_callback_next_protos(SSL *, const unsigned char **, unsigned
 int         tcn_SSL_callback_select_next_proto(SSL *, unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 int         tcn_SSL_callback_alpn_select_proto(SSL *, const unsigned char **, unsigned char *, const unsigned char *, unsigned int, void *);
 const char *tcn_SSL_cipher_authentication_method(const SSL_CIPHER *);
+void        ssl_info_callback(const SSL *ssl, int where, int ret);
+
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert);

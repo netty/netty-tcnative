@@ -952,6 +952,8 @@ TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
 
     // Set the app_data2 before all the others because it may be used in SSL_free.
     tcn_SSL_set_app_state(ssl, state);
+    // Add callback to keep track of handshakes.
+    SSL_set_info_callback(ssl, ssl_info_callback);
 
     if (server) {
         SSL_set_accept_state(ssl);
