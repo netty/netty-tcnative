@@ -182,14 +182,6 @@ static apr_status_t ssl_context_cleanup(void *data)
     return APR_SUCCESS;
 }
 
-void ssl_info_callback(const SSL *ssl, int where, int ret) {
-    tcn_ssl_state_t* state = NULL;
-    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
-        if ((state = tcn_SSL_get_app_state(ssl)) != NULL) {
-            state->handshakeCount++;
-        }
-    }
-}
 
 /* Initialize server context */
 TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mode)

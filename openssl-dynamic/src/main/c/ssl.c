@@ -930,6 +930,15 @@ static void free_ssl_state(JNIEnv* e, tcn_ssl_state_t* state) {
     OPENSSL_free(state);
 }
 
+static void ssl_info_callback(const SSL *ssl, int where, int ret) {
+    tcn_ssl_state_t* state = NULL;
+    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
+        if ((state = tcn_SSL_get_app_state(ssl)) != NULL) {
+            state->handshakeCount++;
+        }
+    }
+}
+
 TCN_IMPLEMENT_CALL(jlong /* SSL * */, SSL, newSSL)(TCN_STDARGS,
                                                    jlong ctx /* tcn_ssl_ctxt_t * */,
                                                    jboolean server) {
