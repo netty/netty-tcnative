@@ -1631,6 +1631,8 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 
     result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
 
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, authMethodString);
+
     if ((*e)->ExceptionCheck(e)) {
          // We always need to set the error as stated in the SSL_CTX_set_cert_verify_callback manpage, so set the result
          // to the correct value.
@@ -1760,6 +1762,8 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     } else {
         // Execute the java callback
         result = (*e)->CallIntMethod(e, state->ctx->verifier, state->ctx->verifier_method, P2J(ssl), array, authMethodString);
+
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, authMethodString);
 
         if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
             result = X509_V_ERR_UNSPECIFIED;
@@ -1985,6 +1989,9 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     (*e)->CallVoidMethod(e, c->cert_requested_callback, c->cert_requested_callback_method,
              P2J(ssl), P2J(x509Out), P2J(pkeyOut), types, issuers);
 
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, types);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, issuers);
+
     // Check if java threw an exception and if so signal back that we should not continue with the handshake.
     if ((*e)->ExceptionCheck(e)) {
         return -1;
@@ -2112,6 +2119,9 @@ static int certificate_cb(SSL* ssl, void* arg) {
         // Execute the java callback
         (*e)->CallVoidMethod(e, state->ctx->certificate_callback, state->ctx->certificate_callback_method,
                  P2J(ssl), types, issuers);
+
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, types);
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, issuers);
 
         // Check if java threw an exception and if so signal back that we should not continue with the handshake.
         if ((*e)->ExceptionCheck(e) != JNI_TRUE) {
@@ -2509,6 +2519,7 @@ static SSL_SESSION* tcn_get_session_cb(SSL *ssl, unsigned char *session_id, int 
     (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*) session_id);
 
     result = (*e)->CallLongMethod(e, c->ssl_session_cache, c->ssl_session_cache_get_method, P2J(ssl), bArray);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, bArray);
 
     if ((*e)->ExceptionCheck(e)) {
         return NULL;
@@ -2676,6 +2687,9 @@ static void keylog_cb(const SSL* ssl, const char *line) {
     // Execute the java callback
     (*e)->CallVoidMethod(e, state->ctx->keylog_callback, state->ctx->keylog_callback_method,
                 P2J(ssl), outputLine);
+
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, outputLine);
+
     // Clear the exception if any was thrown as otherwise we might corrupt the JNI state
     if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
         (*e)->ExceptionClear(e);
