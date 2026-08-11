@@ -124,6 +124,16 @@ public final class SSL {
     public static final int SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS = sslCertCompressionDirectionDecompress();
     public static final int SSL_CERT_COMPRESSION_DIRECTION_BOTH = sslCertCompressionDirectionBoth();
 
+    /**
+     * Authentication method bits returned by {@link #authenticationMethodsPacked(long)}. Each constant
+     * corresponds to an OpenSSL {@code SSL_a*} authentication algorithm (see {@code sslutils.c}) and is
+     * initialized from native code so the Java and C definitions can not drift apart.
+     */
+    public static final int SSL_A_RSA = sslAuthRsa();
+    public static final int SSL_A_DSS = sslAuthDss();
+    public static final int SSL_A_NULL = sslAuthNull();
+    public static final int SSL_A_ECDSA = sslAuthEcdsa();
+
     /* Return OpenSSL version number */
     public static native int version();
 
@@ -674,27 +684,21 @@ public final class SSL {
 
     /**
      * Return the authentication methods packed into an {@code int}, avoiding {@code String[]} allocation.
-     * Each bit corresponds to an OpenSSL {@code SSL_a*} authentication constant (see sslutils.c):
-     * <p>
-     * Common (produced by all code paths):
+     * The returned value is a bitmask; each bit corresponds to one of the {@code SSL_A_*} constants
+     * defined in this class:
      * <ul>
-     *     <li>{@code 0x0001} (SSL_aRSA)   - RSA authentication (RSA, DHE_RSA, ECDHE_RSA)</li>
-     *     <li>{@code 0x0002} (SSL_aDSS)   - DSS authentication (DHE_DSS)</li>
-     *     <li>{@code 0x0004} (SSL_aNULL)  - no auth / anonymous (DH_anon, ECDH_anon)</li>
-     *     <li>{@code 0x0040} (SSL_aECDSA) - ECDSA authentication (ECDHE_ECDSA)</li>
+     *     <li>{@link #SSL_A_RSA}   - RSA authentication (RSA, DHE_RSA, ECDHE_RSA)</li>
+     *     <li>{@link #SSL_A_DSS}   - DSS authentication (DHE_DSS)</li>
+     *     <li>{@link #SSL_A_NULL}  - no auth / anonymous (DH_anon, ECDH_anon)</li>
+     *     <li>{@link #SSL_A_ECDSA} - ECDSA authentication (ECDHE_ECDSA)</li>
      * </ul>
-     * Legacy (only possible on OpenSSL &lt; 1.1.0):
-     * <ul>
-     *     <li>{@code 0x0008} (SSL_aDH)     - Fixed DH auth</li>
-     *     <li>{@code 0x0010} (SSL_aECDH)   - Fixed ECDH auth</li>
-     *     <li>{@code 0x0020} (SSL_aKRB5)   - KRB5 auth</li>
-     *     <li>{@code 0x0080} (SSL_aPSK)    - PSK auth</li>
-     *     <li>{@code 0x0100} (SSL_aGOST94) - GOST R 34.10-94 auth</li>
-     *     <li>{@code 0x0200} (SSL_aGOST01) - GOST R 34.10-2001 auth</li>
-     * </ul>
+     * On OpenSSL &lt; 1.1.0 additional legacy bits (e.g. {@code SSL_aDH 0x0008}, {@code SSL_aECDH 0x0010},
+     * {@code SSL_aKRB5 0x0020}, {@code SSL_aPSK 0x0080}, {@code SSL_aGOST94 0x0100},
+     * {@code SSL_aGOST01 0x0200}) may also be set, as they are passed through directly from OpenSSL's
+     * {@code algorithm_auth}.
      *
      * @param ssl the SSL instance (SSL*)
-     * @return the packed authentication methods as a bitmask
+     * @return the packed authentication methods as a bitmask of {@code SSL_A_*} values
      */
     public static native int authenticationMethodsPacked(long ssl);
 

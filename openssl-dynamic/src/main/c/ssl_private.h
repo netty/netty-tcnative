@@ -123,6 +123,19 @@
 
 extern const char* TCN_UNKNOWN_AUTH_METHOD;
 
+/*
+ * Bits for the packed authentication methods returned by SSL.authenticationMethodsPacked(...).
+ * These use the same values as OpenSSL's algorithm_auth constants (see sslutils.c) so the legacy
+ * (OpenSSL < 1.1.0) code path can pass cipher->algorithm_auth through directly. They are defined
+ * here as the single source of truth: ssl.c uses them to build the bitmask and native_constants.c
+ * exposes them to Java via NativeStaticallyReferencedJniMethods.
+ */
+#define TCN_SSL_aRSA    0x00000001L
+#define TCN_SSL_aDSS    0x00000002L
+#define TCN_SSL_aNULL   0x00000004L
+#define TCN_SSL_aECDSA  0x00000040L
+#define TCN_SSL_aALL    (TCN_SSL_aRSA | TCN_SSL_aDSS | TCN_SSL_aNULL | TCN_SSL_aECDSA)
+
 /* ECC: make sure we have at least 1.0.0 */
 #if !defined(OPENSSL_NO_EC) && defined(TLSEXT_ECPOINTFORMAT_uncompressed)
 #define HAVE_ECC              1

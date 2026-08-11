@@ -1998,30 +1998,10 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
     return array;
 }
 
-/* Bits for algorithm_auth, same as defined in sslutils.c */
-#define TCN_SSL_aRSA    0x00000001L
-#define TCN_SSL_aDSS    0x00000002L
-#define TCN_SSL_aNULL   0x00000004L
-#define TCN_SSL_aECDSA  0x00000040L
-#define TCN_SSL_aALL    (TCN_SSL_aRSA | TCN_SSL_aDSS | TCN_SSL_aNULL | TCN_SSL_aECDSA)
-
-/**
+/*
  * Returns authentication methods packed into an int, avoiding String[] allocation.
- * Uses the same bit values as OpenSSL's algorithm_auth constants (see sslutils.c):
- *
- * Common (produced by all code paths):
- *   0x0001 (SSL_aRSA)    - RSA authentication (RSA, DHE_RSA, ECDHE_RSA)
- *   0x0002 (SSL_aDSS)    - DSS authentication (DHE_DSS)
- *   0x0004 (SSL_aNULL)   - no auth / anonymous (DH_anon, ECDH_anon)
- *   0x0040 (SSL_aECDSA)  - ECDSA authentication (ECDHE_ECDSA)
- *
- * Legacy (only possible on OpenSSL < 1.1.0, passed through from algorithm_auth):
- *   0x0008 (SSL_aDH)     - Fixed DH auth
- *   0x0010 (SSL_aECDH)   - Fixed ECDH auth
- *   0x0020 (SSL_aKRB5)   - KRB5 auth
- *   0x0080 (SSL_aPSK)    - PSK auth
- *   0x0100 (SSL_aGOST94) - GOST R 34.10-94 auth
- *   0x0200 (SSL_aGOST01) - GOST R 34.10-2001 auth
+ * The TCN_SSL_a* bits are defined in ssl_private.h (shared with native_constants.c, which exposes
+ * them to Java as SSL.SSL_A_* constants). See SSL#authenticationMethodsPacked for the full bit list.
  */
 TCN_IMPLEMENT_CALL(jint, SSL, authenticationMethodsPacked)(TCN_STDARGS, jlong ssl) {
     SSL *ssl_ = J2P(ssl, SSL *);
