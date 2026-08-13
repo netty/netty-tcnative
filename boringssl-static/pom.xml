@@ -579,10 +579,25 @@
                     <echo message="Setup flags to use during linking" />
 
                     <!-- If we compile on linux we need to adjust the ldflags to correct link libstdc++ -->
+                    <!-- The libgcc archives must come *after* libstdc++.a: it is what pulls in the
+                         _Unwind_* symbols, and libgcc_eh.a is what defines them. Linking them
+                         statically is what keeps libgcc_s.so.1 out of DT_NEEDED - `gcc_s.` is not a
+                         musl-reserved stem, so on Alpine that entry is a real file lookup, and it
+                         fails on any image without the `libgcc` package. Alpine JDK images differ on
+                         shipping it: eclipse-temurin does, amazoncorretto and many vendor images do
+                         not, so the dependency is not safe, merely invisible on some images.
+
+                         NOTE: spell this as `-l:` and never `-static-libgcc`. GNU libtool links the
+                         shared library via archive_cmds, which expands only $libobjs $deplibs
+                         $compiler_flags; `-l*` is parsed into deplibs, but `-static-lib*` falls into
+                         func_mode_link's catch-all `-* | +*)` branch and reaches only the *program*
+                         link path, so gcc never sees it. `grep dependency_libs
+                         target/native-build/libnetty_tcnative.la` shows what actually survived.
+                         See docs/musl-compatibility.md. -->
                     <if>
                       <equals arg1="${os.detected.name}" arg2="linux" />
                       <then>
-                        <property name="hawtjniLdflags" value="-L${boringsslHome} -lssl -lcrypto -static-libstdc++ -l:libstdc++.a" />
+                        <property name="hawtjniLdflags" value="-L${boringsslHome} -lssl -lcrypto -l:libstdc++.a -l:libgcc.a -l:libgcc_eh.a" />
                       </then>
                       <else>
                         <property name="hawtjniLdflags" value="${ldflags}" />
@@ -613,6 +628,26 @@
                       <then>
                         <exec executable="strip" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
                           <arg value="--strip-debug" />
+                          <arg value="libnetty_tcnative.so" />
+                        </exec>
+                      </then>
+                    </if>
+
+                    <!-- Drop the DT_NEEDED on ld-linux-<arch>.so. It gets recorded because
+                         __tls_get_addr lives in glibc's loader, but musl defines that symbol itself,
+                         so only the filename lookup fails - on Alpine the library is unloadable
+                         purely because of this entry. Removing it is a no-op on glibc, where the
+                         loader is already mapped. patchelf exits 0 when the entry is absent, so this
+                         is safe on architectures that never had it. Same approach as async-profiler.
+                         See https://github.com/netty/netty-tcnative/issues/907 -->
+                    <if>
+                      <equals arg1="${os.detected.name}" arg2="linux" />
+                      <then>
+                        <exec executable="patchelf" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
+                          <arg value="--remove-needed" />
+                          <arg value="ld-linux-x86-64.so.2" />
+                          <arg value="--remove-needed" />
+                          <arg value="ld-linux-aarch64.so.1" />
                           <arg value="libnetty_tcnative.so" />
                         </exec>
                       </then>
@@ -925,6 +960,23 @@
                       </then>
                     </if>
 
+                    <!-- Same ld-linux DT_NEEDED removal as the default profile, so both released
+                         Linux artifacts get it. patchelf is arch-agnostic, so the x86_64 host tool
+                         edits the cross-built aarch64 object fine, and it exits 0 when the entry is
+                         absent. See docs/musl-compatibility.md -->
+                    <if>
+                      <equals arg1="${os.detected.name}" arg2="linux" />
+                      <then>
+                        <exec executable="patchelf" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
+                          <arg value="--remove-needed" />
+                          <arg value="ld-linux-x86-64.so.2" />
+                          <arg value="--remove-needed" />
+                          <arg value="ld-linux-aarch64.so.1" />
+                          <arg value="libnetty_tcnative.so" />
+                        </exec>
+                      </then>
+                    </if>
+
                     <copy todir="${nativeJarWorkdir}">
                       <zipfileset src="${defaultJarFile}" excludes="META-INF/versions/**/module-info.class" />
                     </copy>
@@ -992,7 +1044,16 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslSourceDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslHome} -lssl -lcrypto -static-libstdc++ -l:libstdc++.a</configureArg>
+                    <!-- Keep in sync with the boringssl-static-default profile: the two Linux
+                         profiles duplicate the whole native build, so a change to one does not apply
+                         to the other. The libgcc archives must follow libstdc++.a, and must be
+                         spelled `-l:` rather than -static-libgcc because libtool drops the latter -
+                         see the comment on hawtjniLdflags in that profile. On aarch64 this also pulls
+                         libgcc's init_have_lse_atomics constructor into the library, whose
+                         __getauxval reference is satisfied by musl_compat.c - an unresolved symbol in
+                         an ELF constructor SIGSEGVs the JVM inside dlopen rather than raising
+                         UnsatisfiedLinkError, so that fallback is load-bearing here. -->
+                    <configureArg>LDFLAGS=-L${boringsslHome} -lssl -lcrypto -l:libstdc++.a -l:libgcc.a -l:libgcc_eh.a</configureArg>
                     <configureArg>--host=aarch64-linux-gnu</configureArg>
                     <configureArg>CC=aarch64-none-linux-gnu-gcc</configureArg>
                   </configureArgs>
