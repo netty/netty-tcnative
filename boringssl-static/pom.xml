@@ -313,6 +313,26 @@
                       </then>
                     </if>
 
+                    <!-- Assert the invariants the steps above establish, on the final bytes and
+                         before the jar is assembled. Bound here rather than to verify because every
+                         build, deploy and staging command is "clean package <plugin>:goal" and so
+                         never reaches verify, and unlike surefire this is not disabled by
+                         -DskipTests - which is what gives the cross-compiled aarch64 artifact its
+                         only automated check. See docs/musl-compatibility.md -->
+                    <if>
+                      <and>
+                        <equals arg1="${os.detected.name}" arg2="linux" />
+                        <equals arg1="${muslCheck.skip}" arg2="false" />
+                      </and>
+                      <then>
+                        <exec executable="sh" failonerror="true" dir="${project.basedir}/..">
+                          <arg value="scripts/check_musl_compat.sh" />
+                          <arg value="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/libnetty_tcnative.so" />
+                          <arg value="static" />
+                        </exec>
+                      </then>
+                    </if>
+
                     <copy todir="${nativeJarWorkdir}">
                       <zipfileset src="${defaultJarFile}" excludes="META-INF/versions/**/module-info.class" />
                     </copy>
@@ -653,6 +673,26 @@
                       </then>
                     </if>
 
+                    <!-- Assert the invariants the steps above establish, on the final bytes and
+                         before the jar is assembled. Bound here rather than to verify because every
+                         build, deploy and staging command is "clean package <plugin>:goal" and so
+                         never reaches verify, and unlike surefire this is not disabled by
+                         -DskipTests - which is what gives the cross-compiled aarch64 artifact its
+                         only automated check. See docs/musl-compatibility.md -->
+                    <if>
+                      <and>
+                        <equals arg1="${os.detected.name}" arg2="linux" />
+                        <equals arg1="${muslCheck.skip}" arg2="false" />
+                      </and>
+                      <then>
+                        <exec executable="sh" failonerror="true" dir="${project.basedir}/..">
+                          <arg value="scripts/check_musl_compat.sh" />
+                          <arg value="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/libnetty_tcnative.so" />
+                          <arg value="static" />
+                        </exec>
+                      </then>
+                    </if>
+
                     <copy todir="${nativeJarWorkdir}">
                       <zipfileset src="${defaultJarFile}" excludes="META-INF/versions/**/module-info.class" />
                     </copy>
@@ -973,6 +1013,27 @@
                           <arg value="--remove-needed" />
                           <arg value="ld-linux-aarch64.so.1" />
                           <arg value="libnetty_tcnative.so" />
+                        </exec>
+                      </then>
+                    </if>
+
+                    <!-- Assert the invariants the steps above establish, on the final bytes and
+                         before the jar is assembled. Bound here rather than to verify because every
+                         build, deploy and staging command is "clean package <plugin>:goal" and so
+                         never reaches verify, and unlike surefire this is not disabled by
+                         -DskipTests - which is what gives the cross-compiled aarch64 artifact its
+                         only automated check. See docs/musl-compatibility.md -->
+                    <if>
+                      <and>
+                        <equals arg1="${os.detected.name}" arg2="linux" />
+                        <equals arg1="${muslCheck.skip}" arg2="false" />
+                      </and>
+                      <then>
+                        <exec executable="sh" failonerror="true" dir="${project.basedir}/..">
+                          <env key="TOOL_PREFIX" value="aarch64-none-linux-gnu-" />
+                          <arg value="scripts/check_musl_compat.sh" />
+                          <arg value="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/libnetty_tcnative.so" />
+                          <arg value="static" />
                         </exec>
                       </then>
                     </if>
