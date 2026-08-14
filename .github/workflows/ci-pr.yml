@@ -192,3 +192,94 @@ jobs:
           path: |
             **/target/surefire-reports/
             **/hs_err*.log
+
+  # Verify that the glibc-built Linux artifacts really load under musl. This consumes the jars
+  # the build jobs above already upload, so nothing is rebuilt. The static half of this invariant
+  # is enforced inside the build by scripts/check_musl_compat.sh; what only a real musl system can
+  # show is whether the library loads, because on aarch64 the historical failure was a JVM SIGSEGV
+  # during dlopen rather than an UnsatisfiedLinkError. See docs/musl-compatibility.md.
+  #
+  # `needs` cannot depend on a single matrix leg, so this waits for all of build-pr.
+  musl-verify:
+    needs: build-pr
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Both runners are pinned: there is no ubuntu-latest-arm, so pairing ubuntu-latest with
+          # a pinned arm label would drift apart as soon as ubuntu-latest moves on. The host only
+          # supplies Docker here, so pinning costs nothing.
+          - setup: alpine-x86_64
+            os: ubuntu-24.04
+            jars: build-pr-centos6-x86_64-jars
+            variant: bare
+            extra-pkgs: ""
+            drop-elftools: "1"
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-aarch64
+            os: ubuntu-24.04-arm
+            jars: build-pr-centos7-aarch64-jars
+            variant: bare
+            extra-pkgs: ""
+            drop-elftools: "1"
+            build-service: runtime-setup
+            run-service: verify
+          # The invariant leg: an Alpine JDK that ships no `libgcc` package of its own, so
+          # `apk del .elftools` really does leave libgcc absent. eclipse-temurin's JDK depends on
+          # libgcc, so the bare legs above cannot prove the artifact loads without it.
+          - setup: alpine-x86_64-nolibgcc
+            os: ubuntu-24.04
+            jars: build-pr-centos6-x86_64-jars
+            variant: nolibgcc
+            extra-pkgs: ""
+            drop-elftools: "1"
+            jdk-image: amazoncorretto:21-alpine
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-aarch64-nolibgcc
+            os: ubuntu-24.04-arm
+            jars: build-pr-centos7-aarch64-jars
+            variant: nolibgcc
+            extra-pkgs: ""
+            drop-elftools: "1"
+            jdk-image: amazoncorretto:21-alpine
+            build-service: runtime-setup
+            run-service: verify
+          # Control: anything failing on Alpine must pass here, or the check is at fault rather
+          # than the artifact.
+          - setup: glibc-control-x86_64
+            os: ubuntu-24.04
+            jars: build-pr-centos6-x86_64-jars
+            variant: glibc-control
+            extra-pkgs: ""
+            drop-elftools: "0"
+            build-service: control-runtime-setup
+            run-service: control-verify
+
+    runs-on: ${{ matrix.os }}
+    name: musl-verify ${{ matrix.setup }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.jars }}
+          path: musl-verify-jars
+
+      - name: Build verification image
+        env:
+          MUSL_VARIANT: ${{ matrix.variant }}
+          MUSL_EXTRA_PKGS: ${{ matrix.extra-pkgs }}
+          MUSL_JDK_IMAGE: ${{ matrix.jdk-image }}
+        run: docker compose -f docker/docker-compose.alpine.yaml build ${{ matrix.build-service }}
+
+      - name: Verify the artifact under ${{ matrix.variant }}
+        env:
+          MUSL_VARIANT: ${{ matrix.variant }}
+          MUSL_EXTRA_PKGS: ${{ matrix.extra-pkgs }}
+          MUSL_DROP_ELFTOOLS: ${{ matrix.drop-elftools }}
+          MUSL_JDK_IMAGE: ${{ matrix.jdk-image }}
+          MUSL_JARS_DIR: musl-verify-jars
+        run: docker compose -f docker/docker-compose.alpine.yaml run --rm ${{ matrix.run-service }}

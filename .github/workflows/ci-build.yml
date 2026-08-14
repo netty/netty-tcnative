@@ -142,3 +142,105 @@ jobs:
           path: |
             **/target/surefire-reports/
             **/hs_err*.log
+
+  # Same verification as ci-pr.yml, plus the gcompat variants. Those are here rather than on every
+  # PR because their job is not to pass but to make a bare failure diagnostic: if bare fails and
+  # gcompat passes, the artifact has re-acquired a dependency on the compatibility shim, which is
+  # how 2.0.65 appeared to work. This workflow also runs on the weekly schedule, which is where
+  # the extra minutes belong. See docs/musl-compatibility.md.
+  musl-verify:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Both runners are pinned: there is no ubuntu-latest-arm, so pairing ubuntu-latest with
+          # a pinned arm label would drift apart as soon as ubuntu-latest moves on.
+          - setup: alpine-x86_64
+            os: ubuntu-24.04
+            jars: build-centos6-x86_64-jars
+            variant: bare
+            extra-pkgs: ""
+            drop-elftools: "1"
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-aarch64
+            os: ubuntu-24.04-arm
+            jars: build-centos7-aarch64-jars
+            variant: bare
+            extra-pkgs: ""
+            drop-elftools: "1"
+            build-service: runtime-setup
+            run-service: verify
+          # The invariant leg: an Alpine JDK that ships no `libgcc` package of its own, so
+          # `apk del .elftools` really does leave libgcc absent. eclipse-temurin's JDK depends on
+          # libgcc, so the bare legs above cannot prove the artifact loads without it.
+          - setup: alpine-x86_64-nolibgcc
+            os: ubuntu-24.04
+            jars: build-centos6-x86_64-jars
+            variant: nolibgcc
+            extra-pkgs: ""
+            drop-elftools: "1"
+            jdk-image: amazoncorretto:21-alpine
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-aarch64-nolibgcc
+            os: ubuntu-24.04-arm
+            jars: build-centos7-aarch64-jars
+            variant: nolibgcc
+            extra-pkgs: ""
+            drop-elftools: "1"
+            jdk-image: amazoncorretto:21-alpine
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-x86_64-gcompat
+            os: ubuntu-24.04
+            jars: build-centos6-x86_64-jars
+            variant: gcompat
+            extra-pkgs: gcompat
+            drop-elftools: "0"
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-aarch64-gcompat
+            os: ubuntu-24.04-arm
+            jars: build-centos7-aarch64-jars
+            variant: gcompat
+            extra-pkgs: gcompat
+            drop-elftools: "0"
+            build-service: runtime-setup
+            run-service: verify
+          - setup: glibc-control-x86_64
+            os: ubuntu-24.04
+            jars: build-centos6-x86_64-jars
+            variant: glibc-control
+            extra-pkgs: ""
+            drop-elftools: "0"
+            build-service: control-runtime-setup
+            run-service: control-verify
+
+    runs-on: ${{ matrix.os }}
+    name: musl-verify ${{ matrix.setup }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.jars }}
+          path: musl-verify-jars
+
+      - name: Build verification image
+        env:
+          MUSL_VARIANT: ${{ matrix.variant }}
+          MUSL_EXTRA_PKGS: ${{ matrix.extra-pkgs }}
+          MUSL_JDK_IMAGE: ${{ matrix.jdk-image }}
+        run: docker compose -f docker/docker-compose.alpine.yaml build ${{ matrix.build-service }}
+
+      - name: Verify the artifact under ${{ matrix.variant }}
+        env:
+          MUSL_VARIANT: ${{ matrix.variant }}
+          MUSL_EXTRA_PKGS: ${{ matrix.extra-pkgs }}
+          MUSL_DROP_ELFTOOLS: ${{ matrix.drop-elftools }}
+          MUSL_JDK_IMAGE: ${{ matrix.jdk-image }}
+          MUSL_JARS_DIR: musl-verify-jars
+        run: docker compose -f docker/docker-compose.alpine.yaml run --rm ${{ matrix.run-service }}

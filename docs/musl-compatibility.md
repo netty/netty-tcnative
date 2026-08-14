@@ -180,6 +180,26 @@ On Alpine, `ldd` *is* the musl loader, so this reports the real errors with no J
 ldd "$SO"     # look for "Error loading shared library" / "Error relocating"
 ```
 
+**Beware what your inspection tools drag in.** `apk add binutils` — needed for the `readelf`/`nm`
+checks in §4a — depends on `libgcc`, so installing it satisfies a `libgcc_s.so.1` `DT_NEEDED` and
+turns a bare image into a non-bare one. `docker/Dockerfile.alpine` therefore installs binutils as
+the virtual package `.elftools`, and `verify.sh` removes it (with `libgcc`) before the execution
+checks when `MUSL_DROP_ELFTOOLS=1`. If you inspect by hand, do the `readelf` work in one container
+and the load test in a clean one.
+
+**And beware what the JDK itself drags in.** On `eclipse-temurin:21-jdk-alpine` the JDK *depends*
+on `libgcc`, so `apk del` cannot remove it there — the `bare` legs run with libgcc present no
+matter what, and cannot police invariant 1's `libgcc_s.so.1` clause. That is what the separate
+`nolibgcc` CI legs are for: same harness on `amazoncorretto:21-alpine`, whose JDK pulls no libgcc,
+so the runtime checks really do run without it. Run it locally with:
+
+```sh
+MUSL_VARIANT=nolibgcc MUSL_JDK_IMAGE=amazoncorretto:21-alpine MUSL_DROP_ELFTOOLS=1 \
+  docker compose -f docker/docker-compose.alpine.yaml build runtime-setup
+MUSL_VARIANT=nolibgcc MUSL_DROP_ELFTOOLS=1 MUSL_JARS_DIR=<dir> \
+  docker compose -f docker/docker-compose.alpine.yaml run --rm verify
+```
+
 ### 4c. Runtime check on bare Alpine
 
 ```sh
