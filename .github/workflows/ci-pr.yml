@@ -200,6 +200,11 @@ jobs:
   # during dlopen rather than an UnsatisfiedLinkError. See docs/musl-compatibility.md.
   #
   # `needs` cannot depend on a single matrix leg, so this waits for all of build-pr.
+  #
+  # The gcompat legs are not expected to change the answer -- libc.so.6 is one of the names musl
+  # resolves internally, so gcompat's symlink is never read. They earn their place by making a
+  # bare failure diagnostic: if bare fails and gcompat passes, the artifact has re-acquired a
+  # dependency on the compatibility shim, which is exactly how 2.0.65 appeared to work.
   musl-verify:
     needs: build-pr
     strategy:
@@ -244,6 +249,22 @@ jobs:
             extra-pkgs: ""
             drop-elftools: "1"
             jdk-image: amazoncorretto:21-alpine
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-x86_64-gcompat
+            os: ubuntu-24.04
+            jars: build-pr-centos6-x86_64-jars
+            variant: gcompat
+            extra-pkgs: gcompat
+            drop-elftools: "0"
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-aarch64-gcompat
+            os: ubuntu-24.04-arm
+            jars: build-pr-centos7-aarch64-jars
+            variant: gcompat
+            extra-pkgs: gcompat
+            drop-elftools: "0"
             build-service: runtime-setup
             run-service: verify
           # Control: anything failing on Alpine must pass here, or the check is at fault rather

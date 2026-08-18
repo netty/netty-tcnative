@@ -658,7 +658,9 @@
                          so only the filename lookup fails - on Alpine the library is unloadable
                          purely because of this entry. Removing it is a no-op on glibc, where the
                          loader is already mapped. patchelf exits 0 when the entry is absent, so this
-                         is safe on architectures that never had it. Same approach as async-profiler.
+                         is safe on architectures that never had it. async-profiler does exactly the
+                         same thing when packaging its single glibc+musl binary:
+                         https://github.com/async-profiler/async-profiler/blob/bb8f0476a1804ac77b48b84a3905fb26e9ca7428/Makefile#L156
                          See https://github.com/netty/netty-tcnative/issues/907 -->
                     <if>
                       <equals arg1="${os.detected.name}" arg2="linux" />

@@ -143,11 +143,7 @@ jobs:
             **/target/surefire-reports/
             **/hs_err*.log
 
-  # Same verification as ci-pr.yml, plus the gcompat variants. Those are here rather than on every
-  # PR because their job is not to pass but to make a bare failure diagnostic: if bare fails and
-  # gcompat passes, the artifact has re-acquired a dependency on the compatibility shim, which is
-  # how 2.0.65 appeared to work. This workflow also runs on the weekly schedule, which is where
-  # the extra minutes belong. See docs/musl-compatibility.md.
+  # Same verification as ci-pr.yml, on the same legs. See docs/musl-compatibility.md.
   musl-verify:
     needs: build
     strategy:

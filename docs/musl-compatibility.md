@@ -9,7 +9,8 @@ Background: <https://github.com/netty/netty-tcnative/issues/907>,
 <https://github.com/netty/netty-tcnative/issues/152>,
 <https://github.com/netty/netty/issues/15112>. The approach mirrors
 [async-profiler#952](https://github.com/async-profiler/async-profiler/issues/952), which ships
-one binary for both libcs.
+one binary for both libcs; its packaging step strips the same `ld-linux` entries with the same
+tool ([Makefile#L156](https://github.com/async-profiler/async-profiler/blob/bb8f0476a1804ac77b48b84a3905fb26e9ca7428/Makefile#L156)).
 
 ---
 
