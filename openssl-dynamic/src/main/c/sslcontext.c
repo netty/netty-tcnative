@@ -1609,7 +1609,13 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     jint len;
     jbyteArray array = NULL;
 
-    if (tcn_get_java_env(&e) != JNI_OK) {
+    if (c == NULL || tcn_get_java_env(&e) != JNI_OK) {
+        goto complete;
+    }
+
+    if (c->verifier == NULL) {
+        // The verifier may have been cleared (or the context torn down) concurrently with this
+        // in-flight handshake, so never assume it is still set by the time we get here.
         goto complete;
     }
 
@@ -1981,6 +1987,12 @@ static int cert_requested(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
         return -1;
     }
 
+    if (c->cert_requested_callback == NULL) {
+        // May have been cleared (or the context torn down) concurrently with this in-flight
+        // handshake, so never assume it is still set by the time we get here.
+        return -1;
+    }
+
     types = keyTypes(e, ssl);
 
     issuers = principalBytes(e, SSL_get_client_CA_list(ssl));
@@ -2056,7 +2068,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
 // See https://www.openssl.org/docs/man1.0.2/man3/SSL_set_cert_cb.html for return values.
 static int certificate_cb(SSL* ssl, void* arg) {
     tcn_ssl_state_t *state = tcn_SSL_get_app_state(ssl);
-    if (state == NULL || state->ctx == NULL) {
+    // The callback may have been cleared (or the context torn down) concurrently with this
+    // in-flight handshake, so never assume it is still set by the time we get here.
+    if (state == NULL || state->ctx == NULL || (state->ssl_task == NULL && state->ctx->certificate_callback == NULL)) {
         // Signal back that we want to fail the handshake
         return 0;
     }
@@ -2662,6 +2676,12 @@ static void keylog_cb(const SSL* ssl, const char *line) {
     tcn_ssl_state_t *state = tcn_SSL_get_app_state(ssl);
     if (state == NULL || state->ctx == NULL) {
         // There's nothing we can do without tcn_ssl_state_t.
+        return;
+    }
+
+    // The callback may have been cleared (or the context torn down) concurrently with this
+    // in-flight handshake, so never assume it is still set by the time we get here.
+    if (state->ctx->keylog_callback == NULL) {
         return;
     }
 
