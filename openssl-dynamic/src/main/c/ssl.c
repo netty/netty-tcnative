@@ -2033,6 +2033,87 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, authenticationMethods)(TCN_STDARGS, jlong 
     return array;
 }
 
+/*
+ * Returns authentication methods packed into an int, avoiding String[] allocation.
+ * The TCN_SSL_a* bits are defined in ssl_private.h (shared with native_constants.c, which exposes
+ * them to Java as SSL.SSL_A_* constants). See SSL#authenticationMethodsPacked for the full bit list.
+ */
+TCN_IMPLEMENT_CALL(jint, SSL, authenticationMethodsPacked)(TCN_STDARGS, jlong ssl) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    const STACK_OF(SSL_CIPHER) *ciphers = NULL;
+    int len;
+    int i;
+    jint packed = 0;
+
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+
+    ciphers = SSL_get_ciphers(ssl_);
+    len = sk_SSL_CIPHER_num(ciphers);
+
+    for (i = 0; i < len; i++) {
+        const SSL_CIPHER *cipher = sk_SSL_CIPHER_value(ciphers, i);
+
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+        // BoringSSL/AWS-LC: classify by exact kx_name
+        const char *name = SSL_CIPHER_get_kx_name(cipher);
+        if (name == NULL) {
+            continue;
+        }
+        // TLS 1.3 ciphers report "GENERIC" and appear first in the list — skip early
+        if (strcmp(name, "GENERIC") == 0) {
+            continue;
+        }
+        if (strcmp(name, "RSA") == 0 ||
+            strcmp(name, "DHE_RSA") == 0 ||
+            strcmp(name, "ECDHE_RSA") == 0) {
+            packed |= TCN_SSL_aRSA;
+        } else if (strcmp(name, "ECDHE_ECDSA") == 0) {
+            packed |= TCN_SSL_aECDSA;
+        } else if (strcmp(name, "DH_anon") == 0 ||
+                   strcmp(name, "ECDH_anon") == 0) {
+            packed |= TCN_SSL_aNULL;
+        } else if (strcmp(name, "DHE_DSS") == 0) {
+            packed |= TCN_SSL_aDSS;
+        }
+        // All common bits set — no point continuing
+        if ((packed & TCN_SSL_aALL) == TCN_SSL_aALL) {
+            break;
+        }
+
+#elif OPENSSL_VERSION_NUMBER >= 0x10100000L && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x2070000fL)
+        // OpenSSL 1.1.0+ / LibreSSL 2.7.0+: use NID-based API
+        switch (SSL_CIPHER_get_auth_nid(cipher)) {
+            case NID_auth_rsa:
+                packed |= TCN_SSL_aRSA;
+                break;
+#ifndef LIBRESSL_VERSION_NUMBER
+            case NID_auth_dss:
+                packed |= TCN_SSL_aDSS;
+                break;
+#endif
+            case NID_auth_null:
+                packed |= TCN_SSL_aNULL;
+                break;
+            case NID_auth_ecdsa:
+                packed |= TCN_SSL_aECDSA;
+                break;
+        }
+        // All common bits set — no point continuing
+        if ((packed & TCN_SSL_aALL) == TCN_SSL_aALL) {
+            break;
+        }
+
+#else
+        // Older OpenSSL (< 1.1.0): read algorithm_auth directly from struct.
+        // May include legacy bits (SSL_aDH, SSL_aECDH, SSL_aKRB5, etc.)
+        // not produced by the BoringSSL/OpenSSL 1.1+ code paths above.
+        packed |= (jint) cipher->algorithm_auth;
+#endif
+    }
+
+    return packed;
+}
+
 TCN_IMPLEMENT_CALL(void, SSL, setCertificateBio)(TCN_STDARGS, jlong ssl,
                                                          jlong cert, jlong key,
                                                          jstring password)
@@ -2816,6 +2897,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setTlsExtHostName0, (JLjava/lang/String;)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setHostNameValidation, (JILjava/lang/String;)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(authenticationMethods, (J)[Ljava/lang/String;, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(authenticationMethodsPacked, (J)I, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setCertificateBio, (JJJLjava/lang/String;)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(setCertificateChainBio, (JJZ)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(loadPrivateKeyFromEngine, (Ljava/lang/String;Ljava/lang/String;)J, SSL) },

@@ -181,4 +181,9 @@ final class NativeStaticallyReferencedJniMethods {
     static native int tlsExtCertCompressionZlib();
     static native int tlsExtCertCompressionBrotli();
     static native int tlsExtCertCompressionZstd();
+
+    static native int sslAuthRsa();
+    static native int sslAuthDss();
+    static native int sslAuthNull();
+    static native int sslAuthEcdsa();
 }
