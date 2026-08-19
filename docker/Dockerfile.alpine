@@ -1,0 +1,39 @@
+# Runtime image for verifying that a built Linux artifact loads under musl.
+#
+# This image does NOT build netty-tcnative -- it consumes an artifact built elsewhere by one of
+# the glibc images, which is the whole point: the released jar is glibc-built and is expected to
+# work on musl. Nothing here runs Maven, so the os.detected.classifier enforcer rules never come
+# into play.
+#
+# The base is deliberately a stock JDK image with no compatibility shim: no gcompat and no
+# libc6-compat, so /lib/libc.so.6 does not exist. That is what "bare" below means. If a future base
+# image starts shipping gcompat, the bare variant silently stops testing anything -- verify.sh
+# prints the installed compat packages on every run so that shows up in the log.
+#
+# The default base does ship libgcc and libstdc++, and that is NOT representative: Alpine JDK
+# images differ on it (Amazon Corretto and various vendor images carry no `libgcc` package), which
+# is precisely how a libgcc_s.so.1 DT_NEEDED shipped unnoticed for eight releases.
+#
+# Two knobs are needed to test that honestly, because there are two ways libgcc sneaks in:
+#   - MUSL_DROP_ELFTOOLS=1 makes verify.sh uninstall the binutils below, which depend on libgcc;
+#   - jdk_image must name a JDK that does not itself depend on libgcc. eclipse-temurin does, so on
+#     that base `apk del` cannot remove it and the leg proves nothing about this invariant.
+#     amazoncorretto:21-alpine does not, and still provides javac and jar.
+# See docs/musl-compatibility.md §4b.
+ARG jdk_image=eclipse-temurin:21-jdk-alpine
+FROM ${jdk_image}
+
+# binutils for readelf/nm. It provides no libc symbols, so it cannot mask a missing one -- but it
+# does pull `libgcc` in as a dependency, which would mask exactly the failure this image exists to
+# detect. Installed as a virtual package so verify.sh can remove it, and libgcc with it, once the
+# ELF inspection is done and only the runtime checks remain.
+RUN apk add --no-cache --virtual .elftools binutils
+
+# Set per variant rather than baked in, so each package set is measured independently.
+# Empty is the invariant; "gcompat" exists to make a bare failure diagnostic, because a fix that
+# accidentally depends on the shim passes there and fails bare. That is exactly how 2.0.65
+# appeared to work.
+ARG EXTRA_PKGS=""
+RUN if [ -n "$EXTRA_PKGS" ]; then apk add --no-cache $EXTRA_PKGS; fi
+
+WORKDIR /code

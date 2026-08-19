@@ -1,0 +1,57 @@
+version: "3"
+
+# Verifies an already-built Linux artifact under musl. Unlike the other compose files here this
+# one does not build netty-tcnative: it needs both the boringssl-static classifier jar and the
+# netty-tcnative-classes jar, which live in different module target directories, so MUSL_JARS_DIR
+# is searched recursively and defaults to the whole tree.
+# See docker/README.md and docs/musl-compatibility.md.
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-alpine:${MUSL_VARIANT:-bare}
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.alpine
+      args:
+        EXTRA_PKGS: "${MUSL_EXTRA_PKGS:-}"
+        # eclipse-temurin's JDK depends on libgcc, so `apk del` cannot take it away there and that
+        # base can never prove the artifact loads without it. Point this at an Alpine JDK that
+        # carries no libgcc (amazoncorretto:21-alpine) for the leg that tests exactly that.
+        jdk_image: "${MUSL_JDK_IMAGE:-eclipse-temurin:21-jdk-alpine}"
+
+  common: &common
+    image: netty-tcnative-alpine:${MUSL_VARIANT:-bare}
+    depends_on: [runtime-setup]
+    environment:
+      - MUSL_VARIANT=${MUSL_VARIANT:-bare}
+      # Set to 1 on the bare legs: uninstalls binutils, and libgcc with it, before the runtime
+      # checks. Leave unset for the gcompat legs, whose point is to load with the shim present.
+      - MUSL_DROP_ELFTOOLS=${MUSL_DROP_ELFTOOLS:-0}
+    volumes:
+      - ..:/code:delegated
+    working_dir: /code
+
+  verify:
+    <<: *common
+    command: /bin/sh -c "docker/musl-verify/verify.sh ${MUSL_JARS_DIR:-.}"
+
+  shell:
+    <<: *common
+    entrypoint: /bin/sh
+
+  control-runtime-setup:
+    image: netty-tcnative-musl-control:glibc
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.musl-control
+
+  control-verify:
+    image: netty-tcnative-musl-control:glibc
+    depends_on: [control-runtime-setup]
+    environment:
+      - MUSL_VARIANT=glibc-control
+    volumes:
+      - ..:/code:delegated
+    working_dir: /code
+    command: /bin/sh -c "docker/musl-verify/verify.sh ${MUSL_JARS_DIR:-.}"
