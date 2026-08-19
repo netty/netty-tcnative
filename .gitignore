@@ -43,3 +43,5 @@ cmake-*
 
 # exclude file created by the flatten plugin
 .flattened-pom.xml
+
+/musl-verify-jars/

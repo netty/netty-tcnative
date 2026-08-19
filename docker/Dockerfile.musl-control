@@ -1,0 +1,12 @@
+# glibc control for the musl verification. Same verify.sh, same artifact, different libc.
+#
+# Its job is to tell "the library is broken on musl" apart from "the check is broken": anything
+# that fails on Alpine must pass here, or the harness is at fault rather than the artifact.
+ARG jdk_image=eclipse-temurin:21-jdk-jammy
+FROM ${jdk_image}
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends binutils \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code

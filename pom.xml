@@ -119,6 +119,7 @@
     <msvcSslLibDirs>${sslHome}/lib</msvcSslLibDirs>
     <msvcSslLibs>libssl.lib;libcrypto.lib</msvcSslLibs>
     <strip.skip>false</strip.skip>
+    <muslCheck.skip>false</muslCheck.skip>
     <generatedSourcesDir>${project.build.directory}/generated-sources</generatedSourcesDir>
     <macOsxDeploymentTarget>MACOSX_DEPLOYMENT_TARGET=10.9</macOsxDeploymentTarget>
     <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9</cmakeOsxDeploymentTarget>

@@ -22,7 +22,7 @@ RUN sed -i -e 's/^mirrorlist/#mirrorlist/g' -e 's/^#baseurl=http:\/\/mirror.cent
 # Install requirements
 RUN  set -x && \
   yum -y install epel-release && \
-  yum -y install wget tar git make autoconf automake libtool openssl-devel ninja-build gcc-c++ patch unzip zip which perl perl-IPC-Cmd perl-Time-Piece
+  yum -y install wget tar git make autoconf automake libtool openssl-devel ninja-build gcc-c++ patch unzip zip which perl perl-IPC-Cmd perl-Time-Piece patchelf
 
 # Install Java
 RUN yum install -y java-1.8.0-openjdk-devel golang
