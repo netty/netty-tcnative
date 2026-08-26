@@ -2670,6 +2670,7 @@ TCN_IMPLEMENT_CALL(jobjectArray, SSL, getSigAlgs)(TCN_STDARGS, jlong ssl) {
         }
 
         (*e)->SetObjectArrayElement(e, array, i, algString);
+        (*e)->DeleteLocalRef(e, algString);
     }
 
 complete:
@@ -2709,6 +2710,7 @@ complete:
             return NULL;
         }
         (*e)->SetObjectArrayElement(e, array, i, algString);
+        (*e)->DeleteLocalRef(e, algString);
     }
     return array;
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)

@@ -10,6 +10,7 @@ ENV CMAKE_VERSION $CMAKE_VERSION_BASE.4
 ENV NINJA_VERSION 1.7.2
 ENV GO_VERSION 1.9.3
 ENV MAVEN_VERSION 3.9.1
+ENV PATCHELF_VERSION 0.18.0
 
 # Update as we need to use the vault now.
 RUN sed -i -e 's/^mirrorlist/#mirrorlist/g' -e 's/^#baseurl=http:\/\/mirror.centos.org\/centos\/$releasever\//baseurl=https:\/\/linuxsoft.cern.ch\/centos-vault\/\/6.10\//g' /etc/yum.repos.d/CentOS-Base.repo
@@ -67,6 +68,17 @@ RUN set -x && \
   ./Configure linux-x86_64 --prefix=/opt/openssl-$OPENSSL_VERSION --libdir=lib shared no-asm no-apps && \
   make -j1 install_sw) && \
   rm -rf openssl-$OPENSSL_VERSION openssl-$OPENSSL_VERSION.tar.gz
+
+# patchelf is used post-link to drop the DT_NEEDED on ld-linux-x86-64.so.2 so the artifact
+# also loads under musl. CentOS 6 is EOL and has no EPEL, so install the upstream prebuilt
+# static binary rather than going through yum.
+# --no-check-certificate for the same reason as the OpenSSL download above.
+RUN wget -q --no-check-certificate https://github.com/NixOS/patchelf/releases/download/$PATCHELF_VERSION/patchelf-$PATCHELF_VERSION-x86_64.tar.gz \
+ && mkdir -p /opt/patchelf-$PATCHELF_VERSION \
+ && tar zxf patchelf-$PATCHELF_VERSION-x86_64.tar.gz -C /opt/patchelf-$PATCHELF_VERSION \
+ && ln -s /opt/patchelf-$PATCHELF_VERSION/bin/patchelf /usr/local/bin/patchelf \
+ && rm -f patchelf-$PATCHELF_VERSION-x86_64.tar.gz \
+ && patchelf --version
 
 RUN rm -rf $SOURCE_DIR
 

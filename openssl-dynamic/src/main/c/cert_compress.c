@@ -40,6 +40,8 @@ static int compress(jobject compression_algorithm, jmethodID compress_method, SS
     jbyteArray resultArray = (*e)->CallObjectMethod(e, compression_algorithm, compress_method,
                     P2J(ssl), inputArray);
 
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, inputArray);
+
     if ((*e)->ExceptionCheck(e) != JNI_FALSE) {
         (*e)->ExceptionClear(e);
         return 0; // Exception while calling into Java
@@ -87,6 +89,8 @@ static int decompress(jobject compression_algorithm, jmethodID decompress_method
     // `max_cert_list` contains the max cert size, avoiding excessive allocations.
     jbyteArray resultArray = (*e)->CallObjectMethod(e, compression_algorithm, decompress_method,
                     P2J(ssl), uncompressed_len, inputArray);
+
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, inputArray);
 
     if ((*e)->ExceptionCheck(e) != JNI_FALSE) {
         (*e)->ExceptionClear(e);
