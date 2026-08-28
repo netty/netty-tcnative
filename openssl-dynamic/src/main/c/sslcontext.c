@@ -1637,8 +1637,6 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 
     result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
 
-    NETTY_JNI_UTIL_DELETE_LOCAL(e, authMethodString);
-
     if ((*e)->ExceptionCheck(e)) {
          // We always need to set the error as stated in the SSL_CTX_set_cert_verify_callback manpage, so set the result
          // to the correct value.
@@ -1768,8 +1766,6 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     } else {
         // Execute the java callback
         result = (*e)->CallIntMethod(e, state->ctx->verifier, state->ctx->verifier_method, P2J(ssl), array, authMethodString);
-
-        NETTY_JNI_UTIL_DELETE_LOCAL(e, authMethodString);
 
         if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
             result = X509_V_ERR_UNSPECIFIED;
