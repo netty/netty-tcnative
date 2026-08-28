@@ -1638,6 +1638,9 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     result = (*e)->CallIntMethod(e, c->verifier, c->verifier_method, P2J(ssl), array, authMethodString);
 
     NETTY_JNI_UTIL_DELETE_LOCAL(e, authMethodString);
+    // NULL it out: every exit from here runs the complete: block below, and deleting the same
+    // local reference twice is a fatal error under -Xcheck:jni.
+    authMethodString = NULL;
 
     if ((*e)->ExceptionCheck(e)) {
          // We always need to set the error as stated in the SSL_CTX_set_cert_verify_callback manpage, so set the result
@@ -1770,6 +1773,9 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
         result = (*e)->CallIntMethod(e, state->ctx->verifier, state->ctx->verifier_method, P2J(ssl), array, authMethodString);
 
         NETTY_JNI_UTIL_DELETE_LOCAL(e, authMethodString);
+        // NULL it out: every exit from here runs the complete: block below, and deleting the same
+        // local reference twice is a fatal error under -Xcheck:jni.
+        authMethodString = NULL;
 
         if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
             result = X509_V_ERR_UNSPECIFIED;
