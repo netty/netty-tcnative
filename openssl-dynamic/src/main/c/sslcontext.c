@@ -1308,6 +1308,11 @@ static int current_session_key(tcn_ssl_ctxt_t *c, tcn_ssl_ticket_key_t *key) {
     apr_thread_rwlock_rdlock(c->mutex);
     if (c->ticket_keys_len > 0) {
         *key = c->ticket_keys[0];
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        // mac_params[0].data still points into the original ticket_keys array; repoint it at
+        // this copy's own hmac_key so it stays valid after the array is freed/replaced.
+        key->mac_params[0].data = key->hmac_key;
+#endif
         result = JNI_TRUE;
     }
     apr_thread_rwlock_unlock(c->mutex);
@@ -1323,6 +1328,11 @@ static int find_session_key(tcn_ssl_ctxt_t *c, unsigned char key_name[16], tcn_s
         // Check if we have a match for tickets.
         if (memcmp(c->ticket_keys[i].key_name, key_name, 16) == 0) {
             *key = c->ticket_keys[i];
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+            // mac_params[0].data still points into the original ticket_keys array; repoint it at
+            // this copy's own hmac_key so it stays valid after the array is freed/replaced.
+            key->mac_params[0].data = key->hmac_key;
+#endif
             result = JNI_TRUE;
             *is_current_key = (i == 0);
             break;
