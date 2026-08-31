@@ -2486,6 +2486,11 @@ TCN_IMPLEMENT_CALL(void, SSL, setOcspResponse)(TCN_STDARGS, jlong ssl, jbyteArra
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
+    if (response == NULL) {
+        tcn_ThrowNullPointerException(e, "response");
+        return;
+    }
+
     jsize length = (*e)->GetArrayLength(e, response);
     if (length <= 0) {
         return;
