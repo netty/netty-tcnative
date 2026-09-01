@@ -2602,6 +2602,9 @@ static int ssl_servername_cb(SSL *ssl, int *ad, void *arg)
 
     const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
     if (servername != NULL) {
+        if (c->sni_hostname_matcher == NULL) {
+            return SSL_TLSEXT_ERR_OK;
+        }
         if (tcn_get_java_env(&e) != JNI_OK) {
             return SSL_TLSEXT_ERR_ALERT_FATAL;
         }
