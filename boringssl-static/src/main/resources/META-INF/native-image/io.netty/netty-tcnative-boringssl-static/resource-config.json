@@ -1,0 +1,12 @@
+{
+  "resources":{
+    "includes":[
+      {
+        "condition": {
+          "typeReachable": "io.netty.internal.tcnative.Library"
+        },
+        "pattern":"META-INF/native/(lib)?netty_tcnative_.*\\.(so|jnilib|dll)"
+      }
+    ]},
+  "bundles":[]
+}
