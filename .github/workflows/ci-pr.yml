@@ -38,6 +38,16 @@ jobs:
           - setup: al2023-x86_64-aws_lc
             docker-compose-run: "-f docker/docker-compose.al2023.yaml run build"
             docker-bake-args: "-f docker-compose.al2023.yaml"
+          # boringssl-static on a current toolchain, and the only CI leg that builds the FIPS
+          # profile (it needs clang-17; see docker/Dockerfile.debian13). Neither is a release
+          # artifact. Before these legs the FIPS profile had no CI at all, so a change to the
+          # release profiles that was not ported to it went unnoticed until a downstream build.
+          - setup: debian13-x86_64
+            docker-compose-run: "-f docker/docker-compose.debian-13.yaml run build"
+            docker-bake-args: "-f docker-compose.debian-13.yaml"
+          - setup: debian13-x86_64-fips
+            docker-compose-run: "-f docker/docker-compose.debian-13.yaml run build-fips"
+            docker-bake-args: "-f docker-compose.debian-13.yaml"
 
     name: ${{ matrix.setup }}
     steps:
@@ -265,6 +275,28 @@ jobs:
             variant: gcompat
             extra-pkgs: gcompat
             drop-elftools: "0"
+            build-service: runtime-setup
+            run-service: verify
+          # The Debian 13-built jars: the FIPS artifact is the one that matters (its power-on
+          # self-test and integrity check run inside an ELF constructor at dlopen, so only a
+          # real load proves the patchelf'd library is still intact), and the default-profile
+          # one shows what a modern-gcc build looks like on musl. bare x86_64 only: aarch64
+          # would need an arm64 FIPS build leg, and the gcompat/nolibgcc variants add nothing
+          # the CentOS 6 legs do not already establish.
+          - setup: alpine-x86_64-fips
+            os: ubuntu-24.04
+            jars: build-pr-debian13-x86_64-fips-jars
+            variant: bare
+            extra-pkgs: ""
+            drop-elftools: "1"
+            build-service: runtime-setup
+            run-service: verify
+          - setup: alpine-x86_64-debian13
+            os: ubuntu-24.04
+            jars: build-pr-debian13-x86_64-jars
+            variant: bare
+            extra-pkgs: ""
+            drop-elftools: "1"
             build-service: runtime-setup
             run-service: verify
           # Control: anything failing on Alpine must pass here, or the check is at fault rather
