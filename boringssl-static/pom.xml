@@ -118,38 +118,61 @@
       <properties>
         <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}/boringssl</boringsslCheckoutDir>
         <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
-        <!--   Latest FIPS compliant boringSSL commit   -->
-        <boringsslBranch>6d503ae1cf8b2e25162435225610b8c1f063d6f4</boringsslBranch>
+        <!-- The newest BoringCrypto module that holds a certificate: FIPS 140-3 #5244, module
+             version 20240805, validated 2026-04-18. This sha is the head of BoringSSL's
+             fips-20240805 branch, the tree the certificate's security policy names. Newer
+             fips-YYYYMMDD branches exist (20250107, 20250728, 20251031, 2026xxxx) but their
+             modules are still in the CMVP queue, so they hold no certificate anyone can cite.
+             Any of them builds with this profile: -DboringsslBranch=<sha>. -->
+        <boringsslBranch>1a089be69fdf568c6cf2cab05bd55f97e1f21025</boringsslBranch>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
         <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
         <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
         <jniArch>${os.detected.arch}</jniArch>
         <project.artifactId>netty-tcnative-boringssl-static-fips</project.artifactId>
+        <!-- Compiler for BoringSSL itself (tcnative and APR are built with the host cc).
+             Validation covers the toolchain as well as the source, and the version comes from
+             the certificate's security policy: for #5244 that is clang 17.0.6, go 1.22.3,
+             ninja 1.12.1, cmake 3.29.3, built with `ninja bcm.o`. The CI image
+             (docker/Dockerfile.debian13) carries exactly those. clang-12 was the toolchain of
+             an older validation and had been carried forward through two BoringSSL bumps.
+             Override with -DfipsCC=... -DfipsCXX=... to build with something else. -->
+        <fipsCC>clang-17</fipsCC>
+        <fipsCXX>clang++-17</fipsCXX>
       </properties>
 
       <build>
         <plugins>
 
-          <!-- Download the BoringSSL source -->
+          <!-- Check out the FIPS-validated BoringSSL commit from git, the same way the default
+               profile does. This used to download
+               https://commondatastorage.googleapis.com/chromium-boringssl-fips/boringssl-<sha>.tar.xz
+               but that bucket stopped being anonymously readable (403 AccessDenied on every
+               object, 401 on the bucket itself, from several networks), so a fresh machine can
+               no longer build this profile that way - downstream builds only kept working off
+               download-maven-plugin's cache. The tarball is a snapshot of the tree at that
+               commit, so checking out the same sha yields the same sources. The directory layout
+               is kept identical to what the unpacked tarball produced, so nothing below changes. -->
           <plugin>
-            <groupId>com.googlecode.maven-download-plugin</groupId>
-            <artifactId>download-maven-plugin</artifactId>
-            <version>1.6.8</version>
+            <artifactId>maven-scm-plugin</artifactId>
             <executions>
               <execution>
-                <id>install-fips-boringssl</id>
-                <phase>process-sources</phase>
+                <id>get-fips-boringssl</id>
+                <phase>generate-sources</phase>
                 <goals>
-                  <goal>wget</goal>
+                  <goal>checkout</goal>
                 </goals>
+                <configuration>
+                  <checkoutDirectory>${boringsslCheckoutDir}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:git:${boringsslRepository}</developerConnectionUrl>
+                  <scmVersion>main</scmVersion>
+                  <scmVersionType>branch</scmVersionType>
+                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
+                </configuration>
               </execution>
             </executions>
-            <configuration>
-              <url>https://commondatastorage.googleapis.com/chromium-boringssl-fips/boringssl-${boringsslBranch}.tar.xz</url>
-              <unpack>true</unpack>
-              <outputDirectory>${project.build.directory}/boringssl-${boringsslBranch}</outputDirectory>
-            </configuration>
           </plugin>
 
           <plugin>
@@ -207,6 +230,12 @@
                       <else>
                         <echo message="Building BoringSSL" />
 
+                        <!-- Pin the checkout to the FIPS-validated commit -->
+                        <exec executable="git" failonerror="true" dir="${boringsslCheckoutDir}" resolveexecutable="true">
+                          <arg value="checkout" />
+                          <arg value="${boringsslBranch}" />
+                        </exec>
+
                         <mkdir dir="${boringsslBuildDir}" />
 
                         <if>
@@ -234,11 +263,18 @@
                             <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
                           </else>
                         </if>
+                        <!-- The static archives end up inside a shared library, so they must be
+                             PIC, same as the default profile asks. Without it the aarch64 link
+                             fails on libcrypto.a(crypto.cc.o): "relocation
+                             R_AARCH64_ADR_PREL_PG_HI21 against symbol stderr ... can not be used
+                             when making a shared object; recompile with -fPIC". delocate is
+                             written for PIC input, so this does not affect the FIPS module. -->
                         <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
-                          <arg value="-DCMAKE_C_COMPILER=clang-12" />
-                          <arg value="-DCMAKE_CXX_COMPILER=clang++-12" />
+                          <arg value="-DCMAKE_C_COMPILER=${fipsCC}" />
+                          <arg value="-DCMAKE_CXX_COMPILER=${fipsCXX}" />
                           <arg value="-DFIPS=1" />
                           <arg value="-GNinja" />
                           <arg value="${boringsslCheckoutDir}" />
@@ -257,8 +293,14 @@
                         <if>
                           <equals arg1="${os.detected.name}" arg2="linux" />
                           <then>
-                            <!-- This is needed to generate bssl execute file to verify isfips property-->
+                            <!-- Only what the link and the isfips gate below need. A bare `ninja`
+                                 builds every target, and the test binaries alone are most of the
+                                 wall-clock time of this profile. -->
                             <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                              <arg value="crypto" />
+                              <arg value="ssl" />
+                              <arg value="decrepit" />
+                              <arg value="bssl" />
                             </exec>
                             <exec executable="./bssl" failonerror="false" dir="${boringsslBuildDir}" outputproperty="boringssl.isfips.result">
                               <arg value="isfips" />

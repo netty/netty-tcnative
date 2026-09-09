@@ -30,6 +30,13 @@
 #define SSLCREDENTIAL_CLASSNAME "io/netty/internal/tcnative/SSLCredential"
 
 // Helper functions
+/*
+ * Three of the setters below exist only in newer BoringSSL: must_match_issuer from API version
+ * 33 (fips-20250107), certificate_properties and trust_anchor_id from 36 (fips-20250728). The
+ * FIPS profile pins the certified module, fips-20240805 = API 32, so they are gated on
+ * BORINGSSL_API_VERSION and throw UnsupportedOperationException there, like the whole API does
+ * on non-BoringSSL builds.
+ */
 #ifdef OPENSSL_IS_BORINGSSL
 static void throw_openssl_error(JNIEnv* env, const char* msg) {
     unsigned long err = ERR_get_error();
@@ -194,7 +201,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, j
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, jlong cred, jbyteArray cert_props) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) && BORINGSSL_API_VERSION >= 36
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(cert_props, certificateProperties, /* void */);
@@ -220,7 +227,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setCertificateProperties)(TCN_STDARGS, j
         throw_openssl_error(e, "Failed to set certificate properties");
     }
 #else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_certificate_properties requires BoringSSL API version 36 or newer.");
 #endif
 }
 
@@ -256,18 +263,18 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSignedCertTimestampList)(TCN_STDARGS,
 }
 
 TCN_IMPLEMENT_CALL(void, SSLCredential, setMustMatchIssuer)(TCN_STDARGS, jlong cred, jboolean match) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) && BORINGSSL_API_VERSION >= 33
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     SSL_CREDENTIAL_set_must_match_issuer(c, match == JNI_TRUE ? 1 : 0);
 #else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set_must_match_issuer requires BoringSSL API version 33 or newer.");
 #endif
 }
 
 // Trust anchor configuration
 TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cred, jbyteArray id) {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) && BORINGSSL_API_VERSION >= 36
     SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
     TCN_CHECK_NULL(c, credential, /* void */);
     TCN_CHECK_NULL(id, trustAnchorId, /* void */);
@@ -289,7 +296,7 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setTrustAnchorId)(TCN_STDARGS, jlong cre
         return;
     }
 #else
-    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL_set1_trust_anchor_id requires BoringSSL API version 36 or newer.");
 #endif
 }
 
