@@ -39,6 +39,20 @@ docker compose -f docker/docker-compose.opensuse.yaml -f docker/docker-compose.o
 docker compose -f docker/docker-compose.centos-7.yaml run cross-compile-aarch64-build
 ```
 
+## Debian 13 with java 21: boringssl-static on a current toolchain, and the FIPS profile
+
+Not a release builder (glibc 2.41 floor). It is the one image that can build the
+`fips-boringssl-static` profile, and it carries the build environment named by the security
+policy of the certificate that profile pins (#5244): clang 17.0.6 and ninja 1.12.1 from the
+archive, go 1.22.3 and cmake 3.29.3 downloaded at those versions. Both services stop at
+`package`, which is where the musl compatibility check runs. Not pinned to amd64, so on an
+arm64 host it builds natively.
+
+```
+docker compose -f docker/docker-compose.debian-13.yaml run build
+docker compose -f docker/docker-compose.debian-13.yaml run build-fips
+```
+
 etc, etc
 
 

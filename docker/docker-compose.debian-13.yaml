@@ -1,0 +1,44 @@
+version: "3"
+
+# Debian 13 builder. Two things run here that no other image covers, see Dockerfile.debian13:
+#   build       boringssl-static (default profile) on a current gcc, so the Linux native
+#               build is exercised somewhere other than the CentOS 6 release image
+#   build-fips  the fips-boringssl-static profile, which needs clang-17
+# Both stop at `package`, which is where the native-jar musl check runs.
+
+services:
+
+  runtime-setup:
+    image: netty-tcnative-debian:13
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.debian13
+      args:
+        debian_version: "13"
+
+  common: &common
+    image: netty-tcnative-debian:13
+    depends_on: [runtime-setup]
+    environment:
+      - MAVEN_OPTS
+    volumes:
+      - ~/.m2/repository:/root/.m2/repository
+      - ..:/code:delegated
+    working_dir: /code
+
+  build:
+    <<: *common
+    command: /bin/bash -cl "./mvnw -am -pl boringssl-static clean package"
+
+  build-fips:
+    <<: *common
+    command: /bin/bash -cl "./mvnw -Pfips-boringssl-static -am -pl boringssl-static clean package"
+
+  shell:
+    <<: *common
+    volumes:
+      - ~/.m2/repository:/root/.m2/repository
+      - ~/.gitconfig:/root/.gitconfig:delegated
+      - ~/.gitignore:/root/.gitignore:delegated
+      - ..:/code:delegated
+    entrypoint: /bin/bash

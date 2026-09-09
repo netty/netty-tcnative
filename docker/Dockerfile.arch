@@ -23,6 +23,7 @@ RUN pacman -Sy --noconfirm --needed \
  lsb-release \
  make \
  ninja \
+ patchelf \
  perl \
  tar \
  unzip \

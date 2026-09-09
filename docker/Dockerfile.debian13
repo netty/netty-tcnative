@@ -1,0 +1,72 @@
+ARG debian_version=13
+FROM debian:$debian_version
+# needed to do again after FROM due to docker limitation
+ARG debian_version
+ARG go_version=1.22.3
+ARG cmake_version=3.29.3
+ENV GO_VERSION $go_version
+ENV CMAKE_VERSION $cmake_version
+ENV DEBIAN_FRONTEND noninteractive
+
+# A modern glibc builder for boringssl-static, and the only in-tree image that can build the
+# fips-boringssl-static profile. That profile pins the BoringCrypto module that holds
+# certificate #5244, and this image carries the build environment its security policy names:
+#   clang 17.0.6, go 1.22.3, ninja 1.12.1, cmake 3.29.3
+# Debian 13 packages clang-17 at exactly 17.0.6 and ninja at exactly 1.12.1. Its cmake (3.31)
+# and Go (1.24) are newer than the policy's, so those two come from cmake.org and go.dev at the
+# policy's versions instead. patchelf 0.18 has --remove-needed; APR's buildconf wants the
+# `libtool` script, which is in libtool-bin.
+#
+# No JDK 8 in trixie: the build runs on JDK 21. The pom compiles with --release 8, so the
+# class files are still Java 8.
+#
+# Not pinned to linux/amd64 like the older images, so it can also be built natively on an
+# arm64 host for a quick local run. CI builds it on amd64 runners.
+#
+# Unlike the CentOS 6 image this is NOT a release builder: its artifact has a glibc 2.41 floor.
+# It exists to give the boringssl-static and FIPS builds CI coverage on a current toolchain.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+ autoconf \
+ automake \
+ bzip2 \
+ ca-certificates \
+ clang-17 \
+ curl \
+ g++ \
+ gcc \
+ git \
+ gnupg \
+ libapr1-dev \
+ libtool \
+ libtool-bin \
+ make \
+ ninja-build \
+ openjdk-21-jdk-headless \
+ patch \
+ patchelf \
+ perl \
+ pkg-config \
+ tar \
+ unzip \
+ wget \
+ xz-utils \
+ zip \
+ && rm -rf /var/lib/apt/lists/*
+
+# dpkg's amd64/arm64 spelling matches go.dev's; cmake.org spells the arch x86_64/aarch64.
+RUN ARCH=$(dpkg --print-architecture) && case $ARCH in amd64) CM=x86_64;; arm64) CM=aarch64;; esac \
+ && wget -q https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz \
+ && tar -C /opt -xzf go$GO_VERSION.linux-$ARCH.tar.gz && rm go$GO_VERSION.linux-$ARCH.tar.gz \
+ && wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-$CM.tar.gz \
+ && tar -C /opt -xzf cmake-$CMAKE_VERSION-linux-$CM.tar.gz && rm cmake-$CMAKE_VERSION-linux-$CM.tar.gz \
+ && ln -s /opt/cmake-$CMAKE_VERSION-linux-$CM /opt/cmake \
+ && ln -s /usr/lib/jvm/java-21-openjdk-$ARCH /usr/lib/jvm/java-21
+# The compose services run `bash -cl`, and Debian's /etc/profile resets PATH for login shells,
+# so ENV PATH alone is not enough: root's ~/.profile sources ~/.bashrc, which restores it.
+ENV PATH /opt/go/bin:/opt/cmake/bin:$PATH
+RUN echo 'export PATH=/opt/go/bin:/opt/cmake/bin:$PATH' >> ~/.bashrc
+ENV JAVA_HOME /usr/lib/jvm/java-21
+RUN go version && clang-17 --version | head -1 && ninja --version && cmake --version | head -1
+
+# /code is a bind mount owned by the host user; newer git refuses to touch it otherwise.
+RUN git config --global --add safe.directory '*'
