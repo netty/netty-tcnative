@@ -102,6 +102,10 @@ Error relocating <lib>.so: __getauxval: symbol not found
 | `__isinf`, `__isnan` | APR-era glibc math aliases | no |
 | `__strdup` | APR | no |
 | `__pthread_key_create` | APR | no — but it is imported **WEAK**, so it may stay unresolved harmlessly |
+| `__sprintf_chk`, `__fprintf_chk` | Debian-derived toolchains ship a fortified `libstdc++.a` / `libgcc.a`; `cp-demangle.o` comes in via the verbose terminate handler | no. Our own code is compiled `-U_FORTIFY_SOURCE`, these two cover the archives we do not build |
+| `__libc_single_threaded` | libstdc++ 11+ headers on glibc 2.32+ read this byte to skip atomic refcounting; C++ in BoringSSL (seen with the `fips-20260721` branch on Ubuntu 22.04) imports it as a **data** symbol | no. Defined as `0`, the conservative value |
+| `__isoc23_strto{l,ul,ll,ull,imax,umax}`, `__isoc23_{s,vs}scanf` | glibc 2.38+ redirects the integer parsers and scanf family there under `_GNU_SOURCE`; APR and the packaged `libstdc++.a` on any glibc 2.38+ builder such as Debian 13 (`strtoull` only on x86_64) | no. Forwarded to the plain names via asm labels (a literal `strtol()` in the fallback would be redirected too and recurse on musl) |
+| `_dl_find_object` | `libgcc_eh.a` from gcc 12 on, when built against glibc 2.35+, uses it to find `.eh_frame` while unwinding | no. Stub returns -1 ("not found"); nothing in the artifact throws |
 
 ### Class C — Class B inside an ELF init constructor → **JVM crash, not an exception**
 
@@ -438,6 +442,11 @@ Other notes:
   *before* hawtjni. Use the `native-jar` target (phase `package`) or `process-classes`.
 - Ant's `<exec>` does not echo silent commands, so absence of `strip`/`patchelf` output in the
   log does **not** mean they did not run. Verify on the artifact instead.
+- `-U_FORTIFY_SOURCE` is on every Linux compile line (module `cflags`, the FIPS and
+  `linux-aarch64` `CFLAGS`, and the BoringSSL cmake flags of all three). Debian-derived gcc
+  defines `_FORTIFY_SOURCE=2` by default and rewrites libc calls into `__*_chk` variants musl
+  does not export: the artifact still loads (nothing on the load path calls them) but `ldd`
+  on Alpine fails; the modern-distro CI legs showed exactly that. No-op on the RHEL release images.
 - Link flags are set per profile and are duplicated: the x86_64 default profile sets
   `hawtjniLdflags` in the `ldflags-setup` antrun execution, while the FIPS and `linux-aarch64`
   profiles hardcode `LDFLAGS` in their hawtjni `configureArgs`. Changing one does not change the
