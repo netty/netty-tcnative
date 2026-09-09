@@ -224,6 +224,14 @@ The check must go further than loading. Minimum bar, in order of strength:
 
 Only (3) would catch a library that loads but whose crypto is broken.
 
+In CI this is the `musl-verify` job. It runs against the CentOS 6 and CentOS 7 release jars on
+several Alpine variants, and, bare x86_64 only, against the two Debian 13 jars: the
+default-profile one and the **FIPS** one (`debian13-x86_64-fips`, see `docker/Dockerfile.debian13`).
+The FIPS leg is the one with no substitute: its power-on self-test and integrity check run in an
+ELF constructor during `dlopen`, so only a real load shows that the post-link `patchelf` left the
+module intact. Before that leg existed the FIPS profile was built by nobody but downstream users,
+and a change made to the release profiles and not ported to it surfaced only there.
+
 Two TLS 1.3 behaviours will make a naive handshake test report false failures:
 - the client reaches `NOT_HANDSHAKING` while the server still sits in `NEED_UNWRAP` waiting
   for optional post-handshake traffic — treat an idle `NEED_UNWRAP` as settled;
