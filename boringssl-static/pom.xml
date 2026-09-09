@@ -313,6 +313,21 @@
                       </then>
                     </if>
 
+                    <!-- Same ld-linux DT_NEEDED removal as the release profiles.
+                         See docs/musl-compatibility.md -->
+                    <if>
+                      <equals arg1="${os.detected.name}" arg2="linux" />
+                      <then>
+                        <exec executable="patchelf" failonerror="true" dir="${nativeLibOnlyDir}/META-INF/native/linux${archBits}/" resolveexecutable="true">
+                          <arg value="--remove-needed" />
+                          <arg value="ld-linux-x86-64.so.2" />
+                          <arg value="--remove-needed" />
+                          <arg value="ld-linux-aarch64.so.1" />
+                          <arg value="libnetty_tcnative.so" />
+                        </exec>
+                      </then>
+                    </if>
+
                     <!-- Assert the invariants the steps above establish, on the final bytes and
                          before the jar is assembled. Bound here rather than to verify because every
                          build, deploy and staging command is "clean package <plugin>:goal" and so
@@ -398,7 +413,7 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto -ldecrepit -lstdc++</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto -ldecrepit -l:libstdc++.a -l:libgcc.a -l:libgcc_eh.a</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>
