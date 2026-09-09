@@ -241,6 +241,7 @@ protocol/cipher against a released version. It must be identical.
 | `boringssl-static/pom.xml`, antrun `native-jar` target | post-link `patchelf --remove-needed ld-linux-*` (Class A). Present in the FIPS profile and both release profiles: `fips-boringssl-static`, `boringssl-static-default` (x86_64), and `linux-aarch64`. |
 | `docker/Dockerfile.centos6` | installs `patchelf` from the upstream prebuilt **static** binary — CentOS 6 is EOL with no EPEL, and `objcopy` cannot remove a `DT_NEEDED`. Needs `--no-check-certificate`, same as the OpenSSL download: the CA bundle cannot verify modern GitHub TLS. |
 | `docker/Dockerfile.cross_compile_aarch64` | installs `patchelf` from EPEL 7 (available there, unlike CentOS 6) |
+| `docker/Dockerfile.debian`, `docker/Dockerfile.arch`, `docker/Dockerfile.opensuse` | also install `patchelf`. Their `build` compose service runs a module-unfiltered `./mvnw clean package`, which builds `boringssl-static` and so hits the `patchelf` exec (`failonerror="true"`). CI only runs Debian's `build-dynamic-only`, so a missing binary here is invisible to CI. Arch and openSUSE take the distro package; Debian 7 needs the prebuilt static binary like CentOS 6, wheezy has no `patchelf` package at all. |
 
 Note the FIPS profile and two release profiles duplicate the whole native build, so **a change to
 one does not apply to the others**. `linux-aarch64` cross-compiles from an x86_64 host; patchelf
