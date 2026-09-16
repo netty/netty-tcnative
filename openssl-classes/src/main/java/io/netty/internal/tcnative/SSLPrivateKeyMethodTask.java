@@ -16,7 +16,6 @@
 package io.netty.internal.tcnative;
 
 abstract class SSLPrivateKeyMethodTask extends SSLTask implements AsyncTask {
-    private static final byte[] EMPTY = new byte[0];
     private final AsyncSSLPrivateKeyMethod method;
 
     // Will be accessed via JNI.
@@ -45,7 +44,7 @@ abstract class SSLPrivateKeyMethodTask extends SSLTask implements AsyncTask {
             @Override
             public void onError(long ssl, Throwable cause) {
                 // Return 0 as this signals back that the operation failed.
-                resultBytes = EMPTY;
+                resultBytes = null;
                 callback.onResult(ssl, 0);
             }
         });

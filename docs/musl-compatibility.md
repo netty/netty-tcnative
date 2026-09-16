@@ -238,13 +238,13 @@ protocol/cipher against a released version. It must be identical.
 | file | role |
 |---|---|
 | `openssl-dynamic/src/main/c/musl_compat.c` | weak fallbacks for the Class B symbols. Applies to **every** profile, since it is a source file. |
-| `boringssl-static/pom.xml`, antrun `native-jar` target | post-link `patchelf --remove-needed ld-linux-*` (Class A). Present in **both** release profiles: `boringssl-static-default` (x86_64) and `linux-aarch64`. |
+| `boringssl-static/pom.xml`, antrun `native-jar` target | post-link `patchelf --remove-needed ld-linux-*` (Class A). Present in the FIPS profile and both release profiles: `fips-boringssl-static`, `boringssl-static-default` (x86_64), and `linux-aarch64`. |
 | `docker/Dockerfile.centos6` | installs `patchelf` from the upstream prebuilt **static** binary — CentOS 6 is EOL with no EPEL, and `objcopy` cannot remove a `DT_NEEDED`. Needs `--no-check-certificate`, same as the OpenSSL download: the CA bundle cannot verify modern GitHub TLS. |
 | `docker/Dockerfile.cross_compile_aarch64` | installs `patchelf` from EPEL 7 (available there, unlike CentOS 6) |
 
-Note the two release profiles duplicate the whole native build, so **a change to one does not
-apply to the other**. `linux-aarch64` cross-compiles from an x86_64 host; patchelf is
-arch-agnostic and edits the aarch64 object correctly from there (verified), whereas the
+Note the FIPS profile and two release profiles duplicate the whole native build, so **a change to
+one does not apply to the others**. `linux-aarch64` cross-compiles from an x86_64 host; patchelf
+is arch-agnostic and edits the aarch64 object correctly from there (verified), whereas the
 `strip` in that profile has to use the cross-prefixed `aarch64-none-linux-gnu-strip`.
 
 ### Rules for `musl_compat.c`
@@ -438,8 +438,9 @@ Other notes:
 - Ant's `<exec>` does not echo silent commands, so absence of `strip`/`patchelf` output in the
   log does **not** mean they did not run. Verify on the artifact instead.
 - Link flags are set per profile and are duplicated: the x86_64 default profile sets
-  `hawtjniLdflags` in the `ldflags-setup` antrun execution, while the `linux-aarch64` profile
-  hardcodes `LDFLAGS` in its hawtjni `configureArgs`. Changing one does not change the other.
+  `hawtjniLdflags` in the `ldflags-setup` antrun execution, while the FIPS and `linux-aarch64`
+  profiles hardcode `LDFLAGS` in their hawtjni `configureArgs`. Changing one does not change the
+  others.
 
 ---
 

@@ -196,7 +196,9 @@ static jint tcn_write_to_bytebuffer(BIO* bio, const char* in, int inl) {
         }
 
         writeAmount = TCN_MIN(nonApplicationBufferFreeSpace, (jint) inl) * sizeof(char);
-        startIndex = bioUserData->nonApplicationBufferOffset + bioUserData->nonApplicationBufferLength;
+        // use modulo to account for wrap around the ring buffer that buffers data.
+        startIndex = (bioUserData->nonApplicationBufferOffset + bioUserData->nonApplicationBufferLength)
+                                          % bioUserData->nonApplicationBufferSize;
         writeChunk = bioUserData->nonApplicationBufferSize - startIndex;
 
 #ifdef NETTY_TCNATIVE_BIO_DEBUG
@@ -223,7 +225,14 @@ static jint tcn_write_to_bytebuffer(BIO* bio, const char* in, int inl) {
 
     // First check if we need to drain data queued in the internal SSL buffer.
     if (bioUserData->nonApplicationBufferLength != 0) {
-        writeAmount = tcn_flush_sslbuffer_to_bytebuffer(bioUserData);
+        // Internally queued data that is flushed will not be reported back to the caller as the return
+        // value is usually used to keep track how much data was written of the given input buffer.
+        tcn_flush_sslbuffer_to_bytebuffer(bioUserData);
+
+        if (bioUserData->bufferLength == 0) {
+            BIO_set_retry_write(bio); // no space left.
+            return -1;
+        }
     }
 
     // Next write "in" into what ever space the ByteBuffer has available.
@@ -237,7 +246,7 @@ static jint tcn_write_to_bytebuffer(BIO* bio, const char* in, int inl) {
     bioUserData->bufferLength -= writeChunk;
     bioUserData->buffer += writeChunk; // Pointer arithmetic based on char* type
 
-    return writeAmount + writeChunk;
+    return writeChunk;
 }
 
 static jint tcn_read_from_bytebuffer(BIO* bio, char *out, int outl) {
@@ -2486,6 +2495,11 @@ TCN_IMPLEMENT_CALL(void, SSL, setOcspResponse)(TCN_STDARGS, jlong ssl, jbyteArra
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
+    if (response == NULL) {
+        tcn_ThrowNullPointerException(e, "response");
+        return;
+    }
+
     jsize length = (*e)->GetArrayLength(e, response);
     if (length <= 0) {
         return;
@@ -2605,7 +2619,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getSniHostname)(TCN_STDARGS, jlong ssl)
     if (servername == NULL) {
         return NULL;
     }
-    return tcn_new_string(e, servername);
+    return tcn_new_stringn(e, servername, strlen(servername));
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSL, isSessionReused)(TCN_STDARGS, jlong ssl)

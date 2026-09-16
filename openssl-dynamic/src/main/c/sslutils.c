@@ -473,6 +473,9 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
 {
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     STACK_OF(CRYPTO_BUFFER) *names = sk_CRYPTO_BUFFER_new_null();
+    if (names == NULL) {
+        return -1;
+    }
     CRYPTO_BUFFER *buffer = NULL;
     uint8_t *outp = NULL;
     int len;
