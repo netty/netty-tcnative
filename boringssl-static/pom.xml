@@ -97,8 +97,8 @@
     <!-- We need to use the same module name for all our "native" impls as only one should be loaded -->
     <javaModuleName>${javaDefaultModuleName}</javaModuleName>
     <!-- 10.13 is the minimum required by BoringSSL -->
-    <macOsxDeploymentTarget>MACOSX_DEPLOYMENT_TARGET=10.13</macOsxDeploymentTarget>
-    <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13</cmakeOsxDeploymentTarget>
+    <macOsxDeploymentTarget>MACOSX_DEPLOYMENT_TARGET=11</macOsxDeploymentTarget>
+    <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=11</cmakeOsxDeploymentTarget>
     <project.artifactId>netty-tcnative-boringssl-static</project.artifactId>
   </properties>
 
@@ -1325,8 +1325,8 @@
         <linkStatic>true</linkStatic>
         <crossCompile>mac</crossCompile>
         <target>arm64-apple-macos11</target>
-        <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=11.0</macOsxDeploymentTarget>
-        <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0</cmakeOsxDeploymentTarget>
+        <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=11</macOsxDeploymentTarget>
+        <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=11</cmakeOsxDeploymentTarget>
         <!-- On *nix, add ASM flags to disable executable stack -->
         <cmakeAsmFlags>-Wa,--noexecstack -target ${target}</cmakeAsmFlags>
         <cmakeCFlags>-O3 -fno-omit-frame-pointer -target ${target}</cmakeCFlags>
@@ -1573,8 +1573,8 @@
         <linkStatic>true</linkStatic>
         <crossCompile>mac</crossCompile>
         <target>x86_64-apple-macos10.12</target>
-        <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=10.12</macOsxDeploymentTarget>
-        <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12</cmakeOsxDeploymentTarget>
+        <macOsxDeploymentTarget>OSX_DEPLOYMENT_TARGET=11</macOsxDeploymentTarget>
+        <cmakeOsxDeploymentTarget>-DCMAKE_OSX_DEPLOYMENT_TARGET=11</cmakeOsxDeploymentTarget>
         <!-- On *nix, add ASM flags to disable executable stack -->
         <cmakeAsmFlags>-Wa,--noexecstack -target ${target}</cmakeAsmFlags>
         <cmakeCFlags>-O3 -fno-omit-frame-pointer -target ${target}</cmakeCFlags>
