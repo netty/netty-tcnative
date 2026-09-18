@@ -25,22 +25,39 @@ concurrency:
 jobs:
   stage-snapshot:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write  # to push the docker build cache to ghcr.io
     strategy:
       matrix:
         include:
           - setup: centos6-x86_64
-            docker-compose-build: "-f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml build"
+            docker-bake-args: "-f docker-compose.centos-6.yaml -f docker-compose.centos-6.18.yaml"
             docker-compose-run: "-f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml run stage-snapshot"
           - setup: debian7-x86_64
-            docker-compose-build: "-f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml build"
+            docker-bake-args: "-f docker-compose.debian.yaml -f docker-compose.debian-7.18.yaml"
             docker-compose-run: "-f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml run stage-snapshot"
           - setup: centos7-aarch64
-            docker-compose-build: "-f docker/docker-compose.centos-7.yaml build"
+            docker-bake-args: "-f docker-compose.centos-7.yaml"
             docker-compose-run: "-f docker/docker-compose.centos-7.yaml run cross-compile-aarch64-stage-snapshot"
 
     name: stage-snapshot-${{ matrix.setup }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      # This workflow's token only has read-all permissions unless the job grants packages:
+      # write above; ignore-error=true on cache_to in the compose files absorbs any push
+      # failure. Cache reads (populated by ci-build.yml/ci-pr.yml) still work either way.
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        continue-on-error: true
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Cache .m2/repository
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -55,7 +72,10 @@ jobs:
         run: mkdir -p ~/local-staging
 
       - name: Build docker image
-        run: docker compose ${{ matrix.docker-compose-build }}
+        working-directory: docker
+        env:
+          BUILDX_BAKE_ENTITLEMENTS_FS: "0"
+        run: docker buildx bake ${{ matrix.docker-bake-args }} --load
 
       - name: Stage snapshots to local staging directory
         run: docker compose ${{ matrix.docker-compose-run }}
