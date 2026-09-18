@@ -40,11 +40,24 @@ jobs:
             docker-bake-args: "-f docker-compose.al2023.yaml"
 
     name: ${{ matrix.setup }}
+    permissions:
+      contents: read
+      packages: write  # to push the docker build cache to ghcr.io; no-op (ignored) for fork PRs
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      # Only succeeds for same-repo runs; fork PRs get a read-only GITHUB_TOKEN and simply won't
+      # get cache hits/pushes, which is fine since it only means a slower, non-cached build.
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        continue-on-error: true
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Cache .m2/repository
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -65,7 +78,7 @@ jobs:
         working-directory: docker
         env:
           BUILDX_BAKE_ENTITLEMENTS_FS: "0"
-        run: docker buildx bake ${{ matrix.docker-bake-args }} --load --set "*.cache-from=type=gha,scope=${{ matrix.setup }}" --set "*.cache-to=type=gha,scope=${{ matrix.setup }},mode=max"
+        run: docker buildx bake ${{ matrix.docker-bake-args }} --load
 
       - name: Build project
         run: docker compose ${{ matrix.docker-compose-run }} | tee build.output
