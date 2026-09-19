@@ -636,6 +636,22 @@ TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, tlsExtCertCompres
     return TLSEXT_cert_compression_zstd;
 }
 
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslAuthRsa)(TCN_STDARGS) {
+    return (jint) TCN_SSL_aRSA;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslAuthDss)(TCN_STDARGS) {
+    return (jint) TCN_SSL_aDSS;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslAuthNull)(TCN_STDARGS) {
+    return (jint) TCN_SSL_aNULL;
+}
+
+TCN_IMPLEMENT_CALL(jint, NativeStaticallyReferencedJniMethods, sslAuthEcdsa)(TCN_STDARGS) {
+    return (jint) TCN_SSL_aECDSA;
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslOpCipherServerPreference, ()I, NativeStaticallyReferencedJniMethods) },
@@ -770,7 +786,11 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(sslCertCompressionDirectionBoth, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(tlsExtCertCompressionZlib, ()I, NativeStaticallyReferencedJniMethods) },
   { TCN_METHOD_TABLE_ENTRY(tlsExtCertCompressionBrotli, ()I, NativeStaticallyReferencedJniMethods) },
-  { TCN_METHOD_TABLE_ENTRY(tlsExtCertCompressionZstd, ()I, NativeStaticallyReferencedJniMethods) }
+  { TCN_METHOD_TABLE_ENTRY(tlsExtCertCompressionZstd, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslAuthRsa, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslAuthDss, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslAuthNull, ()I, NativeStaticallyReferencedJniMethods) },
+  { TCN_METHOD_TABLE_ENTRY(sslAuthEcdsa, ()I, NativeStaticallyReferencedJniMethods) }
 };
 
 static const jint method_table_size = sizeof(method_table) / sizeof(method_table[0]);
