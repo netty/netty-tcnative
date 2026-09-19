@@ -443,7 +443,10 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto -ldecrepit -l:libstdc++.a -l:libgcc.a -l:libgcc_eh.a</configureArg>
+                    <!-- gc-sections: this BoringSSL drags in libstdc++'s std::random_device, which nothing
+                         calls and which imports arc4random (glibc 2.36+, absent from musl). Dropping
+                         the dead code removes the import. See docs/musl-compatibility.md -->
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -Wl,--gc-sections -lssl -lcrypto -ldecrepit -l:libstdc++.a -l:libgcc.a -l:libgcc_eh.a</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>

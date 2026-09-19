@@ -102,6 +102,9 @@ Error relocating <lib>.so: __getauxval: symbol not found
 | `__isinf`, `__isnan` | APR-era glibc math aliases | no |
 | `__strdup` | APR | no |
 | `__pthread_key_create` | APR | no — but it is imported **WEAK**, so it may stay unresolved harmlessly |
+| `__libc_single_threaded` | libstdc++ 11+ headers on glibc 2.32+ read this byte to skip atomic refcounting; C++ in BoringSSL imports it as a **data** symbol | no. Defined as `0`, the conservative value |
+| `__isoc23_strtol`, `__isoc23_strtoul`, `__isoc23_strtoull` | glibc 2.38+ redirects `strtol` and friends there under `_GNU_SOURCE`, and no `-D` switches it off; from APR, the static `libstdc++.a` and BoringSSL's libcrypto respectively | no. Forwarded to the plain names via asm labels (a literal `strtol()` in the fallback would be redirected too and recurse on musl) |
+| `_dl_find_object` | `libgcc_eh.a` from gcc 12 on, when built against glibc 2.35+, uses it to find `.eh_frame` while unwinding | no. Stub returns -1 ("not found"); nothing in the artifact throws |
 
 ### Class C — Class B inside an ELF init constructor → **JVM crash, not an exception**
 
@@ -438,6 +441,9 @@ Other notes:
   *before* hawtjni. Use the `native-jar` target (phase `package`) or `process-classes`.
 - Ant's `<exec>` does not echo silent commands, so absence of `strip`/`patchelf` output in the
   log does **not** mean they did not run. Verify on the artifact instead.
+- The FIPS profile links with `-Wl,--gc-sections`. Its newer BoringSSL drags in libstdc++'s
+  `std::random_device`, which nothing calls and which imports `arc4random` (glibc 2.36+, absent
+  from musl). Dropping the dead code removes the import, so no fallback is needed for it.
 - Link flags are set per profile and are duplicated: the x86_64 default profile sets
   `hawtjniLdflags` in the `ldflags-setup` antrun execution, while the FIPS and `linux-aarch64`
   profiles hardcode `LDFLAGS` in their hawtjni `configureArgs`. Changing one does not change the

@@ -147,4 +147,55 @@ TCN_MUSL_COMPAT char *__strdup(const char *str) {
     return strdup(str);
 }
 
+/*
+ * glibc 2.38 made strtol and friends C23-conformant under a new symbol version, and redirects
+ * every call to an __isoc23_* name whenever _GNU_SOURCE is defined, whatever -std says; no -D
+ * switches it off. Built on such a glibc, APR imports __isoc23_strtol, the static libstdc++
+ * __isoc23_strtoul and BoringSSL's libcrypto __isoc23_strtoull. musl exports only the plain
+ * names.
+ *
+ * The bodies must call the PLAIN symbols. A literal strtol() here is subject to the same
+ * redirect, so on musl it would resolve to this very function and recurse. The asm labels
+ * bind each reference to the unversioned name, which both libcs export.
+ *
+ * __restrict, not restrict: the Debian 7 image compiles with GCC 4.9, whose default is gnu90,
+ * where `restrict` is not a keyword.
+ */
+extern long tcn_plain_strtol(const char *, char **, int) __asm__("strtol");
+extern unsigned long tcn_plain_strtoul(const char *, char **, int) __asm__("strtoul");
+extern unsigned long long tcn_plain_strtoull(const char *, char **, int) __asm__("strtoull");
+
+TCN_MUSL_COMPAT long __isoc23_strtol(const char *__restrict nptr, char **__restrict endptr, int base) {
+    return tcn_plain_strtol(nptr, endptr, base);
+}
+
+TCN_MUSL_COMPAT unsigned long __isoc23_strtoul(const char *__restrict nptr, char **__restrict endptr, int base) {
+    return tcn_plain_strtoul(nptr, endptr, base);
+}
+
+TCN_MUSL_COMPAT unsigned long long __isoc23_strtoull(const char *__restrict nptr, char **__restrict endptr, int base) {
+    return tcn_plain_strtoull(nptr, endptr, base);
+}
+
+/*
+ * glibc 2.32+ exports this byte, and libstdc++ reads it (ext/atomicity.h) to skip atomic
+ * reference counting while a process is still single-threaded. The static libstdc++ imports
+ * it as a plain data symbol; musl has no such thing. Zero is the conservative value: "not
+ * single-threaded", so the atomic path is always taken, which is also the truth inside a JVM.
+ */
+TCN_MUSL_COMPAT char __libc_single_threaded = 0;
+
+/*
+ * glibc 2.35 added _dl_find_object, and libgcc_eh.a from gcc 12 on calls it to locate a
+ * frame's .eh_frame when unwinding. musl has no equivalent. Returning -1 means "no object
+ * found": a C++ exception would then terminate instead of propagating, and nothing in this
+ * library lets one escape. Declared with void * on purpose: the real struct only exists in
+ * glibc >= 2.35 headers and the release image is glibc 2.12.
+ */
+TCN_MUSL_COMPAT int _dl_find_object(void *address, void *result) {
+    (void) address;
+    (void) result;
+    return -1;
+}
+
 #endif /* __linux__ */
