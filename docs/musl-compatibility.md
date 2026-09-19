@@ -102,6 +102,10 @@ Error relocating <lib>.so: __getauxval: symbol not found
 | `__isinf`, `__isnan` | APR-era glibc math aliases | no |
 | `__strdup` | APR | no |
 | `__pthread_key_create` | APR | no — but it is imported **WEAK**, so it may stay unresolved harmlessly |
+| `__sprintf_chk`, `__fprintf_chk` | Debian-derived toolchains ship a fortified `libstdc++.a` / `libgcc.a`; `cp-demangle.o` comes in via the verbose terminate handler | no. Our own code is compiled `-U_FORTIFY_SOURCE`, these two cover the archives we do not build |
+| `__libc_single_threaded` | libstdc++ 11+ headers on glibc 2.32+ read this byte to skip atomic refcounting; C++ in BoringSSL (seen with the `fips-20260721` branch on Ubuntu 22.04) imports it as a **data** symbol | no. Defined as `0`, the conservative value |
+| `__isoc23_strto{l,ul,ll,ull,imax,umax}`, `__isoc23_{s,vs}scanf` | glibc 2.38+ redirects the integer parsers and scanf family there under `_GNU_SOURCE`; APR and the packaged `libstdc++.a` on any glibc 2.38+ builder such as Debian 13 (`strtoull` only on x86_64) | no. Forwarded to the plain names via asm labels (a literal `strtol()` in the fallback would be redirected too and recurse on musl) |
+| `_dl_find_object` | `libgcc_eh.a` from gcc 12 on, when built against glibc 2.35+, uses it to find `.eh_frame` while unwinding | no. Stub returns -1 ("not found"); nothing in the artifact throws |
 
 ### Class C — Class B inside an ELF init constructor → **JVM crash, not an exception**
 
@@ -220,6 +224,14 @@ The check must go further than loading. Minimum bar, in order of strength:
 
 Only (3) would catch a library that loads but whose crypto is broken.
 
+In CI this is the `musl-verify` job. It runs against the CentOS 6 and CentOS 7 release jars on
+several Alpine variants, and, bare x86_64 only, against the two Debian 13 jars: the
+default-profile one and the **FIPS** one (`debian13-x86_64-fips`, see `docker/Dockerfile.debian13`).
+The FIPS leg is the one with no substitute: its power-on self-test and integrity check run in an
+ELF constructor during `dlopen`, so only a real load shows that the post-link `patchelf` left the
+module intact. Before that leg existed the FIPS profile was built by nobody but downstream users,
+and a change made to the release profiles and not ported to it surfaced only there.
+
 Two TLS 1.3 behaviours will make a naive handshake test report false failures:
 - the client reaches `NOT_HANDSHAKING` while the server still sits in `NEED_UNWRAP` waiting
   for optional post-handshake traffic — treat an idle `NEED_UNWRAP` as settled;
@@ -241,6 +253,7 @@ protocol/cipher against a released version. It must be identical.
 | `boringssl-static/pom.xml`, antrun `native-jar` target | post-link `patchelf --remove-needed ld-linux-*` (Class A). Present in the FIPS profile and both release profiles: `fips-boringssl-static`, `boringssl-static-default` (x86_64), and `linux-aarch64`. |
 | `docker/Dockerfile.centos6` | installs `patchelf` from the upstream prebuilt **static** binary — CentOS 6 is EOL with no EPEL, and `objcopy` cannot remove a `DT_NEEDED`. Needs `--no-check-certificate`, same as the OpenSSL download: the CA bundle cannot verify modern GitHub TLS. |
 | `docker/Dockerfile.cross_compile_aarch64` | installs `patchelf` from EPEL 7 (available there, unlike CentOS 6) |
+| `docker/Dockerfile.debian`, `docker/Dockerfile.arch`, `docker/Dockerfile.opensuse` | also install `patchelf`. Their `build` compose service runs a module-unfiltered `./mvnw clean package`, which builds `boringssl-static` and so hits the `patchelf` exec (`failonerror="true"`). CI only runs Debian's `build-dynamic-only`, so a missing binary here is invisible to CI. Arch and openSUSE take the distro package; Debian 7 needs the prebuilt static binary like CentOS 6, wheezy has no `patchelf` package at all. |
 
 Note the FIPS profile and two release profiles duplicate the whole native build, so **a change to
 one does not apply to the others**. `linux-aarch64` cross-compiles from an x86_64 host; patchelf
@@ -437,6 +450,11 @@ Other notes:
   *before* hawtjni. Use the `native-jar` target (phase `package`) or `process-classes`.
 - Ant's `<exec>` does not echo silent commands, so absence of `strip`/`patchelf` output in the
   log does **not** mean they did not run. Verify on the artifact instead.
+- `-U_FORTIFY_SOURCE` is on every Linux compile line (module `cflags`, the FIPS and
+  `linux-aarch64` `CFLAGS`, and the BoringSSL cmake flags of all three). Debian-derived gcc
+  defines `_FORTIFY_SOURCE=2` by default and rewrites libc calls into `__*_chk` variants musl
+  does not export: the artifact still loads (nothing on the load path calls them) but `ldd`
+  on Alpine fails; the modern-distro CI legs showed exactly that. No-op on the RHEL release images.
 - Link flags are set per profile and are duplicated: the x86_64 default profile sets
   `hawtjniLdflags` in the `ldflags-setup` antrun execution, while the FIPS and `linux-aarch64`
   profiles hardcode `LDFLAGS` in their hawtjni `configureArgs`. Changing one does not change the

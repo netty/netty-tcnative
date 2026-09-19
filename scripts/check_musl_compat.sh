@@ -97,11 +97,13 @@ __ctype_b_loc __ctype_get_mb_cur_max __ctype_tolower_loc __ctype_toupper_loc
 __errno_location __fpclassify __fpclassifyf __fpclassifyl
 __h_errno_location __libc_start_main __signbit __signbitf __signbitl
 __stack_chk_fail __stack_chk_guard __tls_get_addr
+__isoc99_fscanf __isoc99_fwscanf __isoc99_scanf __isoc99_sscanf __isoc99_swscanf __isoc99_vfscanf
+__isoc99_vfwscanf __isoc99_vscanf __isoc99_vsscanf __isoc99_vswscanf __isoc99_vwscanf __isoc99_wscanf
 '
 
 # The fallbacks openssl-dynamic/src/main/c/musl_compat.c defines. Asserting these are *defined*
 # rather than undefined catches the compatibility file being dropped or excluded from the link.
-MUSL_COMPAT_SYMS='__getauxval fopen64 __isinf __isnan __strdup'
+MUSL_COMPAT_SYMS='__getauxval fopen64 __isinf __isnan __strdup __sprintf_chk __fprintf_chk __libc_single_threaded __isoc23_strtol __isoc23_strtoul __isoc23_strtoll __isoc23_strtoull __isoc23_strtoimax __isoc23_strtoumax __isoc23_sscanf __isoc23_vsscanf _dl_find_object'
 
 rc=0
 MACHINE=$("$READELF" -h "$SO" 2>/dev/null | sed -n 's/.*Machine:[[:space:]]*//p')
