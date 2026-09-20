@@ -53,14 +53,17 @@ static int compress(jobject compression_algorithm, jmethodID compress_method, SS
     int resultLen = (*e)->GetArrayLength(e, resultArray);
     uint8_t* outData = NULL;
     if (!CBB_reserve(out, &outData, resultLen)) {
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, resultArray);
         return 0; // Unable to reserve space for compressed data
     }
     jbyte* resultData = (*e)->GetByteArrayElements(e, resultArray, NULL);
     if (resultData == NULL) {
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, resultArray);
         return 0;
     }
     memcpy(outData, resultData, resultLen);
     (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, resultArray);
     if (!CBB_did_write(out, resultLen)) {
         return 0; // Unable to advance bytes written to CBB
     }
@@ -102,20 +105,24 @@ static int decompress(jobject compression_algorithm, jmethodID decompress_method
 
     int resultLen = (*e)->GetArrayLength(e, resultArray);
     if (uncompressed_len != resultLen) {
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, resultArray);
         return 0; // Unexpected uncompressed length
     }
     jbyte* resultData = (*e)->GetByteArrayElements(e, resultArray, NULL);
     if (resultData == NULL) {
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, resultArray);
         return 0;
     }
     uint8_t* outData;
     if (!((*out) = CRYPTO_BUFFER_alloc(&outData, uncompressed_len))) {
         // Unable to allocate certificate decompression buffer
         (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, resultArray);
         return 0;
     }
     memcpy(outData, resultData, uncompressed_len);
     (*e)->ReleaseByteArrayElements(e, resultArray, resultData, JNI_ABORT);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, resultArray);
     return 1; // Success
 }
 
