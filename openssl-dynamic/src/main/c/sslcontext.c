@@ -2281,6 +2281,7 @@ static enum ssl_private_key_result_t tcn_private_key_sign_java(SSL *ssl, uint8_t
 complete:
     // Free up any allocated memory and return.
     NETTY_JNI_UTIL_DELETE_LOCAL(e, inputArray);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, resultBytes);
     NETTY_JNI_UTIL_DELETE_LOCAL(e, sslPrivateKeyMethodSignTask_class);
 
     return ret;
@@ -2350,6 +2351,7 @@ static enum ssl_private_key_result_t tcn_private_key_decrypt_java(SSL *ssl, uint
 complete:
     // Delete the local reference as this is executed by a callback.
     NETTY_JNI_UTIL_DELETE_LOCAL(e, inArray);
+    NETTY_JNI_UTIL_DELETE_LOCAL(e, resultBytes);
     NETTY_JNI_UTIL_DELETE_LOCAL(e, sslPrivateKeyMethodDecryptTask_class);
     return ret;
 }
@@ -2388,6 +2390,7 @@ static enum ssl_private_key_result_t tcn_private_key_complete_java(SSL *ssl, uin
         state->ssl_task = NULL;
 
         if (returnValue != 1 || resultBytes == NULL) {
+            NETTY_JNI_UTIL_DELETE_LOCAL(e, resultBytes);
             return ssl_private_key_failure;
         }
 
@@ -2395,14 +2398,17 @@ static enum ssl_private_key_result_t tcn_private_key_complete_java(SSL *ssl, uin
         if (max_out < arrayLen) {
              // We need to fail as otherwise we would end up writing into memory which does not
              // belong to us.
+            NETTY_JNI_UTIL_DELETE_LOCAL(e, resultBytes);
             return ssl_private_key_failure;
         }
         if ((b = (*e)->GetByteArrayElements(e, resultBytes, NULL)) == NULL) {
+            NETTY_JNI_UTIL_DELETE_LOCAL(e, resultBytes);
             return ssl_private_key_failure;
         }
         memcpy(out, b, arrayLen);
         (*e)->ReleaseByteArrayElements(e, resultBytes, b, JNI_ABORT);
         *out_len = arrayLen;
+        NETTY_JNI_UTIL_DELETE_LOCAL(e, resultBytes);
         return ssl_private_key_success;
     }
     return ssl_private_key_failure;
