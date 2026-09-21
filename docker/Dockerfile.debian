@@ -1,11 +1,65 @@
 ARG debian_version=7
+ARG openssl_version=3.6.1
+ARG openssl_sha256
+ARG java_version="8.0.302-zulu"
+
+# ---------------------------------------------------------------------------
+# Debian 7 (wheezy) is EOL and archive.debian.org has no updated openssl /
+# ca-certificates package for it. The wget/curl shipped there can no longer
+# complete a TLS handshake with GitHub, sdkman.io, etc, so every HTTPS
+# download needed to build the image is done here, in a modern image, and
+# then copied into the debian:7 stage below.
+# ---------------------------------------------------------------------------
+FROM debian:bookworm-slim AS downloader
+ARG openssl_version
+ARG openssl_sha256
+ARG java_version
+ENV CMAKE_VERSION_BASE 3.26
+ENV CMAKE_VERSION=$CMAKE_VERSION_BASE.4
+ENV NINJA_VERSION 1.7.2
+ENV GO_VERSION 1.9.3
+ENV GCC_VERSION 4.9.4
+ENV JAVA_VERSION $java_version
+
+RUN apt-get -y update && apt-get -y install --no-install-recommends \
+ ca-certificates \
+ curl \
+ unzip \
+ zip \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root/download
+
+RUN curl -fsSL -o cmake-$CMAKE_VERSION-linux-x86_64.tar.gz \
+ https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz
+
+RUN curl -fsSL -o ninja-linux.zip \
+ https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip
+
+RUN curl -fsSL -o go$GO_VERSION.linux-amd64.tar.gz \
+ http://ftp.belnet.be/mirror/golang/go$GO_VERSION.linux-amd64.tar.gz
+
+RUN curl -fsSL -o gcc-$GCC_VERSION.tar.gz \
+ https://github.com/netty/netty-tcnative/releases/download/gcc-precompile/gcc-$GCC_VERSION.tar.gz
+
+RUN curl -fsSL -o openssl-$openssl_version.tar.gz \
+ https://github.com/openssl/openssl/releases/download/openssl-$openssl_version/openssl-$openssl_version.tar.gz && \
+ echo "$openssl_sha256  openssl-$openssl_version.tar.gz" | sha256sum -c -
+
+# Installed here (not in the debian:7 stage) for the same TLS reason: sdkman's
+# own installer and its Java downloads are plain curl/wget under the hood.
+RUN curl -s "https://get.sdkman.io" | bash
+RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
+    yes | sdk install java $JAVA_VERSION && \
+    rm -rf $HOME/.sdkman/archives/* && \
+    rm -rf $HOME/.sdkman/tmp/*"
+
+# ---------------------------------------------------------------------------
 FROM --platform=linux/amd64 debian:$debian_version
 # needed to do again after FROM due to docker limitation
 ARG debian_version
-ARG openssl_version=3.6.1
-ARG openssl_sha256
+ARG openssl_version
 ENV OPENSSL_VERSION $openssl_version
-ENV OPENSSL_SHA256 $openssl_sha256
 ENV SOURCE_DIR /root/source
 ENV CMAKE_VERSION_BASE 3.26
 ENV CMAKE_VERSION=$CMAKE_VERSION_BASE.4
@@ -18,7 +72,7 @@ ENV JAVA_VERSION $java_version
 
 # install dependencies
 RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > /etc/apt/sources.list && \
- echo "deb-src http://archive.debian.org/debian/ wheezy contrib main non-free" >> /etc/apt/sources.list && \ 
+ echo "deb-src http://archive.debian.org/debian/ wheezy contrib main non-free" >> /etc/apt/sources.list && \
  apt-get -y update && apt-get --force-yes -y install \
  autoconf \
  automake \
@@ -49,20 +103,23 @@ RUN echo "deb http://archive.debian.org/debian/ wheezy contrib main non-free" > 
 RUN mkdir $SOURCE_DIR
 WORKDIR $SOURCE_DIR
 
-RUN wget -q --no-check-certificate https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && tar zxf cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && mv cmake-$CMAKE_VERSION-linux-x86_64 /opt/ && echo 'PATH=/opt/cmake-$CMAKE_VERSION-linux-x86_64/bin:$PATH' >> ~/.bashrc
-RUN wget -q --no-check-certificate https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip && unzip ninja-linux.zip && mkdir -p /opt/ninja-$NINJA_VERSION/bin && mv ninja /opt/ninja-$NINJA_VERSION/bin && echo 'PATH=/opt/ninja-$NINJA_VERSION/bin:$PATH' >> ~/.bashrc
+COPY --from=downloader /root/download/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz .
+RUN tar zxf cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && mv cmake-$CMAKE_VERSION-linux-x86_64 /opt/ && echo 'PATH=/opt/cmake-$CMAKE_VERSION-linux-x86_64/bin:$PATH' >> ~/.bashrc && rm cmake-$CMAKE_VERSION-linux-x86_64.tar.gz
 
-RUN wget -q http://ftp.belnet.be/mirror/golang/go$GO_VERSION.linux-amd64.tar.gz && tar zxf go$GO_VERSION.linux-amd64.tar.gz && mv go /opt/ && echo 'PATH=/opt/go/bin:$PATH' >> ~/.bashrc && echo 'export GOROOT=/opt/go/' >> ~/.bashrc
+COPY --from=downloader /root/download/ninja-linux.zip .
+RUN unzip ninja-linux.zip && mkdir -p /opt/ninja-$NINJA_VERSION/bin && mv ninja /opt/ninja-$NINJA_VERSION/bin && echo 'PATH=/opt/ninja-$NINJA_VERSION/bin:$PATH' >> ~/.bashrc && rm ninja-linux.zip
 
-RUN wget -q --no-check-certificate https://github.com/netty/netty-tcnative/releases/download/gcc-precompile/gcc-$GCC_VERSION.tar.gz && tar zxf gcc-$GCC_VERSION.tar.gz && mv gcc-$GCC_VERSION /opt/ && echo 'PATH=/opt/gcc-$GCC_VERSION/bin:$PATH' >> ~/.bashrc && echo 'export CC=/opt/gcc-$GCC_VERSION/bin/gcc' >> ~/.bashrc && echo 'export CXX=/opt/gcc-$GCC_VERSION/bin/g++' >> ~/.bashrc
+COPY --from=downloader /root/download/go$GO_VERSION.linux-amd64.tar.gz .
+RUN tar zxf go$GO_VERSION.linux-amd64.tar.gz && mv go /opt/ && echo 'PATH=/opt/go/bin:$PATH' >> ~/.bashrc && echo 'export GOROOT=/opt/go/' >> ~/.bashrc && rm go$GO_VERSION.linux-amd64.tar.gz
+
+COPY --from=downloader /root/download/gcc-$GCC_VERSION.tar.gz .
+RUN tar zxf gcc-$GCC_VERSION.tar.gz && mv gcc-$GCC_VERSION /opt/ && echo 'PATH=/opt/gcc-$GCC_VERSION/bin:$PATH' >> ~/.bashrc && echo 'export CC=/opt/gcc-$GCC_VERSION/bin/gcc' >> ~/.bashrc && echo 'export CXX=/opt/gcc-$GCC_VERSION/bin/g++' >> ~/.bashrc && rm gcc-$GCC_VERSION.tar.gz
 
 # Build OpenSSL 3.x from source using the custom GCC
+COPY --from=downloader /root/download/openssl-$openssl_version.tar.gz .
 RUN set -x && \
   export CC=/opt/gcc-$GCC_VERSION/bin/gcc && \
-  # --no-check-certificate: Debian 7 ships with outdated CA bundles that can't verify modern GitHub TLS certs
-  wget --no-check-certificate https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION/openssl-$OPENSSL_VERSION.tar.gz && \
-  echo "$OPENSSL_SHA256  openssl-$OPENSSL_VERSION.tar.gz" | sha256sum -c - && \
-  tar xvf openssl-$OPENSSL_VERSION.tar.gz && \
+  tar xf openssl-$OPENSSL_VERSION.tar.gz && \
   (cd openssl-$OPENSSL_VERSION && \
   # no-asm: the custom GCC on Debian 7 cannot reliably compile OpenSSL's hand-tuned x86_64 assembly
   ./Configure linux-x86_64 --prefix=/opt/openssl-$OPENSSL_VERSION --libdir=lib shared no-asm no-apps && \
@@ -71,20 +128,9 @@ RUN set -x && \
 
 RUN rm -rf $SOURCE_DIR
 
-# Downloading and installing SDKMAN!
-RUN echo '-k' > $HOME/.curlrc
-RUN curl -s "https://get.sdkman.io" | bash
-RUN rm $HOME/.curlrc
-
-# Don't check the certificates as our curl version is too old.
-RUN echo 'sdkman_insecure_ssl=true' >> $HOME/.sdkman/etc/config
-
-# Installing Java removing some unnecessary SDKMAN files
-RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
-    yes | sdk install java $JAVA_VERSION && \
-    rm -rf $HOME/.sdkman/archives/* && \
-    rm -rf $HOME/.sdkman/tmp/*"
-
+# SDKMAN + the JDK were installed in the downloader stage where curl can
+# actually negotiate TLS with get.sdkman.io; just copy the result in here.
+COPY --from=downloader /root/.sdkman /root/.sdkman
 
 RUN echo 'export JAVA_HOME="/root/.sdkman/candidates/java/current"' >> ~/.bashrc
 RUN echo 'PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
