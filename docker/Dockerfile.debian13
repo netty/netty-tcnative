@@ -1,0 +1,81 @@
+# Everything in this image is pinned: the base by digest, the Debian archive by a
+# snapshot.debian.org timestamp, clang by version, Go by version and checksum. To refresh it,
+# bump the four values below together and rebuild.
+ARG debian_image=debian:13.7@sha256:9cc080028c43b27d2074d63a5f9caf7166d731494965616c1a6d2827a004585c
+FROM $debian_image
+ARG debian_snapshot=20260915T000000Z
+ARG clang_version=19
+ARG go_version=1.27.1
+ARG go_sha256_amd64=63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445
+ARG go_sha256_arm64=3450b45a3f9ee8568792736a5c5e70a1f2e9b36c35a8f74958c03e51d7d92bec
+ENV DEBIAN_FRONTEND noninteractive
+
+# A modern glibc builder for boringssl-static, and the only in-tree image that can build the
+# fips-boringssl-static profile, which compiles BoringSSL with clang. Google's FIPS.md asks for
+# recent stable Clang, Go, Ninja and CMake: clang, ninja and cmake are Debian 13's own. Go is
+# not: BoringSSL's go.mod floor (1.25.8 on the pinned fips-20260721) is ahead of trixie's 1.24,
+# so it comes from go.dev, checksum-verified. patchelf 0.18 has --remove-needed; APR's
+# buildconf wants the `libtool` script, which is in libtool-bin.
+#
+# No JDK 8 in trixie: the build runs on JDK 21. The pom compiles with --release 8, so the
+# class files are still Java 8.
+#
+# Not pinned to linux/amd64 like the older images, so it can also be built natively on an
+# arm64 host for a quick local run. CI builds it on amd64 runners.
+#
+# Unlike the CentOS 6 image this is NOT a release builder: its artifact has a glibc 2.34 floor.
+# It exists to give the boringssl-static and FIPS builds CI coverage on a current toolchain.
+
+# Freeze the archive. snapshot.debian.org serves the archive as it was at that instant, so the
+# same package versions install no matter when the image is built; Valid-Until has long passed
+# by then, hence check-valid-until=no.
+RUN rm -f /etc/apt/sources.list.d/debian.sources \
+ && echo "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/$debian_snapshot trixie main" > /etc/apt/sources.list \
+ && echo "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/$debian_snapshot trixie-updates main" >> /etc/apt/sources.list \
+ && echo "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/$debian_snapshot trixie-security main" >> /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+ autoconf \
+ automake \
+ bzip2 \
+ ca-certificates \
+ clang-$clang_version \
+ cmake \
+ curl \
+ g++ \
+ gcc \
+ git \
+ gnupg \
+ libapr1-dev \
+ libtool \
+ libtool-bin \
+ make \
+ ninja-build \
+ openjdk-21-jdk-headless \
+ patch \
+ patchelf \
+ perl \
+ pkg-config \
+ tar \
+ unzip \
+ wget \
+ xz-utils \
+ zip \
+ && rm -rf /var/lib/apt/lists/* \
+ && ln -s clang-$clang_version /usr/bin/clang && ln -s clang++-$clang_version /usr/bin/clang++
+
+# dpkg's amd64/arm64 spelling matches go.dev's and the JVM directory name.
+RUN ARCH=$(dpkg --print-architecture) \
+ && case $ARCH in amd64) GO_SHA256=$go_sha256_amd64;; arm64) GO_SHA256=$go_sha256_arm64;; esac \
+ && wget -q https://go.dev/dl/go$go_version.linux-$ARCH.tar.gz \
+ && echo "$GO_SHA256  go$go_version.linux-$ARCH.tar.gz" | sha256sum -c - \
+ && tar -C /opt -xzf go$go_version.linux-$ARCH.tar.gz && rm go$go_version.linux-$ARCH.tar.gz \
+ && ln -s /opt/go/bin/go /usr/local/bin/go && ln -s /opt/go/bin/gofmt /usr/local/bin/gofmt \
+ && ln -s /usr/lib/jvm/java-21-openjdk-$ARCH /usr/lib/jvm/java-21 \
+ && go version && clang --version | head -1 && ninja --version && cmake --version | head -1
+ENV JAVA_HOME /usr/lib/jvm/java-21
+# Use exactly the pinned Go; never let it fetch another toolchain.
+ENV GOTOOLCHAIN local
+
+# /code is a bind mount owned by the host user; newer git refuses to touch it otherwise.
+RUN git config --global --add safe.directory '*'

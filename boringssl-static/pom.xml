@@ -116,40 +116,51 @@
     <profile>
       <id>fips-boringssl-static</id>
       <properties>
-        <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslBranch}/boringssl</boringsslCheckoutDir>
+        <boringsslCheckoutDir>${project.build.directory}/boringssl-${boringsslFipsBranch}/boringssl</boringsslCheckoutDir>
         <boringsslBuildDir>${boringsslCheckoutDir}/build</boringsslBuildDir>
-        <!--   Latest FIPS compliant boringSSL commit   -->
-        <boringsslBranch>6d503ae1cf8b2e25162435225610b8c1f063d6f4</boringsslBranch>
+        <!-- Source: the head of BoringSSL's newest FIPS branch. Google cuts a fips-YYYYMMDD
+             branch for every module it submits to NIST; see
+             https://boringssl.googlesource.com/boringssl/+/refs/heads/main/crypto/fipsmodule/FIPS.md
+             Pinned to a sha, like the default profile's source, so the build is reproducible.
+             This module holds no certificate yet. Bump both properties together. -->
+        <boringsslFipsBranch>fips-20260721</boringsslFipsBranch>
+        <boringsslFipsCommitSha>b2f6124823a1b1611e66c94dc38a5eb21db0f5c7</boringsslFipsCommitSha>
         <linkStatic>true</linkStatic>
         <msvcSslIncludeDirs>${boringsslCheckoutDir}/include</msvcSslIncludeDirs>
         <msvcSslLibDirs>${boringsslBuildDir}/ssl;${boringsslBuildDir}/crypto;${boringsslBuildDir}/decrepit</msvcSslLibDirs>
         <msvcSslLibs>ssl.lib;crypto.lib;decrepit.lib</msvcSslLibs>
         <jniArch>${os.detected.arch}</jniArch>
         <project.artifactId>netty-tcnative-boringssl-static-fips</project.artifactId>
+        <!-- Compiler for BoringSSL itself; FIPS.md asks for clang. tcnative and APR are built
+             with the host cc. The CI image pins the version (docker/Dockerfile.debian13). -->
+        <fipsCC>clang</fipsCC>
+        <fipsCXX>clang++</fipsCXX>
       </properties>
 
       <build>
         <plugins>
 
-          <!-- Download the BoringSSL source -->
+          <!-- Check BoringSSL out from git, as the default profile does. The tarballs on
+               commondatastorage.googleapis.com/chromium-boringssl-fips are no longer public. -->
           <plugin>
-            <groupId>com.googlecode.maven-download-plugin</groupId>
-            <artifactId>download-maven-plugin</artifactId>
-            <version>1.6.8</version>
+            <artifactId>maven-scm-plugin</artifactId>
             <executions>
               <execution>
-                <id>install-fips-boringssl</id>
-                <phase>process-sources</phase>
+                <id>get-fips-boringssl</id>
+                <phase>generate-sources</phase>
                 <goals>
-                  <goal>wget</goal>
+                  <goal>checkout</goal>
                 </goals>
+                <configuration>
+                  <checkoutDirectory>${boringsslCheckoutDir}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:git:${boringsslRepository}</developerConnectionUrl>
+                  <scmVersion>${boringsslFipsBranch}</scmVersion>
+                  <scmVersionType>branch</scmVersionType>
+                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
+                </configuration>
               </execution>
             </executions>
-            <configuration>
-              <url>https://commondatastorage.googleapis.com/chromium-boringssl-fips/boringssl-${boringsslBranch}.tar.xz</url>
-              <unpack>true</unpack>
-              <outputDirectory>${project.build.directory}/boringssl-${boringsslBranch}</outputDirectory>
-            </configuration>
           </plugin>
 
           <plugin>
@@ -177,8 +188,8 @@
             <configuration>
               <instructions>
                 <Apr-Version>${aprVersion}</Apr-Version>
-                <BoringSSL-Revision>${boringsslBuildNumber}</BoringSSL-Revision>
-                <BoringSSL-Branch>${boringsslBranch}</BoringSSL-Branch>
+                <BoringSSL-Revision>${boringsslFipsCommitSha}</BoringSSL-Revision>
+                <BoringSSL-Branch>${boringsslFipsBranch}</BoringSSL-Branch>
                 <BoringSSL-FIPS-Compliant>true</BoringSSL-FIPS-Compliant>
               </instructions>
             </configuration>
@@ -207,6 +218,12 @@
                       <else>
                         <echo message="Building BoringSSL" />
 
+                        <!-- Use the known SHA of the commit, as the default profile does -->
+                        <exec executable="git" failonerror="true" dir="${boringsslCheckoutDir}" resolveexecutable="true">
+                          <arg value="checkout" />
+                          <arg value="${boringsslFipsCommitSha}" />
+                        </exec>
+
                         <mkdir dir="${boringsslBuildDir}" />
 
                         <if>
@@ -234,11 +251,18 @@
                             <property name="cmakeCxxFlags" value="-O3 -fno-omit-frame-pointer" />
                           </else>
                         </if>
+                        <!-- The static archives end up inside a shared library, so they must be
+                             PIC, same as the default profile asks. Without it the aarch64 link
+                             fails on libcrypto.a(crypto.cc.o): "relocation
+                             R_AARCH64_ADR_PREL_PG_HI21 against symbol stderr ... can not be used
+                             when making a shared object; recompile with -fPIC". delocate is
+                             written for PIC input, so this does not affect the FIPS module. -->
                         <exec executable="cmake" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
                           <arg value="-DCMAKE_BUILD_TYPE=Release" />
                           <arg value="-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" />
-                          <arg value="-DCMAKE_C_COMPILER=clang-12" />
-                          <arg value="-DCMAKE_CXX_COMPILER=clang++-12" />
+                          <arg value="-DCMAKE_C_COMPILER=${fipsCC}" />
+                          <arg value="-DCMAKE_CXX_COMPILER=${fipsCXX}" />
                           <arg value="-DFIPS=1" />
                           <arg value="-GNinja" />
                           <arg value="${boringsslCheckoutDir}" />
@@ -257,8 +281,14 @@
                         <if>
                           <equals arg1="${os.detected.name}" arg2="linux" />
                           <then>
-                            <!-- This is needed to generate bssl execute file to verify isfips property-->
+                            <!-- Only what the link and the isfips gate below need. A bare `ninja`
+                                 builds every target, and the test binaries alone are most of the
+                                 wall-clock time of this profile. -->
                             <exec executable="${ninjaExecutable}" failonerror="true" dir="${boringsslBuildDir}" resolveexecutable="true">
+                              <arg value="crypto" />
+                              <arg value="ssl" />
+                              <arg value="decrepit" />
+                              <arg value="bssl" />
                             </exec>
                             <exec executable="./bssl" failonerror="false" dir="${boringsslBuildDir}" outputproperty="boringssl.isfips.result">
                               <arg value="isfips" />
@@ -413,7 +443,10 @@
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                     <configureArg>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</configureArg>
                     <configureArg>CPPFLAGS=-DHAVE_OPENSSL -I${boringsslCheckoutDir}/include</configureArg>
-                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -lssl -lcrypto -ldecrepit -l:libstdc++.a -l:libgcc.a -l:libgcc_eh.a</configureArg>
+                    <!-- gc-sections: this BoringSSL drags in libstdc++'s std::random_device, which nothing
+                         calls and which imports arc4random (glibc 2.36+, absent from musl). Dropping
+                         the dead code removes the import. See docs/musl-compatibility.md -->
+                    <configureArg>LDFLAGS=-L${boringsslBuildDir} -Wl,--gc-sections -lssl -lcrypto -ldecrepit -l:libstdc++.a -l:libgcc.a -l:libgcc_eh.a</configureArg>
                   </configureArgs>
                 </configuration>
               </execution>

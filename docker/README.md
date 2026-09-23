@@ -39,6 +39,19 @@ docker compose -f docker/docker-compose.opensuse.yaml -f docker/docker-compose.o
 docker compose -f docker/docker-compose.centos-7.yaml run cross-compile-aarch64-build
 ```
 
+## Debian 13 with java 21: boringssl-static on a current toolchain, and the FIPS profile
+
+Not a release builder (glibc 2.41 floor). It is the one image that can build the
+`fips-boringssl-static` profile, which compiles BoringSSL with clang. Everything is pinned: the
+base image by digest, the Debian archive by a snapshot.debian.org timestamp, clang by version,
+Go by version and checksum. Both services stop at `package`, which is where the musl
+compatibility check runs. Not pinned to amd64, so on an arm64 host it builds natively.
+
+```
+docker compose -f docker/docker-compose.debian-13.yaml run build
+docker compose -f docker/docker-compose.debian-13.yaml run build-fips
+```
+
 etc, etc
 
 
