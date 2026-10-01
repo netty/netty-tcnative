@@ -2704,6 +2704,7 @@ complete:
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L || defined(__GNUC__) || defined(__GNUG__)
     int i;
     int nsig;
+    int psign;
     int psignhash;
     jobjectArray array = NULL;
     jstring algString = NULL;
@@ -2718,7 +2719,12 @@ complete:
     }
 
     for (i = 0; i < nsig; i++) {
-        SSL_get_sigalgs(ssl_, i, NULL, NULL, &psignhash, NULL, NULL);
+        SSL_get_sigalgs(ssl_, i, &psign, NULL, &psignhash, NULL, NULL);
+        if (psignhash == NID_undef) {
+            // Some algorithms, such as Ed25519, Ed448 and RSA-PSS, have no combined signature and hash NID.
+            // Use the signature NID so we return their name rather than "undefined".
+            psignhash = psign;
+        }
         if ((algString = (*e)->NewStringUTF(e, OBJ_nid2ln(psignhash))) == NULL) {
             // something is wrong we should better just return here
             return NULL;

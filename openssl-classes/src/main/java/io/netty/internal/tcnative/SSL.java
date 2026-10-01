@@ -876,7 +876,8 @@ public final class SSL {
     /**
      * Return the signature algorithms that the remote peer supports or {@code null} if none are supported.
      * See <a href="https://www.openssl.org/docs/man1.1.0/ssl/SSL_get_sigalgs.html"> man SSL_get_sigalgs</a> for more details.
-     * The returned names are generated using {@code OBJ_nid2ln} with the {@code psignhash} as parameter.
+     * The returned names are generated using {@code OBJ_nid2ln} with the {@code psignhash} as parameter, or with
+     * {@code psign} if there is no {@code psignhash} (for example for Ed25519).
      *
      * @param ssl the SSL instance (SSL *)
      * @return the signature algorithms or {@code null}.
