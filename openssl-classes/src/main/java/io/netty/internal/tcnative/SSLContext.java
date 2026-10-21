@@ -556,10 +556,14 @@ public final class SSLContext {
      * <p>
      * <strong>Important: This method must only be called before any SSL object was created and used
      * that belongs to this context. Failing to do so results in undefined behaviour.</strong>
+     * <p>
+     * Key-log callbacks are supported by BoringSSL, AWS-LC and OpenSSL 1.1.1 or later.
+     *
      * @param ctx Server or Client context to use.
-     * @param callback the callback to call when delivering debug output.
-     * @return {@code true} if the key-log callback was assigned,
-     * otherwise {@code false} if key-log callbacks are not supported.
+     * @param callback the callback to call when delivering debug output, or {@code null} to remove the current one.
+     * @return {@code true} if the key-log callback was assigned (or removed), otherwise {@code false} if key-log
+     * callbacks are not supported: LibreSSL, OpenSSL older than 1.1.1, or {@code SSL_CTX_set_keylog_callback}
+     * missing at runtime.
      */
     public static native boolean setKeyLogCallback(long ctx, KeyLogCallback callback);
 
@@ -652,11 +656,11 @@ public final class SSLContext {
      * @return the mode.
      */
     public static native int getMode(long ctx);
-    
+
     /**
      * Enables OCSP stapling for the given {@link SSLContext} or throws an
      * exception if OCSP stapling is not supported.
-     * 
+     *
      * <p><a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_tlsext_status_type.html">SSL_set_tlsext_status_type</a>
      * <p><a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html">Search for OCSP</a>
      */
@@ -664,7 +668,7 @@ public final class SSLContext {
 
     /**
      * Disables OCSP stapling on the given {@link SSLContext}.
-     * 
+     *
      * <p><a href="https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_tlsext_status_type.html">SSL_set_tlsext_status_type</a>
      * <p><a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html">Search for OCSP</a>
      */
@@ -753,7 +757,7 @@ public final class SSLContext {
 
     /**
      * Set the number of TLSv1.3 session tickets that will be sent to the client after a full handshake.
-     * 
+     *
      * See <a href="https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_num_tickets.html">SSL_CTX_set_num_tickets</a> for more details.
      * @param ctx context to use
      * @param tickets the number of tickets
@@ -800,11 +804,11 @@ public final class SSLContext {
 
     /**
      * Add an SSL_CREDENTIAL to the SSL_CTX instance.
-     * 
-     * <p>This is a BoringSSL-specific feature. See 
+     *
+     * <p>This is a BoringSSL-specific feature. See
      * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CTX_add1_credential">SSL_CTX_add1_credential</a>
      * for detailed documentation.</p>
-     * 
+     *
      * @param ctx the SSL_CTX instance (SSL_CTX *)
      * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
      * @throws Exception if an error occurred

@@ -16,8 +16,12 @@
 package io.netty.internal.tcnative;
 
 /**
- * Callback hooked into <a href="https://github.com/google/boringssl/blob/master/include/openssl/ssl.h#L4379">SSL_CTX_set_keylog_callback</a>
- * This is intended for TLS debugging with tools like <a href="https://wiki.wireshark.org/TLS">Wireshark</a>.
+ * Callback hooked into {@code SSL_CTX_set_keylog_callback}.
+ * <p>
+ * It is supported by BoringSSL, AWS-LC and OpenSSL 1.1.1 or later, but not by LibreSSL.
+ * <p>
+ * Each line uses the NSS Key Log Format (the format of {@code SSLKEYLOGFILE}). This is intended for TLS debugging
+ * with tools like <a href="https://wiki.wireshark.org/TLS">Wireshark</a>.
  * For instance, a valid {@code SSLKEYLOGFILE} implementation could look like this:
  * <pre>{@code
  *         final PrintStream out = new PrintStream("~/tls.sslkeylog_file");
@@ -31,6 +35,10 @@ package io.netty.internal.tcnative;
  * <p>
  * <strong>Warning:</strong> The log output will contain secret key material, and can be used to decrypt
  * TLS sessions! The log output should be handled with the same care given to the private keys.
+ *
+ * @see SSLContext#setKeyLogCallback(long, KeyLogCallback)
+ * @see <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_CTX_set_keylog_callback">BoringSSL</a>
+ * @see <a href="https://docs.openssl.org/master/man3/SSL_CTX_set_keylog_callback/">OpenSSL</a>
  */
 public interface KeyLogCallback {
     /**
@@ -39,11 +47,10 @@ public interface KeyLogCallback {
      * <strong>Warning:</strong> The log output will contain secret key material, and can be used to decrypt
      * TLS sessions! The log output should be handled with the same care given to the private keys.
      * <p>
-     * This method is expected to never throw any {@link Throwable} as everything will just be silently discarded.
+     * This method is expected to never throw any {@link Throwable}: anything it throws is cleared and ignored.
      *
-     * @param ssl  the SSL instance
-     * @param line an array of the key types on client-mode or {@code null} on server-mode.
-     *
+     * @param ssl the native {@code SSL*} pointer of the connection the line belongs to.
+     * @param line a single line in the NSS Key Log Format, without a trailing newline.
      */
     void handle(long ssl, byte[] line);
 }

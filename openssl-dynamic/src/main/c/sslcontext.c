@@ -101,6 +101,9 @@ static apr_status_t ssl_context_cleanup(void *data)
             }
             c->ssl_cert_compression_zstd_algorithm = NULL;
         }
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+
+#ifdef TCN_KEYLOG_SUPPORTED
         if (c->keylog_callback != NULL) {
             if (e != NULL) {
                 (*e)->DeleteGlobalRef(e, c->keylog_callback);
@@ -108,7 +111,7 @@ static apr_status_t ssl_context_cleanup(void *data)
             c->keylog_callback = NULL;
         }
         c->keylog_callback_method = NULL;
-#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#endif // TCN_KEYLOG_SUPPORTED
 
         if (c->ssl_session_cache != NULL) {
             if (e != NULL) {
@@ -2680,7 +2683,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
     }
 }
 
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#ifdef TCN_KEYLOG_SUPPORTED
 static void keylog_cb(const SSL* ssl, const char *line) {
     if (line == NULL) {
         return;
@@ -2728,7 +2731,7 @@ static void keylog_cb(const SSL* ssl, const char *line) {
         (*e)->ExceptionClear(e);
     }
 }
-#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#endif // TCN_KEYLOG_SUPPORTED
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setKeyLogCallback)(TCN_STDARGS, jlong ctx, jobject callback)
 {
@@ -2736,7 +2739,14 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setKeyLogCallback)(TCN_STDARGS, jlong c
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
 
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#ifdef TCN_KEYLOG_SUPPORTED
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) && (defined(__GNUC__) || defined(__GNUG__))
+    // Weak linked, so check if the OpenSSL version we run with supports it (>= 1.1.1).
+    if (!SSL_CTX_set_keylog_callback) {
+        return JNI_FALSE;
+    }
+#endif
+
     jobject oldCallback = c->keylog_callback;
     if (callback == NULL) {
         c->keylog_callback = NULL;
@@ -2770,7 +2780,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setKeyLogCallback)(TCN_STDARGS, jlong c
     return JNI_TRUE;
 #else
     return JNI_FALSE;
-#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#endif // TCN_KEYLOG_SUPPORTED
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong ctx, jbyteArray sidCtx)
