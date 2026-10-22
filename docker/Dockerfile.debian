@@ -37,7 +37,7 @@ RUN curl -fsSL -o ninja-linux.zip \
  https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip
 
 RUN curl -fsSL -o go$GO_VERSION.linux-amd64.tar.gz \
- http://ftp.belnet.be/mirror/golang/go$GO_VERSION.linux-amd64.tar.gz
+ https://dl.google.com/go/go$GO_VERSION.linux-amd64.tar.gz
 
 RUN curl -fsSL -o gcc-$GCC_VERSION.tar.gz \
  https://github.com/netty/netty-tcnative/releases/download/gcc-precompile/gcc-$GCC_VERSION.tar.gz
