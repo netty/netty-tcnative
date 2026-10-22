@@ -44,6 +44,7 @@
 #include "apr_portable.h"
 #include "ssl_private.h"
 #include "ssl.h"
+#include "sslcredential.h"
 
 #define SSL_CLASSNAME  "io/netty/internal/tcnative/SSL"
 
@@ -2773,6 +2774,23 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
 #endif
 }
 
+TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredentialId)(TCN_STDARGS, jlong ssl) {
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_CHECK_NULL(ssl_, ssl, 0);
+    const SSL_CREDENTIAL* credential = SSL_get0_selected_credential(ssl_);
+    if (credential != NULL) {
+        // Handshake in progress: report the live selection.
+        return tcn_SSL_CREDENTIAL_get_id(credential);
+    }
+    tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl_);
+    return state == NULL ? 0 : state->selected_credential_id;
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
+#endif
+}
+
 // JNI Method Registration Table Begin
 static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(bioLengthByteBuffer, (J)I, SSL) },
@@ -2854,6 +2872,7 @@ static const JNINativeMethod method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(setRenegotiateMode, (JI)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(addCredential, (JJ)V, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getSelectedCredential, (J)J, SSL) },
+  { TCN_METHOD_TABLE_ENTRY(getSelectedCredentialId, (J)J, SSL) },
   { TCN_METHOD_TABLE_ENTRY(getGroupName, (J)Ljava/lang/String;, SSL) }
 };
 

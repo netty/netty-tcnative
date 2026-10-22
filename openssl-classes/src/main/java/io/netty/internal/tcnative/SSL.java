@@ -1005,6 +1005,27 @@ public final class SSL {
     public static native long getSelectedCredential(long ssl) throws Exception;
 
     /**
+     * Get the id of the credential selected for an SSL instance, as assigned by {@link SSLCredential#newX509()} or
+     * {@link SSLCredential#newDelegated()}.
+     *
+     * <p>Returns:
+     * <ul>
+     *   <li>during a handshake that has already selected a credential, the id of that credential;</li>
+     *   <li>otherwise, the id recorded by the most recent completed handshake, if
+     *   {@link SSLContext#setRecordSelectedCredential(long, boolean)} is enabled;</li>
+     *   <li>{@code 0} when no credential was selected, when the credential came from a legacy API, when recording is
+     *   disabled, or when no handshake has completed yet.</li>
+     * </ul>
+     *
+     * <p>This is a BoringSSL-specific feature.</p>
+     *
+     * @param ssl the SSL instance (SSL *)
+     * @return the selected credential id, or {@code 0}
+     * @throws Exception if an error occurred
+     */
+    public static native long getSelectedCredentialId(long ssl) throws Exception;
+
+    /**
      * Get the name of the group used by ssl's most recently completed handshake, or {@code null} if not applicable.
      *
      * @param ssl   the SSL instance (SSL *)

@@ -27,6 +27,10 @@ extern "C" {
 jint netty_internal_tcnative_SSLCredential_JNI_OnLoad(JNIEnv* env, const char* packagePrefix);
 void netty_internal_tcnative_SSLCredential_JNI_OnUnLoad(JNIEnv* env, const char* packagePrefix);
 
+#ifdef OPENSSL_IS_BORINGSSL
+jlong tcn_SSL_CREDENTIAL_get_id(const SSL_CREDENTIAL* cred);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

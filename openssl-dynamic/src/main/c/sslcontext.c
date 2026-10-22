@@ -37,6 +37,7 @@
 #include "ssl_private.h"
 #include <stdint.h>
 #include "sslcontext.h"
+#include "sslcredential.h"
 #include "cert_compress.h"
 
 #define SSLCONTEXT_CLASSNAME "io/netty/internal/tcnative/SSLContext"
@@ -189,6 +190,16 @@ static void ssl_info_callback(const SSL *ssl, int where, int ret) {
             state->handshakeCount++;
         }
     }
+#ifdef OPENSSL_IS_BORINGSSL
+    if (0 != (where & SSL_CB_HANDSHAKE_DONE)) {
+        // BoringSSL frees the handshake state (and its selected credential) before SSL_do_handshake returns,
+        // so record the selection here. Assign unconditionally so a later handshake without one clears it.
+        if ((state = tcn_SSL_get_app_state(ssl)) != NULL && state->ctx->record_selected_credential != 0) {
+            state->selected_credential_id =
+                    (apr_uint32_t) tcn_SSL_CREDENTIAL_get_id(SSL_get0_selected_credential(ssl));
+        }
+    }
+#endif
 }
 
 /* Initialize server context */
@@ -2907,6 +2918,14 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setUseTasks)(TCN_STDARGS, jlong ctx, jboole
     c->use_tasks = useTasks == JNI_TRUE ? 1 : 0;
 }
 
+TCN_IMPLEMENT_CALL(void, SSLContext, setRecordSelectedCredential)(TCN_STDARGS, jlong ctx, jboolean record) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+
+    TCN_CHECK_NULL(c, ctx, /* void */);
+
+    c->record_selected_credential = record == JNI_TRUE ? 1 : 0;
+}
+
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCurvesList0)(TCN_STDARGS, jlong ctx, jstring curves) {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -3103,6 +3122,7 @@ static const JNINativeMethod fixed_method_table[] = {
   { TCN_METHOD_TABLE_ENTRY(disableOcsp, (J)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(getSslCtx, (J)J, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setUseTasks, (JZ)V, SSLContext) },
+  { TCN_METHOD_TABLE_ENTRY(setRecordSelectedCredential, (JZ)V, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setNumTickets, (JI)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setCurvesList0, (JLjava/lang/String;)Z, SSLContext) },
   { TCN_METHOD_TABLE_ENTRY(setMaxCertList, (JI)V, SSLContext) },

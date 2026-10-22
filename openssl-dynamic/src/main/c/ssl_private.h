@@ -389,6 +389,7 @@ struct tcn_ssl_ctxt_t {
     unsigned char            context_id[SHA_DIGEST_LENGTH];
 
     int                      use_tasks;
+    int                      record_selected_credential;
 };
 
 // Store the callback to run and also if it was consumed via SSL.getTask(...).
@@ -404,6 +405,8 @@ void tcn_ssl_task_free(JNIEnv*, tcn_ssl_task_t*);
 typedef struct tcn_ssl_state_t tcn_ssl_state_t;
 struct tcn_ssl_state_t {
     int handshakeCount;
+    // Fills the padding before ctx so recording the selected credential adds no per-connection memory.
+    apr_uint32_t selected_credential_id;
     tcn_ssl_ctxt_t *ctx;
     tcn_ssl_task_t* ssl_task;
     tcn_ssl_verify_config_t verify_config;

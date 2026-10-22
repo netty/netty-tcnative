@@ -684,6 +684,17 @@ public final class SSLContext {
     public static native void setUseTasks(long ctx, boolean useTasks);
 
     /**
+     * Enable or disable recording the credential selected by each completed handshake, so that it can be obtained
+     * via {@link SSL#getSelectedCredentialId(long)} after the handshake. Disabled by default.
+     *
+     * <p>This only has an effect when using BoringSSL.</p>
+     *
+     * @param ctx context to use
+     * @param record {@code true} to enable, {@code false} to disable.
+     */
+    public static native void setRecordSelectedCredential(long ctx, boolean record);
+
+    /**
      * Adds a certificate compression algorithm to the given {@link SSLContext} or throws an
      * exception if certificate compression is not supported or the algorithm not recognized.
      * For servers, algorithm preference order is dictated by the order of algorithm registration.

@@ -24,6 +24,7 @@
 
 
 #include "tcn.h"
+#include "apr_atomic.h"
 #include "ssl_private.h"
 #include "sslcredential.h"
 
@@ -37,6 +38,30 @@ static void throw_openssl_error(JNIEnv* env, const char* msg) {
     ERR_error_string_n(err, err_buf, sizeof(err_buf));
     tcn_Throw(env, "%s: %s", msg, err_buf);
 }
+
+static int tcn_SSL_CREDENTIAL_id_idx = -1;
+static volatile apr_uint32_t tcn_SSL_CREDENTIAL_next_id = 0;
+
+// The id is a scalar packed into the ex_data slot, so no free callback is needed.
+jlong tcn_SSL_CREDENTIAL_get_id(const SSL_CREDENTIAL* cred) {
+    if (cred == NULL || tcn_SSL_CREDENTIAL_id_idx < 0) {
+        return 0;
+    }
+    return (jlong)(uintptr_t) SSL_CREDENTIAL_get_ex_data(cred, tcn_SSL_CREDENTIAL_id_idx);
+}
+
+static SSL_CREDENTIAL* assign_id(JNIEnv* e, SSL_CREDENTIAL* cred) {
+    apr_uint32_t id;
+    do {
+        id = apr_atomic_inc32(&tcn_SSL_CREDENTIAL_next_id) + 1;
+    } while (id == 0);
+    if (!SSL_CREDENTIAL_set_ex_data(cred, tcn_SSL_CREDENTIAL_id_idx, (void*)(uintptr_t) id)) {
+        SSL_CREDENTIAL_free(cred);
+        throw_openssl_error(e, "Failed to set SSL_CREDENTIAL id");
+        return NULL;
+    }
+    return cred;
+}
 #endif
 
 
@@ -46,7 +71,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLCredential, newX509)(TCN_STDARGS) {
 #ifdef OPENSSL_IS_BORINGSSL
     SSL_CREDENTIAL* cred = SSL_CREDENTIAL_new_x509();
     TCN_CHECK_NULL(cred, credential, 0);
-    return (jlong)(intptr_t)cred;
+    return (jlong)(intptr_t)assign_id(e, cred);
 #else
     tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
     return 0;
@@ -71,6 +96,17 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, free)(TCN_STDARGS, jlong cred) {
     }
 #else
     tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+#endif
+}
+
+TCN_IMPLEMENT_CALL(jlong, SSLCredential, getId)(TCN_STDARGS, jlong cred) {
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL_CREDENTIAL* c = (SSL_CREDENTIAL*)(intptr_t)cred;
+    TCN_CHECK_NULL(c, credential, 0);
+    return tcn_SSL_CREDENTIAL_get_id(c);
+#else
+    tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
+    return 0;
 #endif
 }
 
@@ -301,7 +337,7 @@ TCN_IMPLEMENT_CALL(jlong, SSLCredential, newDelegated)(TCN_STDARGS) {
         throw_openssl_error(e, "Failed to create delegated SSL_CREDENTIAL");
         return 0;
     }
-    return (jlong)(intptr_t)credential;
+    return (jlong)(intptr_t)assign_id(e, credential);
 #else
     tcn_ThrowUnsupportedOperationException(e, "SSL_CREDENTIAL API not available.");
     return 0;
@@ -346,6 +382,7 @@ static const JNINativeMethod method_table[] = {
     { TCN_METHOD_TABLE_ENTRY(newX509, ()J, SSLCredential) },
     { TCN_METHOD_TABLE_ENTRY(upRef, (J)V, SSLCredential) },
     { TCN_METHOD_TABLE_ENTRY(free, (J)V, SSLCredential) },
+    { TCN_METHOD_TABLE_ENTRY(getId, (J)J, SSLCredential) },
     
     // Configuration
     { TCN_METHOD_TABLE_ENTRY(setPrivateKey, (JJ)V, SSLCredential) },
@@ -371,6 +408,12 @@ static const jint method_table_size = sizeof(method_table) / sizeof(method_table
 // IMPORTANT: If you add any NETTY_JNI_UTIL_LOAD_CLASS or NETTY_JNI_UTIL_FIND_CLASS calls you also need to update
 //            Library to reflect that.
 jint netty_internal_tcnative_SSLCredential_JNI_OnLoad(JNIEnv* env, const char* packagePrefix) {
+#ifdef OPENSSL_IS_BORINGSSL
+    tcn_SSL_CREDENTIAL_id_idx = SSL_CREDENTIAL_get_ex_new_index(0, NULL, NULL, NULL, NULL);
+    if (tcn_SSL_CREDENTIAL_id_idx < 0) {
+        return JNI_ERR;
+    }
+#endif
     if (netty_jni_util_register_natives(env,
              packagePrefix,
              SSLCREDENTIAL_CLASSNAME,
