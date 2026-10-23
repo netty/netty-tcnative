@@ -262,6 +262,13 @@ extern void *SSL_temp_keys[SSL_TMP_KEY_MAX];
 #define TCN_OCSP_NOT_SUPPORTED
 #endif
 
+// SSL_CTX_set_keylog_callback: BoringSSL, AWS-LC and OpenSSL >= 1.1.1, but not LibreSSL.
+// With GCC it's weak linked, so it also builds against older headers and is checked at runtime.
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC) || (!defined(LIBRESSL_VERSION_NUMBER) && \
+    (OPENSSL_VERSION_NUMBER >= 0x10101000L || defined(__GNUC__) || defined(__GNUG__)))
+#define TCN_KEYLOG_SUPPORTED
+#endif
+
 /* Define if not already exists as this will be used to be able to compile against older versions of openssl
    while use newer when running the app */
 #ifndef SSL_CTRL_CHAIN_CERT
@@ -355,10 +362,12 @@ struct tcn_ssl_ctxt_t {
     jobject                  ssl_cert_compression_zstd_algorithm;
     jmethodID                ssl_cert_compression_zstd_compress_method;
     jmethodID                ssl_cert_compression_zstd_decompress_method;
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 
+#ifdef TCN_KEYLOG_SUPPORTED
     jobject                  keylog_callback;
     jmethodID                keylog_callback_method;
-#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#endif // TCN_KEYLOG_SUPPORTED
 
     tcn_ssl_verify_config_t  verify_config;
 
@@ -498,6 +507,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
     extern int X509_VERIFY_PARAM_set1_host(X509_VERIFY_PARAM *param, const char *name, size_t namelen) __attribute__((weak));
     extern int SSL_CTX_set_num_tickets(SSL_CTX *ctx, size_t num_tickets) __attribute__((weak));
     extern int SSL_SESSION_up_ref(SSL_SESSION *session) __attribute__((weak));
+    extern void SSL_CTX_set_keylog_callback(SSL_CTX *ctx, void (*cb)(const SSL *ssl, const char *line)) __attribute__((weak));
 #endif // !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 
     extern int SSL_get_sigalgs(SSL *s, int idx, int *psign, int *phash, int *psignhash, unsigned char *rsig, unsigned char *rhash) __attribute__((weak));
