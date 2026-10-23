@@ -488,7 +488,8 @@
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
         <configuration>
-          <arguments>-Prestricted-release,sonatype-oss-release</arguments>
+          <!-- Specifying a profile here will not disable the all / windows profiles, so disable them via moduleSelector -->
+          <arguments>-Prestricted-release,sonatype-oss-release -DmoduleSelector=none</arguments>
           <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
           <autoVersionSubmodules>true</autoVersionSubmodules>
         </configuration>
@@ -868,50 +869,48 @@
       </modules>
     </profile>
 
-
+    <!--
+      Profile for building all modules on every platform except windows. This is enabled by default unless
+      -DmoduleSelector=<anything> is specified, which allows to select the modules via other profiles.
+    -->
     <profile>
-      <id>windows-compile-static-only</id>
+      <id>all</id>
       <activation>
+        <!-- All conditions need to match for the profile to be activated. -->
+        <os>
+          <family>!windows</family>
+        </os>
+        <property>
+          <name>!moduleSelector</name>
+        </property>
+      </activation>
+      <modules>
+        <module>openssl-classes</module>
+        <module>openssl-dynamic</module>
+        <module>openssl-static</module>
+        <module>boringssl-static</module>
+        <module>libressl-static</module>
+      </modules>
+    </profile>
+
+    <!--
+      Profile for building the modules on windows by default. Only boringssl-static is supported there at the moment.
+      Like the "all" profile this is not enabled if -DmoduleSelector=<anything> is specified.
+    -->
+    <profile>
+      <id>windows</id>
+      <activation>
+        <!-- All conditions need to match for the profile to be activated. -->
         <os>
           <family>windows</family>
         </os>
-      </activation>
-      <modules>
-        <!-- Ony Windows we only support boringssl-static -->
-        <module>openssl-classes</module>
-        <module>boringssl-static</module>
-      </modules>
-    </profile>
-
-    <profile>
-      <id>linux-compile-all</id>
-      <activation>
-        <os>
-          <family>linux</family>
-        </os>
+        <property>
+          <name>!moduleSelector</name>
+        </property>
       </activation>
       <modules>
         <module>openssl-classes</module>
-        <module>openssl-dynamic</module>
-        <module>openssl-static</module>
         <module>boringssl-static</module>
-        <module>libressl-static</module>
-      </modules>
-    </profile>
-
-    <profile>
-      <id>osx-compile-all</id>
-      <activation>
-        <os>
-          <family>osx</family>
-        </os>
-      </activation>
-      <modules>
-        <module>openssl-classes</module>
-        <module>openssl-dynamic</module>
-        <module>openssl-static</module>
-        <module>boringssl-static</module>
-        <module>libressl-static</module>
       </modules>
     </profile>
 
