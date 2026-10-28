@@ -735,8 +735,9 @@ int select_next_proto(SSL *ssl, const unsigned char **out, unsigned char *outlen
             p += proto_len;
         }
 
-        // increment len and pointers.
-        i += target_proto_len;
+        // increment len and pointers. Account for the length byte as well, otherwise we would read past the
+        // end of supported_protos.
+        i += target_proto_len + 1;
         supported_protos += target_proto_len;
     }
 
