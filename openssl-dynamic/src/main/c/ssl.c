@@ -2198,7 +2198,7 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
     BIO *cert_bio = J2P(x509ChainBio, BIO *);
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-    STACK_OF(CRYPTO_BUFFER) *chain = sk_CRYPTO_BUFFER_new_null();
+    STACK_OF(CRYPTO_BUFFER) *chain = NULL;
     CRYPTO_BUFFER *buffer = NULL;
     char *name = NULL;
     char *header = NULL;
@@ -2215,6 +2215,8 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
     TCN_CHECK_NULL(cert_bio, x509ChainBio, 0);
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // Only allocate the stack after the argument check, otherwise it would be leaked when we return early.
+    chain = sk_CRYPTO_BUFFER_new_null();
     while (PEM_read_bio(cert_bio, &name, &header, &data, &data_len)) {
 
         OPENSSL_free(name);
