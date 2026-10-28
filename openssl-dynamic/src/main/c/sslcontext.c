@@ -2454,9 +2454,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod0)(TCN_STDARGS, jlong ct
         jmethodID signMethod = (*e)->GetMethodID(e, method_class, "sign", name);
         if (signMethod == NULL) {
             tcn_ThrowIllegalArgumentException(e, "Unable to retrieve sign method");
-            return;
+            goto error;
         }
 
+        // NETTY_JNI_UTIL_PREPEND does not free the previous value so release it before reusing the variable.
+        netty_jni_util_free_dynamic_name(&name);
         NETTY_JNI_UTIL_PREPEND(staticPackagePrefix, "io/netty/internal/tcnative/ResultCallback;)V", name, error);
         NETTY_JNI_UTIL_PREPEND("(J[BL", name, combinedName, error);
         TCN_REASSIGN(name, combinedName);
@@ -2464,13 +2466,13 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod0)(TCN_STDARGS, jlong ct
         jmethodID decryptMethod = (*e)->GetMethodID(e, method_class, "decrypt", name);
         if (decryptMethod == NULL) {
             tcn_ThrowIllegalArgumentException(e, "Unable to retrieve decrypt method");
-            return;
+            goto error;
         }
 
         jobject m = (*e)->NewGlobalRef(e, method);
         if (m == NULL) {
             tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
-            return;
+            goto error;
         }
         c->ssl_private_key_method = m;
         c->ssl_private_key_sign_method = signMethod;
