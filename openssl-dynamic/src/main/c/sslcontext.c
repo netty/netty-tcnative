@@ -1099,6 +1099,16 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheMode)(TCN_STDARGS, jlong ct
 
     TCN_CHECK_NULL(c, ctx, 0);
 
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // The mode is an int here
+    if ((jlong)(int) mode != mode) {
+#else
+    if (!TCN_FITS_LONG(mode)) {
+#endif
+        tcn_ThrowIllegalArgumentException(e, "mode out of range");
+        return 0;
+    }
+
     return SSL_CTX_set_session_cache_mode(c->ctx, mode);
 }
 
@@ -1116,6 +1126,16 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheTimeout)(TCN_STDARGS, jlong
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, 0);
+
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // The timeout is an uint32_t here
+    if (timeout < 0 || timeout > (jlong) UINT32_MAX) {
+#else
+    if (timeout < 0 || !TCN_FITS_LONG(timeout)) {
+#endif
+        tcn_ThrowIllegalArgumentException(e, "timeoutSeconds out of range");
+        return 0;
+    }
 
     jlong rv = SSL_CTX_set_timeout(c->ctx, timeout);
     return rv;
@@ -1137,6 +1157,11 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheSize)(TCN_STDARGS, jlong ct
     TCN_CHECK_NULL(c, ctx, 0);
 
     jlong rv = 0;
+
+    if (!TCN_FITS_LONG(size)) {
+        tcn_ThrowIllegalArgumentException(e, "size out of range");
+        return 0;
+    }
 
     // Also allow size of 0 which is unlimited
     if (size >= 0) {
