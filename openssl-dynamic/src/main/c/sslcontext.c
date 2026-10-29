@@ -810,15 +810,17 @@ cleanup:
     return rc;
 }
 
-static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jboolean rv) {
+// If no new password was set (replaced == JNI_FALSE) c->password still holds the password configured before and must
+// be left alone.
+static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jboolean replaced, const jboolean rv) {
+    if (!replaced) {
+        return;
+    }
     if (!rv) {
-        if (c->password != NULL) {
-            free(c->password);
-            c->password = NULL;
-        }
-        // Restore old password
+        // Drop the new password and restore the old one.
+        free(c->password);
         c->password = old_password;
-    } else if (old_password != NULL) {
+    } else {
         free(old_password);
     }
 }
@@ -850,10 +852,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     const char *cert_file = NULL;
     const char *p = NULL;
     char *old_password = NULL;
+    jboolean password_replaced = JNI_FALSE;
     char err[ERR_LEN];
 
     if (J2S(password)) {
         old_password = c->password;
+        password_replaced = JNI_TRUE;
 
         c->password = strdup(cpassword);
         if (c->password == NULL) {
@@ -920,7 +924,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
-    free_and_reset_pass(c, old_password, rv);
+    free_and_reset_pass(c, old_password, password_replaced, rv);
     return rv;
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
@@ -948,10 +952,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(password);
     char *old_password = NULL;
+    jboolean password_replaced = JNI_FALSE;
     char err[ERR_LEN];
 
     if (J2S(password)) {
         old_password = c->password;
+        password_replaced = JNI_TRUE;
 
         c->password = strdup(cpassword);
         if (c->password == NULL) {
@@ -1011,7 +1017,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
-    free_and_reset_pass(c, old_password, rv);
+    free_and_reset_pass(c, old_password, password_replaced, rv);
     return rv;
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
@@ -1413,6 +1419,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, /* void */);
+    TCN_CHECK_NULL(keys, keys, /* void */);
 
     jbyte* b = NULL;
     jbyte* key = NULL;
@@ -2454,9 +2461,11 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod0)(TCN_STDARGS, jlong ct
         jmethodID signMethod = (*e)->GetMethodID(e, method_class, "sign", name);
         if (signMethod == NULL) {
             tcn_ThrowIllegalArgumentException(e, "Unable to retrieve sign method");
-            return;
+            goto error;
         }
 
+        // NETTY_JNI_UTIL_PREPEND does not free the previous value so release it before reusing the variable.
+        netty_jni_util_free_dynamic_name(&name);
         NETTY_JNI_UTIL_PREPEND(staticPackagePrefix, "io/netty/internal/tcnative/ResultCallback;)V", name, error);
         NETTY_JNI_UTIL_PREPEND("(J[BL", name, combinedName, error);
         TCN_REASSIGN(name, combinedName);
@@ -2464,13 +2473,13 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setPrivateKeyMethod0)(TCN_STDARGS, jlong ct
         jmethodID decryptMethod = (*e)->GetMethodID(e, method_class, "decrypt", name);
         if (decryptMethod == NULL) {
             tcn_ThrowIllegalArgumentException(e, "Unable to retrieve decrypt method");
-            return;
+            goto error;
         }
 
         jobject m = (*e)->NewGlobalRef(e, method);
         if (m == NULL) {
             tcn_throwOutOfMemoryError(e, "Unable to allocate memory for global reference");
-            return;
+            goto error;
         }
         c->ssl_private_key_method = m;
         c->ssl_private_key_sign_method = signMethod;
@@ -2788,6 +2797,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+    TCN_CHECK_NULL(sidCtx, sidCtx, JNI_FALSE);
 
     int len = (*e)->GetArrayLength(e, sidCtx);
     unsigned char *buf = NULL;
@@ -3223,7 +3233,11 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
             dynamicMethodsTableSize()) != 0) {
         goto error;
     }
+    // RegisterNatives(...) does not keep a reference to the table, so release it right away.
+    netty_jni_util_free_dynamic_methods_table(dynamicMethods, fixed_method_table_size, dynamicMethodsTableSize());
+    dynamicMethods = NULL;
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLTask", name, error);
 
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslTask_class_weak, name, error);
@@ -3231,42 +3245,51 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     NETTY_JNI_UTIL_GET_FIELD(env, sslTask_class, sslTask_returnValue, "returnValue", "I", error);
     NETTY_JNI_UTIL_GET_FIELD(env, sslTask_class, sslTask_complete, "complete", "Z", error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateCallbackTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, certificateCallbackTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, certificateCallbackTask_class, certificateCallbackTask_class_weak, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateCallback;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[B[[BL", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, certificateCallbackTask_class, certificateCallbackTask_init, "<init>", name, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateVerifierTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, certificateVerifierTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, certificateVerifierTask_class, certificateVerifierTask_class_weak, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateVerifier;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[[BLjava/lang/String;L", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, certificateVerifierTask_class, certificateVerifierTask_init, "<init>", name, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTask_class_weak, error);
     NETTY_JNI_UTIL_GET_FIELD(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTask_resultBytes, "resultBytes", "[B", error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodSignTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodSignTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_class_weak, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(JI[BL", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init, "<init>", name, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodDecryptTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodDecryptTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_class_weak, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[BL", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
@@ -3275,6 +3298,7 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     if (packagePrefix != NULL) {
         staticPackagePrefix = strdup(packagePrefix);
     }
+    netty_jni_util_free_dynamic_name(&name);
     return NETTY_JNI_UTIL_JNI_VERSION;
 error:
     free(name);
