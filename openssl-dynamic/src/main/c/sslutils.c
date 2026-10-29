@@ -472,10 +472,7 @@ int tcn_SSL_CTX_use_certificate_chain(SSL_CTX *ctx, const char *file, bool skipf
 static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
 {
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-    STACK_OF(CRYPTO_BUFFER) *names = sk_CRYPTO_BUFFER_new_null();
-    if (names == NULL) {
-        return -1;
-    }
+    STACK_OF(CRYPTO_BUFFER) *names = NULL;
     CRYPTO_BUFFER *buffer = NULL;
     uint8_t *outp = NULL;
     int len;
@@ -494,6 +491,14 @@ static int SSL_CTX_setup_certs(SSL_CTX *ctx, BIO *bio, bool skipfirst, bool ca)
     }
 
     if (ca) {
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+        // Only allocate the stack when we actually use it. It is handed over to the SSL_CTX at the end, so every
+        // early return before that would otherwise need to free it.
+        names = sk_CRYPTO_BUFFER_new_null();
+        if (names == NULL) {
+            return -1;
+        }
+#endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
         while ((x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL)) != NULL) {
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
             len = i2d_X509_NAME(X509_get_subject_name(x509), &outp);
