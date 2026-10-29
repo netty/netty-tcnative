@@ -69,6 +69,14 @@
 #  include <sys/auxv.h>
 #endif
 
+/*
+ * With -D_FILE_OFFSET_BITS=64 glibc renames fopen to fopen64, so the fopen64 fallback below would
+ * call itself on musl. The build does not pass that flag; fail loudly if that ever changes.
+ */
+#if defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS == 64
+#  error "musl_compat.c must not be compiled with _FILE_OFFSET_BITS=64: fopen64 would call itself"
+#endif
+
 #define TCN_MUSL_COMPAT __attribute__((weak, visibility("default")))
 
 /*
@@ -135,16 +143,23 @@ TCN_MUSL_COMPAT FILE *fopen64(const char *path, const char *mode) {
 
 /* glibc-internal math aliases emitted via APR's configure-era headers. */
 TCN_MUSL_COMPAT int __isinf(double value) {
-    return isinf(value);
+    /* Not isinf(): old glibc (e.g. 2.12) defines it as a macro that calls __isinf, i.e. this
+     * function, which GCC then compiles to an endless self-jump. Not (isinf)(): musl has no
+     * isinf function symbol. __builtin_isinf_sign keeps glibc's result (-1 for -inf, 1 for +inf). */
+    return __builtin_isinf_sign(value);
 }
 
 TCN_MUSL_COMPAT int __isnan(double value) {
-    return isnan(value);
+    /* See __isinf: isnan() is a macro calling __isnan on old glibc. */
+    return __builtin_isnan(value);
 }
 
 /* glibc-internal alias APR links against directly. */
 TCN_MUSL_COMPAT char *__strdup(const char *str) {
-    return strdup(str);
+    /* The parentheses suppress old glibc's (< 2.26, e.g. 2.12) `#define strdup(s) __strdup (s)`,
+     * which would otherwise make this function call itself (compiled to an endless self-jump,
+     * hanging JNI_OnLoad on musl when the library is shaded). */
+    return (strdup)(str);
 }
 
 #endif /* __linux__ */
