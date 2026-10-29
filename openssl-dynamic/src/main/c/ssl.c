@@ -1498,6 +1498,11 @@ TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
+    if (seconds < 0 || !TCN_FITS_LONG(seconds)) {
+        tcn_ThrowIllegalArgumentException(e, "seconds out of range");
+        return 0;
+    }
+
     session = SSL_get_session(ssl_);
     if (session == NULL) {
         // BoringSSL does not protect against a NULL session. OpenSSL

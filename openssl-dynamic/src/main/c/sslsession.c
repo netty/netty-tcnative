@@ -44,6 +44,11 @@ TCN_IMPLEMENT_CALL(jlong, SSLSession, setTimeout)(TCN_STDARGS, jlong session, jl
 
     TCN_CHECK_NULL(session_, session, 0);
 
+    if (seconds < 0 || !TCN_FITS_LONG(seconds)) {
+        tcn_ThrowIllegalArgumentException(e, "seconds out of range");
+        return 0;
+    }
+
     return SSL_SESSION_set_timeout(session_, seconds);
 }
 
