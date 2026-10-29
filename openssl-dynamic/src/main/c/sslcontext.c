@@ -3225,7 +3225,11 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
             dynamicMethodsTableSize()) != 0) {
         goto error;
     }
+    // RegisterNatives(...) does not keep a reference to the table, so release it right away.
+    netty_jni_util_free_dynamic_methods_table(dynamicMethods, fixed_method_table_size, dynamicMethodsTableSize());
+    dynamicMethods = NULL;
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLTask", name, error);
 
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslTask_class_weak, name, error);
@@ -3233,42 +3237,51 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     NETTY_JNI_UTIL_GET_FIELD(env, sslTask_class, sslTask_returnValue, "returnValue", "I", error);
     NETTY_JNI_UTIL_GET_FIELD(env, sslTask_class, sslTask_complete, "complete", "Z", error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateCallbackTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, certificateCallbackTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, certificateCallbackTask_class, certificateCallbackTask_class_weak, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateCallback;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[B[[BL", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, certificateCallbackTask_class, certificateCallbackTask_init, "<init>", name, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateVerifierTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, certificateVerifierTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, certificateVerifierTask_class, certificateVerifierTask_class_weak, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/CertificateVerifier;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[[BLjava/lang/String;L", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, certificateVerifierTask_class, certificateVerifierTask_init, "<init>", name, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTask_class_weak, error);
     NETTY_JNI_UTIL_GET_FIELD(env, sslPrivateKeyMethodTask_class, sslPrivateKeyMethodTask_resultBytes, "resultBytes", "[B", error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodSignTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodSignTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_class_weak, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(JI[BL", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
     NETTY_JNI_UTIL_GET_METHOD(env, sslPrivateKeyMethodSignTask_class, sslPrivateKeyMethodSignTask_init, "<init>", name, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/SSLPrivateKeyMethodDecryptTask", name, error);
     NETTY_JNI_UTIL_LOAD_CLASS_WEAK(env, sslPrivateKeyMethodDecryptTask_class_weak, name, error);
     NETTY_JNI_UTIL_NEW_LOCAL_FROM_WEAK(env, sslPrivateKeyMethodDecryptTask_class, sslPrivateKeyMethodDecryptTask_class_weak, error);
 
+    netty_jni_util_free_dynamic_name(&name);
     NETTY_JNI_UTIL_PREPEND(packagePrefix, "io/netty/internal/tcnative/AsyncSSLPrivateKeyMethod;)V", name, error);
     NETTY_JNI_UTIL_PREPEND("(J[BL", name, combinedName, error);
     TCN_REASSIGN(name, combinedName);
@@ -3277,6 +3290,7 @@ jint netty_internal_tcnative_SSLContext_JNI_OnLoad(JNIEnv* env, const char* pack
     if (packagePrefix != NULL) {
         staticPackagePrefix = strdup(packagePrefix);
     }
+    netty_jni_util_free_dynamic_name(&name);
     return NETTY_JNI_UTIL_JNI_VERSION;
 error:
     free(name);
