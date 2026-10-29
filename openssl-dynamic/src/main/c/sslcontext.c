@@ -810,15 +810,17 @@ cleanup:
     return rc;
 }
 
-static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jboolean rv) {
+// If no new password was set (replaced == JNI_FALSE) c->password still holds the password configured before and must
+// be left alone.
+static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jboolean replaced, const jboolean rv) {
+    if (!replaced) {
+        return;
+    }
     if (!rv) {
-        if (c->password != NULL) {
-            free(c->password);
-            c->password = NULL;
-        }
-        // Restore old password
+        // Drop the new password and restore the old one.
+        free(c->password);
         c->password = old_password;
-    } else if (old_password != NULL) {
+    } else {
         free(old_password);
     }
 }
@@ -850,10 +852,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     const char *cert_file = NULL;
     const char *p = NULL;
     char *old_password = NULL;
+    jboolean password_replaced = JNI_FALSE;
     char err[ERR_LEN];
 
     if (J2S(password)) {
         old_password = c->password;
+        password_replaced = JNI_TRUE;
 
         c->password = strdup(cpassword);
         if (c->password == NULL) {
@@ -920,7 +924,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
-    free_and_reset_pass(c, old_password, rv);
+    free_and_reset_pass(c, old_password, password_replaced, rv);
     return rv;
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
@@ -948,10 +952,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(password);
     char *old_password = NULL;
+    jboolean password_replaced = JNI_FALSE;
     char err[ERR_LEN];
 
     if (J2S(password)) {
         old_password = c->password;
+        password_replaced = JNI_TRUE;
 
         c->password = strdup(cpassword);
         if (c->password == NULL) {
@@ -1011,7 +1017,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
-    free_and_reset_pass(c, old_password, rv);
+    free_and_reset_pass(c, old_password, password_replaced, rv);
     return rv;
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
