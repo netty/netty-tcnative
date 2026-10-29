@@ -16,9 +16,13 @@ ARG openssl_sha256
 ARG java_version
 ENV CMAKE_VERSION_BASE 3.26
 ENV CMAKE_VERSION=$CMAKE_VERSION_BASE.4
+ENV CMAKE_SHA256 ba1e0dcc710e2f92be6263f9617510b3660fa9dc409ad2fb8190299563f952a0
 ENV NINJA_VERSION 1.7.2
+ENV NINJA_SHA256 38fa8cfb9c1632a5cdf7a32fe1a7c5aa89e96c1d492c28624f4cc018e68458b9
 ENV GO_VERSION 1.9.3
+ENV GO_SHA256 a4da5f4c07dfda8194c4621611aeb7ceaab98af0b38bfb29e1be2ebb04c3556c
 ENV GCC_VERSION 4.9.4
+ENV GCC_SHA256 084405ee55f6e26bd7f0974a6d75743cd19d76171634c00c052bc5fdee52bf5f
 ENV JAVA_VERSION $java_version
 
 RUN apt-get -y update && apt-get -y install --no-install-recommends \
@@ -31,16 +35,20 @@ RUN apt-get -y update && apt-get -y install --no-install-recommends \
 WORKDIR /root/download
 
 RUN curl -fsSL -o cmake-$CMAKE_VERSION-linux-x86_64.tar.gz \
- https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz
+ https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && \
+ echo "$CMAKE_SHA256  cmake-$CMAKE_VERSION-linux-x86_64.tar.gz" | sha256sum -c -
 
 RUN curl -fsSL -o ninja-linux.zip \
- https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip
+ https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip && \
+ echo "$NINJA_SHA256  ninja-linux.zip" | sha256sum -c -
 
 RUN curl -fsSL -o go$GO_VERSION.linux-amd64.tar.gz \
- https://dl.google.com/go/go$GO_VERSION.linux-amd64.tar.gz
+ https://dl.google.com/go/go$GO_VERSION.linux-amd64.tar.gz && \
+ echo "$GO_SHA256  go$GO_VERSION.linux-amd64.tar.gz" | sha256sum -c -
 
 RUN curl -fsSL -o gcc-$GCC_VERSION.tar.gz \
- https://github.com/netty/netty-tcnative/releases/download/gcc-precompile/gcc-$GCC_VERSION.tar.gz
+ https://github.com/netty/netty-tcnative/releases/download/gcc-precompile/gcc-$GCC_VERSION.tar.gz && \
+ echo "$GCC_SHA256  gcc-$GCC_VERSION.tar.gz" | sha256sum -c -
 
 RUN curl -fsSL -o openssl-$openssl_version.tar.gz \
  https://github.com/openssl/openssl/releases/download/openssl-$openssl_version/openssl-$openssl_version.tar.gz && \
