@@ -1546,7 +1546,9 @@ TCN_IMPLEMENT_CALL(void, SSL, setOptions)(TCN_STDARGS, jlong ssl,
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    SSL_set_options(ssl_, opt);
+    // The Java API uses an int, but the options are a 64 bit value in OpenSSL 3.x. Convert via uint32_t so a set
+    // sign bit is not sign-extended into (and so changes) the upper 32 bits.
+    SSL_set_options(ssl_, (uint32_t) opt);
 }
 
 TCN_IMPLEMENT_CALL(void, SSL, clearOptions)(TCN_STDARGS, jlong ssl,
@@ -1556,7 +1558,9 @@ TCN_IMPLEMENT_CALL(void, SSL, clearOptions)(TCN_STDARGS, jlong ssl,
 
     TCN_CHECK_NULL(ssl_, ssl, /* void */);
 
-    SSL_clear_options(ssl_, opt);
+    // The Java API uses an int, but the options are a 64 bit value in OpenSSL 3.x. Convert via uint32_t so a set
+    // sign bit is not sign-extended into (and so changes) the upper 32 bits.
+    SSL_clear_options(ssl_, (uint32_t) opt);
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
