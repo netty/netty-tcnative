@@ -1413,6 +1413,7 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, /* void */);
+    TCN_CHECK_NULL(keys, keys, /* void */);
 
     jbyte* b = NULL;
     jbyte* key = NULL;
@@ -2790,6 +2791,7 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setSessionIdContext)(TCN_STDARGS, jlong
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, JNI_FALSE);
+    TCN_CHECK_NULL(sidCtx, sidCtx, JNI_FALSE);
 
     int len = (*e)->GetArrayLength(e, sidCtx);
     unsigned char *buf = NULL;
