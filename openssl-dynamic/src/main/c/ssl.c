@@ -452,8 +452,11 @@ static BIO_METHOD bio_java_bytebuffer_methods = {
 #else
 static BIO_METHOD* bio_java_bytebuffer_methods = NULL;
 
-static void init_bio_methods(void) {
+static int init_bio_methods(void) {
     bio_java_bytebuffer_methods = BIO_meth_new(BIO_TYPE_MEM, "Java ByteBuffer");
+    if (bio_java_bytebuffer_methods == NULL) {
+        return -1;
+    }
     BIO_meth_set_write(bio_java_bytebuffer_methods, &bio_java_bytebuffer_write);
     BIO_meth_set_read(bio_java_bytebuffer_methods, &bio_java_bytebuffer_read);
     BIO_meth_set_puts(bio_java_bytebuffer_methods, &bio_java_bytebuffer_puts);
@@ -461,6 +464,7 @@ static void init_bio_methods(void) {
     BIO_meth_set_ctrl(bio_java_bytebuffer_methods, &bio_java_bytebuffer_ctrl);
     BIO_meth_set_create(bio_java_bytebuffer_methods, &bio_java_bytebuffer_create);
     BIO_meth_set_destroy(bio_java_bytebuffer_methods, &bio_java_bytebuffer_destroy);
+    return 0;
 }
 
 static void free_bio_methods(void) {
@@ -855,7 +859,10 @@ TCN_IMPLEMENT_CALL(jint, SSL, initialize)(TCN_STDARGS, jstring engine)
     tcn_init_app_state_idx();
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
-    init_bio_methods();
+    if (init_bio_methods() != 0) {
+        err = APR_ENOMEM;
+        goto error;
+    }
 #endif
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
@@ -2217,6 +2224,10 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     // Only allocate the stack after the argument check, otherwise it would be leaked when we return early.
     chain = sk_CRYPTO_BUFFER_new_null();
+    if (chain == NULL) {
+        tcn_throwOutOfMemoryError(e, "Unable to allocate memory for certificate chain");
+        goto cleanup;
+    }
     while (PEM_read_bio(cert_bio, &name, &header, &data, &data_len)) {
 
         OPENSSL_free(name);
@@ -2233,6 +2244,10 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
             CRYPTO_BUFFER_free(buffer); // safe with NULL; frees buffer if push failed
 #else
     chain = sk_X509_new_null();
+    if (chain == NULL) {
+        tcn_throwOutOfMemoryError(e, "Unable to allocate memory for certificate chain");
+        goto cleanup;
+    }
     while ((cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL)) != NULL) {
         if (sk_X509_push(chain, cert) <= 0) {
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
