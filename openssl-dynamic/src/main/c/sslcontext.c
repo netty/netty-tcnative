@@ -1026,6 +1026,43 @@ cleanup:
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
+// Returns JNI_TRUE if the given buffer is a well-formed list of length-prefixed protocol names as used by ALPN / NPN.
+// select_next_proto(...) relies on this to not read out of bounds.
+static jboolean is_valid_proto_list(const unsigned char* data, unsigned int len) {
+    unsigned int i = 0;
+    while (i < len) {
+        i += 1 + data[i];
+    }
+    return i == len ? JNI_TRUE : JNI_FALSE;
+}
+
+// Copies the given byte[] into a newly allocated native buffer after validating it.
+// Returns 0 on success and -1 on failure, in which case an exception is pending and nothing was allocated.
+static int copy_proto_list(JNIEnv* e, jbyteArray array, unsigned char** out, unsigned int* out_len) {
+    int len = (*e)->GetArrayLength(e, array);
+    unsigned char* data = NULL;
+
+    if (len > 0) {
+        if ((data = OPENSSL_malloc(len)) == NULL) {
+            tcn_throwOutOfMemoryError(e, "OPENSSL_malloc failed");
+            return -1;
+        }
+        (*e)->GetByteArrayRegion(e, array, 0, len, (jbyte*) data);
+        if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
+            OPENSSL_free(data);
+            return -1;
+        }
+        if (!is_valid_proto_list(data, len)) {
+            OPENSSL_free(data);
+            tcn_ThrowIllegalArgumentException(e, "Invalid protocol list");
+            return -1;
+        }
+    }
+    *out = data;
+    *out_len = len;
+    return 0;
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos0)(TCN_STDARGS, jlong ctx, jbyteArray next_protos,
         jint selectorFailureBehavior)
 {
@@ -1034,16 +1071,18 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos0)(TCN_STDARGS, jlong ctx, jbyt
     TCN_CHECK_NULL(c, ctx, /* void */);
 
     if (next_protos != NULL) {
-        OPENSSL_free(c->next_proto_data);
+        unsigned char* next_proto_data = NULL;
+        unsigned char* old_next_proto_data = NULL;
+        unsigned int next_proto_len = 0;
 
-        int next_protos_len = (*e)->GetArrayLength(e, next_protos);
-        c->next_proto_data = OPENSSL_malloc(next_protos_len);
-        if (c->next_proto_data == NULL) {
-            tcn_throwOutOfMemoryError(e, "OPENSSL_malloc failed");
+        // Allocate and validate the new data first so we never leave the context with a freed buffer if this fails.
+        if (copy_proto_list(e, next_protos, &next_proto_data, &next_proto_len) != 0) {
             return;
         }
-        c->next_proto_len = next_protos_len;
-        (*e)->GetByteArrayRegion(e, next_protos, 0, next_protos_len, (jbyte*) c->next_proto_data);
+        old_next_proto_data = c->next_proto_data;
+        c->next_proto_data = next_proto_data;
+        c->next_proto_len = next_proto_len;
+        OPENSSL_free(old_next_proto_data);
 
         // depending on if it's client mode or not we need to call different functions.
         if (c->mode == SSL_MODE_CLIENT)  {
@@ -1071,16 +1110,18 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos0)(TCN_STDARGS, jlong ctx, jby
         TCN_CHECK_NULL(c, ctx, /* void */);
 
         if (alpn_protos != NULL) {
-            OPENSSL_free(c->alpn_proto_data);
+            unsigned char* alpn_proto_data = NULL;
+            unsigned char* old_alpn_proto_data = NULL;
+            unsigned int alpn_proto_len = 0;
 
-            int alpn_protos_len = (*e)->GetArrayLength(e, alpn_protos);
-            c->alpn_proto_data = OPENSSL_malloc(alpn_protos_len);
-            if (c->alpn_proto_data == NULL) {
-                tcn_throwOutOfMemoryError(e, "OPENSSL_malloc failed");
+            // Allocate and validate the new data first so we never leave the context with a freed buffer if this fails.
+            if (copy_proto_list(e, alpn_protos, &alpn_proto_data, &alpn_proto_len) != 0) {
                 return;
             }
-            c->alpn_proto_len = alpn_protos_len;
-            (*e)->GetByteArrayRegion(e, alpn_protos, 0, alpn_protos_len, (jbyte*) c->alpn_proto_data);
+            old_alpn_proto_data = c->alpn_proto_data;
+            c->alpn_proto_data = alpn_proto_data;
+            c->alpn_proto_len = alpn_proto_len;
+            OPENSSL_free(old_alpn_proto_data);
 
 
             // depending on if it's client mode or not we need to call different functions.
