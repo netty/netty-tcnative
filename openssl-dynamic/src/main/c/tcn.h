@@ -66,6 +66,8 @@
 #endif
 #define P2J(P)          ((jlong)LLT(P))
 #define J2P(P, T)       ((T)LLT((jlong)P))
+/* True if the jlong value can be represented as a long without truncation (long is only 32 bit on Windows). */
+#define TCN_FITS_LONG(V) ((jlong)(long)(V) == (jlong)(V))
 /* On stack buffer size */
 #define TCN_BUFFER_SZ   8192
 #define TCN_STDARGS     JNIEnv *e, jobject o
