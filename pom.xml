@@ -91,8 +91,9 @@
     <nativeLibOnlyDir>${project.build.directory}/native-lib-only</nativeLibOnlyDir>
     <nativeJarWorkdir>${project.build.directory}/native-jar-work</nativeJarWorkdir>
     <nativeLibOsParts>${os.detected.name}_${os.detected.arch}</nativeLibOsParts>
-    <aprVersion>1.7.5</aprVersion>
-    <aprSha256>3375fa365d67bcf945e52b52cba07abea57ef530f40b281ffbe977a9251361db</aprSha256>
+    <aprVersion>1.7.6</aprVersion>
+    <aprSha256>6a10e7f7430510600af25fabf466e1df61aaae910bf1dc5d10c44a4433ccc81d</aprSha256>
+    <aprWinSha256>ded6d19a5f76e7d133d25c1c130bb34986701590245ecccceca0f2a682015e13</aprWinSha256>
     <boringsslBranch>main</boringsslBranch>
     <!--
       See https://boringssl.googlesource.com/boringssl/+/refs/heads/main for the latest commit
@@ -588,6 +589,7 @@
 
                         <property name="aprArchiveFile" value="apr-${aprVersion}-win32-src.zip" />
                         <get src="https://archive.apache.org/dist/apr/${aprArchiveFile}" dest="${project.build.directory}/${aprArchiveFile}" verbose="on" />
+                        <checksum file="${project.build.directory}/${aprArchiveFile}" algorithm="SHA-256" property="${aprWinSha256}" verifyProperty="isEqual" />
                         <unzip src="${project.build.directory}/${aprArchiveFile}" dest="${project.build.directory}" />
                         <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
                           <equals arg1="${archBits}" arg2="32" />

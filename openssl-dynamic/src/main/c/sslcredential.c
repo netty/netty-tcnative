@@ -175,12 +175,20 @@ TCN_IMPLEMENT_CALL(void, SSLCredential, setSigningAlgorithmPrefs)(TCN_STDARGS, j
         return;
     }
 
+    // Signature algorithm ids are 16 bit values, so reject anything else instead of silently truncating it into
+    // a different (but valid looking) algorithm.
     for (jsize i = 0; i < len; i++) {
+        if (prefs_data[i] < 0 || prefs_data[i] > 0xFFFF) {
+            (*e)->ReleaseIntArrayElements(e, prefs, prefs_data, JNI_ABORT);
+            OPENSSL_free(native_prefs);
+            tcn_ThrowIllegalArgumentException(e, "signing algorithm id out of range (must be 0..65535)");
+            return;
+        }
         native_prefs[i] = (uint16_t)prefs_data[i];
     }
 
     int result = SSL_CREDENTIAL_set1_signing_algorithm_prefs(c, native_prefs, len);
-    
+
     // Clean up
     (*e)->ReleaseIntArrayElements(e, prefs, prefs_data, JNI_ABORT);
     OPENSSL_free(native_prefs);

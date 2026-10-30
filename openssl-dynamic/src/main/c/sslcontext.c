@@ -531,7 +531,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setOptions)(TCN_STDARGS, jlong ctx,
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    SSL_CTX_set_options(c->ctx, opt);
+    // The Java API uses an int, but the options are a 64 bit value in OpenSSL 3.x. Convert via uint32_t so a set
+    // sign bit is not sign-extended into (and so changes) the upper 32 bits.
+    SSL_CTX_set_options(c->ctx, (uint32_t) opt);
 }
 
 TCN_IMPLEMENT_CALL(jint, SSLContext, getOptions)(TCN_STDARGS, jlong ctx)
@@ -550,7 +552,9 @@ TCN_IMPLEMENT_CALL(void, SSLContext, clearOptions)(TCN_STDARGS, jlong ctx,
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
-    SSL_CTX_clear_options(c->ctx, opt);
+    // The Java API uses an int, but the options are a 64 bit value in OpenSSL 3.x. Convert via uint32_t so a set
+    // sign bit is not sign-extended into (and so changes) the upper 32 bits.
+    SSL_CTX_clear_options(c->ctx, (uint32_t) opt);
 }
 
 TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCipherSuite)(TCN_STDARGS, jlong ctx,
@@ -813,15 +817,17 @@ cleanup:
     return rc;
 }
 
-static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jboolean rv) {
+// If no new password was set (replaced == JNI_FALSE) c->password still holds the password configured before and must
+// be left alone.
+static void free_and_reset_pass(tcn_ssl_ctxt_t *c, char* old_password, const jboolean replaced, const jboolean rv) {
+    if (!replaced) {
+        return;
+    }
     if (!rv) {
-        if (c->password != NULL) {
-            free(c->password);
-            c->password = NULL;
-        }
-        // Restore old password
+        // Drop the new password and restore the old one.
+        free(c->password);
         c->password = old_password;
-    } else if (old_password != NULL) {
+    } else {
         free(old_password);
     }
 }
@@ -853,10 +859,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificate)(TCN_STDARGS, jlong ctx,
     const char *cert_file = NULL;
     const char *p = NULL;
     char *old_password = NULL;
+    jboolean password_replaced = JNI_FALSE;
     char err[ERR_LEN];
 
     if (J2S(password)) {
         old_password = c->password;
+        password_replaced = JNI_TRUE;
 
         c->password = strdup(cpassword);
         if (c->password == NULL) {
@@ -923,7 +931,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
-    free_and_reset_pass(c, old_password, rv);
+    free_and_reset_pass(c, old_password, password_replaced, rv);
     return rv;
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
@@ -951,10 +959,12 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setCertificateBio)(TCN_STDARGS, jlong c
     jboolean rv = JNI_TRUE;
     TCN_ALLOC_CSTRING(password);
     char *old_password = NULL;
+    jboolean password_replaced = JNI_FALSE;
     char err[ERR_LEN];
 
     if (J2S(password)) {
         old_password = c->password;
+        password_replaced = JNI_TRUE;
 
         c->password = strdup(cpassword);
         if (c->password == NULL) {
@@ -1014,7 +1024,7 @@ cleanup:
     TCN_FREE_CSTRING(password);
     EVP_PKEY_free(pkey); // this function is safe to call with NULL
     X509_free(xcert); // this function is safe to call with NULL
-    free_and_reset_pass(c, old_password, rv);
+    free_and_reset_pass(c, old_password, password_replaced, rv);
     return rv;
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
@@ -1092,6 +1102,16 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheMode)(TCN_STDARGS, jlong ct
 
     TCN_CHECK_NULL(c, ctx, 0);
 
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // The mode is an int here
+    if ((jlong)(int) mode != mode) {
+#else
+    if (!TCN_FITS_LONG(mode)) {
+#endif
+        tcn_ThrowIllegalArgumentException(e, "mode out of range");
+        return 0;
+    }
+
     return SSL_CTX_set_session_cache_mode(c->ctx, mode);
 }
 
@@ -1109,6 +1129,16 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheTimeout)(TCN_STDARGS, jlong
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, 0);
+
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // The timeout is an uint32_t here
+    if (timeout < 0 || timeout > (jlong) UINT32_MAX) {
+#else
+    if (timeout < 0 || !TCN_FITS_LONG(timeout)) {
+#endif
+        tcn_ThrowIllegalArgumentException(e, "timeoutSeconds out of range");
+        return 0;
+    }
 
     jlong rv = SSL_CTX_set_timeout(c->ctx, timeout);
     return rv;
@@ -1130,6 +1160,11 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, setSessionCacheSize)(TCN_STDARGS, jlong ct
     TCN_CHECK_NULL(c, ctx, 0);
 
     jlong rv = 0;
+
+    if (!TCN_FITS_LONG(size)) {
+        tcn_ThrowIllegalArgumentException(e, "size out of range");
+        return 0;
+    }
 
     // Also allow size of 0 which is unlimited
     if (size >= 0) {
