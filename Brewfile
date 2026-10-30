@@ -1,7 +1,7 @@
 brew 'autoconf'
 brew 'automake'
 brew 'libtool'
-brew 'openssl'
+brew 'openssl@3.6'
 brew 'perl'
 brew 'ninja'
 brew 'golang'
