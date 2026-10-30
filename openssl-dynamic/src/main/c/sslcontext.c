@@ -1556,6 +1556,14 @@ static STACK_OF(X509)* X509_STORE_CTX_get0_untrusted(X509_STORE_CTX *ctx) {
 }
 #endif
 
+#ifdef X509_V_ERR_UNSPECIFIED
+// Returns non-zero if the verifier failed without a more specific reason. X509_V_ERR_CERT_UNTRUSTED is returned by
+// netty when the TrustManager rejected the certificate and X509_V_ERR_UNSPECIFIED for any other failure.
+static int tcn_is_unknown_verify_failure(jint result) {
+    return result == X509_V_ERR_UNSPECIFIED || result == X509_V_ERR_CERT_UNTRUSTED;
+}
+#endif // X509_V_ERR_UNSPECIFIED
+
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 static jbyteArray get_certs(JNIEnv *e, SSL* ssl, const STACK_OF(CRYPTO_BUFFER)* chain) {
     CRYPTO_BUFFER *cert = NULL;
@@ -1697,7 +1705,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 #ifdef X509_V_ERR_UNSPECIFIED
     // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
     // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-    if (result == X509_V_ERR_UNSPECIFIED && len < sk_X509_num(sk)) {
+    if (tcn_is_unknown_verify_failure(result) && len < sk_X509_num(sk)) {
         result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
     }
 #else
@@ -1763,7 +1771,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 
         // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
         // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-        if (result == X509_V_ERR_UNSPECIFIED && state->task_array_len < state->task_chain_num) {
+        if (tcn_is_unknown_verify_failure(result) && state->task_array_len < state->task_chain_num) {
             result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
         }
         goto complete;
@@ -1820,7 +1828,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 
         // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
         // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-        if (result == X509_V_ERR_UNSPECIFIED && len < sk_CRYPTO_BUFFER_num(chain)) {
+        if (tcn_is_unknown_verify_failure(result) && len < sk_CRYPTO_BUFFER_num(chain)) {
             result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
         }
 
