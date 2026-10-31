@@ -209,15 +209,18 @@ TCN_IMPLEMENT_CALL(jlong, SSLContext, make)(TCN_STDARGS, jint protocol, jint mod
     // See https://github.com/google/boringssl/blob/chromium-stable/PORTING.md#crypto_buffer
     ctx = SSL_CTX_new(TLS_with_buffers_method());
 
-    // We need to set the minimum TLS version to TLS1 to be able to enable it explicitly later. By default
-    // TLS1_2_VERSION is the minimum with BoringSSL these days:
-    // See https://github.com/google/boringssl/commit/e95b0cad901abd49755d2a2a2f1f6c3e87d12b94
-    SSL_CTX_set_min_proto_version(ctx, TLS1_VERSION);
+    // ctx may be NULL on allocation failure, this is handled by the check after the protocol selection.
+    if (ctx != NULL) {
+        // We need to set the minimum TLS version to TLS1 to be able to enable it explicitly later. By default
+        // TLS1_2_VERSION is the minimum with BoringSSL these days:
+        // See https://github.com/google/boringssl/commit/e95b0cad901abd49755d2a2a2f1f6c3e87d12b94
+        SSL_CTX_set_min_proto_version(ctx, TLS1_VERSION);
 
-    // Needed in BoringSSL to be able to use TLSv1.3
-    //
-    // See http://hg.nginx.org/nginx/rev/7ad0f4ace359
-    SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
+        // Needed in BoringSSL to be able to use TLSv1.3
+        //
+        // See http://hg.nginx.org/nginx/rev/7ad0f4ace359
+        SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
+    }
 
 #elif OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
     // TODO this is very hacky as io.netty.handler.ssl.OpenSsl#doesSupportProtocol also uses this method to test for supported protocols. Furthermore
@@ -1556,6 +1559,14 @@ static STACK_OF(X509)* X509_STORE_CTX_get0_untrusted(X509_STORE_CTX *ctx) {
 }
 #endif
 
+#ifdef X509_V_ERR_UNSPECIFIED
+// Returns non-zero if the verifier failed without a more specific reason. X509_V_ERR_CERT_UNTRUSTED is returned by
+// netty when the TrustManager rejected the certificate and X509_V_ERR_UNSPECIFIED for any other failure.
+static int tcn_is_unknown_verify_failure(jint result) {
+    return result == X509_V_ERR_UNSPECIFIED || result == X509_V_ERR_CERT_UNTRUSTED;
+}
+#endif // X509_V_ERR_UNSPECIFIED
+
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 static jbyteArray get_certs(JNIEnv *e, SSL* ssl, const STACK_OF(CRYPTO_BUFFER)* chain) {
     CRYPTO_BUFFER *cert = NULL;
@@ -1697,7 +1708,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 #ifdef X509_V_ERR_UNSPECIFIED
     // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
     // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-    if (result == X509_V_ERR_UNSPECIFIED && len < sk_X509_num(sk)) {
+    if (tcn_is_unknown_verify_failure(result) && len < sk_X509_num(sk)) {
         result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
     }
 #else
@@ -1763,7 +1774,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 
         // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
         // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-        if (result == X509_V_ERR_UNSPECIFIED && state->task_array_len < state->task_chain_num) {
+        if (tcn_is_unknown_verify_failure(result) && state->task_array_len < state->task_chain_num) {
             result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
         }
         goto complete;
@@ -1820,7 +1831,7 @@ enum ssl_verify_result_t tcn_SSL_cert_custom_verify(SSL* ssl, uint8_t *out_alert
 
         // If we failed to verify for an unknown reason (currently this happens if we can't find a common root) then we should
         // fail with the same status as recommended in the OpenSSL docs https://www.openssl.org/docs/man1.0.2/ssl/SSL_set_verify.html
-        if (result == X509_V_ERR_UNSPECIFIED && len < sk_CRYPTO_BUFFER_num(chain)) {
+        if (tcn_is_unknown_verify_failure(result) && len < sk_CRYPTO_BUFFER_num(chain)) {
             result = X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
         }
 
@@ -1882,6 +1893,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertVerifyCallback)(TCN_STDARGS, jlong c
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     } else {
         jclass verifier_class = (*e)->GetObjectClass(e, verifier);
+        if (verifier_class == NULL) {
+            tcn_Throw(e, "Unable to retrieve verifier class");
+            return;
+        }
         jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)I");
 
         if (method == NULL) {
@@ -2081,6 +2096,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setCertRequestedCallback)(TCN_STDARGS, jlon
         SSL_CTX_set_client_cert_cb(c->ctx, NULL);
     } else {
         jclass callback_class = (*e)->GetObjectClass(e, callback);
+        if (callback_class == NULL) {
+            tcn_Throw(e, "Unable to retrieve callback class");
+            return;
+        }
         jmethodID method = (*e)->GetMethodID(e, callback_class, "requested", "(JJJ[B[[B)V");
 
         if (method == NULL) {
@@ -2696,6 +2715,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSniHostnameMatcher)(TCN_STDARGS, jlong c
         SSL_CTX_set_tlsext_servername_arg(c->ctx, NULL);
     } else {
         jclass matcher_class = (*e)->GetObjectClass(e, matcher);
+        if (matcher_class == NULL) {
+            tcn_Throw(e, "Unable to retrieve matcher class");
+            return;
+        }
         jmethodID method = (*e)->GetMethodID(e, matcher_class, "match", "(JLjava/lang/String;)Z");
         if (method == NULL) {
             tcn_ThrowIllegalArgumentException(e, "Unable to retrieve match method");
@@ -2793,6 +2816,10 @@ TCN_IMPLEMENT_CALL(jboolean, SSLContext, setKeyLogCallback)(TCN_STDARGS, jlong c
         SSL_CTX_set_keylog_callback(c->ctx, NULL);
     } else {
         jclass callback_class = (*e)->GetObjectClass(e, callback);
+        if (callback_class == NULL) {
+            tcn_Throw(e, "Unable to retrieve callback class");
+            return JNI_FALSE;
+        }
         jmethodID method = (*e)->GetMethodID(e, callback_class, "handle", "(J[B)V");
         if (method == NULL) {
             tcn_ThrowIllegalArgumentException(e, "Unable to retrieve handle method");
