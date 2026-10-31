@@ -106,6 +106,7 @@
     <libresslSha256>ff88bffe354818b3ccf545e3cafe454c5031c7a77217074f533271d63c37f08d</libresslSha256>
     <opensslMinorVersion>3.6</opensslMinorVersion>
     <opensslPatchVersion>1</opensslPatchVersion>
+    <!-- Homebrew openssl@${openssl.lib.version} is used for the macOS builds. Keep in sync with the openssl entry in the Brewfile. -->
     <openssl.lib.version>3.6</openssl.lib.version>
     <opensslVersion>${opensslMinorVersion}.${opensslPatchVersion}</opensslVersion>
     <opensslSha256>b1bfedcd5b289ff22aee87c9d600f515767ebf45f77168cb6d64f231f518a82e</opensslSha256>
