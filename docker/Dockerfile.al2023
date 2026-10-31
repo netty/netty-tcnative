@@ -2,8 +2,11 @@ FROM --platform=linux/amd64 amazonlinux:2023
 
 ARG java_version=8.0.452-amzn
 ARG aws_lc_version=v1.52.0
+# Commit the tag above must resolve to. Tags can be moved, commits cannot.
+ARG aws_lc_commit=40ac425f8eab7233079d667dacaf63db802d1eb6
 ENV JAVA_VERSION $java_version
 ENV AWS_LC_VERSION $aws_lc_version
+ENV AWS_LC_COMMIT $aws_lc_commit
 
 # install dependencies
 RUN dnf install -y \
@@ -45,6 +48,7 @@ RUN mkdir "$HOME/sources" && \
     git clone https://github.com/aws/aws-lc.git "$HOME/sources/aws-lc" && \
     cd "$HOME/sources/aws-lc" && \
     git checkout $AWS_LC_VERSION && \
+    test "$(git rev-parse HEAD)" = "$AWS_LC_COMMIT" && \
     cmake -B build -S . -DCMAKE_INSTALL_PREFIX=/opt/aws-lc -DBUILD_SHARED_LIBS=1 -DBUILD_TESTING=0 && \
     cmake --build build -- -j && \
     cmake --install build

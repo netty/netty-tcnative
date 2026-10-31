@@ -1,17 +1,22 @@
 FROM --platform=linux/amd64 centos:7.9.2009
 
 ARG gcc_version=10.2-2020.11
+ARG gcc_sha256=fe7f72330216612de44891ebe5e228eed7c0c051ac090c395b2b33115c6f5408
 ARG openssl_version=3.6.1
 ARG openssl_sha256
 ARG apr_version=1.7.6
+ARG apr_sha256=6a10e7f7430510600af25fabf466e1df61aaae910bf1dc5d10c44a4433ccc81d
 ENV SOURCE_DIR /root/source
 ENV GCC_VERSION $gcc_version
+ENV GCC_SHA256 $gcc_sha256
 ENV OPENSSL_VERSION $openssl_version
 ENV OPENSSL_SHA256 $openssl_sha256
 ENV MAVEN_VERSION 3.9.1
 ENV APR_VERSION $apr_version
+ENV APR_SHA256 $apr_sha256
 ENV CMAKE_VERSION_BASE 3.26
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.4
+ENV CMAKE_SHA256 ba1e0dcc710e2f92be6263f9617510b3660fa9dc409ad2fb8190299563f952a0
 
 RUN mkdir $SOURCE_DIR
 WORKDIR $SOURCE_DIR
@@ -31,6 +36,7 @@ ENV JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk/"
 # Install aarch64 gcc 10.2 toolchain
 RUN set -x && \
   wget https://developer.arm.com/-/media/Files/downloads/gnu-a/$GCC_VERSION/binrel/gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu.tar.xz && \
+  echo "$GCC_SHA256  gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu.tar.xz" | sha256sum -c - && \
   tar xvf gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu.tar.xz && \
   rm -f gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu.tar.xz && \
   mv gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu /
@@ -39,6 +45,7 @@ ENV PATH="/gcc-arm-$GCC_VERSION-x86_64-aarch64-none-linux-gnu/bin:${PATH}"
 # Cross compile Apache Apr for aarch64 - share
 RUN set -x && \
   wget --no-check-certificate https://downloads.apache.org//apr/apr-$APR_VERSION.tar.gz && \
+  echo "$APR_SHA256  apr-$APR_VERSION.tar.gz" | sha256sum -c - && \
   tar xvf apr-$APR_VERSION.tar.gz && \
   pushd apr-$APR_VERSION && \
   # ac_cv_search_crypt=no: prevents APR from linking against libcrypt.so.1 (CentOS 7),
@@ -63,7 +70,7 @@ RUN set -x && \
   rm -rf openssl-$OPENSSL_VERSION openssl-$OPENSSL_VERSION.tar.gz
 
 # Install cmake
-RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && tar zxf cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && mv cmake-$CMAKE_VERSION-linux-x86_64 /opt/ && echo 'PATH=/opt/cmake-$CMAKE_VERSION-linux-x86_64/bin:$PATH' >> ~/.bashrc
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && echo "$CMAKE_SHA256  cmake-$CMAKE_VERSION-linux-x86_64.tar.gz" | sha256sum -c - && tar zxf cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && mv cmake-$CMAKE_VERSION-linux-x86_64 /opt/ && echo 'PATH=/opt/cmake-$CMAKE_VERSION-linux-x86_64/bin:$PATH' >> ~/.bashrc
 
 # Downloading and installing SDKMAN!
 RUN curl -s "https://get.sdkman.io" | bash
