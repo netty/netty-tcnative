@@ -1,6 +1,7 @@
 brew 'autoconf'
 brew 'automake'
 brew 'libtool'
+# Keep the openssl version in sync with openssl.lib.version in pom.xml, the macOS builds link against this version.
 brew 'openssl@3.6'
 brew 'perl'
 brew 'ninja'
