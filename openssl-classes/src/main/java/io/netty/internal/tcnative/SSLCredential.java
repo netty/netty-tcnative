@@ -47,6 +47,17 @@ public final class SSLCredential {
     public static native long newX509() throws Exception;
 
     /**
+     * Get the id that was assigned to an SSL_CREDENTIAL when it was created by {@link #newX509()} or
+     * {@link #newDelegated()}.
+     *
+     * <p>This is a BoringSSL-specific feature.</p>
+     *
+     * @param cred the SSL_CREDENTIAL instance (SSL_CREDENTIAL *)
+     * @return the id, or {@code 0} if none was assigned
+     */
+    public static native long getId(long cred);
+
+    /**
      * Increment the reference count of an SSL_CREDENTIAL.
      * 
      * <p>This is a BoringSSL-specific feature. See 
