@@ -44,7 +44,12 @@ TCN_IMPLEMENT_CALL(jlong, SSLSession, setTimeout)(TCN_STDARGS, jlong session, jl
 
     TCN_CHECK_NULL(session_, session, 0);
 
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // The timeout is an uint32_t here
+    if (seconds < 0 || seconds > (jlong) UINT32_MAX) {
+#else
     if (seconds < 0 || !TCN_FITS_LONG(seconds)) {
+#endif
         tcn_ThrowIllegalArgumentException(e, "seconds out of range");
         return 0;
     }
