@@ -3007,6 +3007,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setMaxCertList)(TCN_STDARGS, jlong ctx, jin
 
     TCN_CHECK_NULL(c, ctx, /* void */);
 
+    // The size is converted to an unsigned type, so a negative value would end up as a huge limit.
+    if (size < 0) {
+        tcn_ThrowIllegalArgumentException(e, "size out of range");
+        return;
+    }
+
     SSL_CTX_set_max_cert_list(c->ctx, size);
 }
 
