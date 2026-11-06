@@ -7,10 +7,14 @@ ENV OPENSSL_SHA256 $openssl_sha256
 ENV SOURCE_DIR /root/source
 ENV CMAKE_VERSION_BASE 3.26
 ENV CMAKE_VERSION $CMAKE_VERSION_BASE.4
+ENV CMAKE_SHA256 ba1e0dcc710e2f92be6263f9617510b3660fa9dc409ad2fb8190299563f952a0
 ENV NINJA_VERSION 1.7.2
+ENV NINJA_SHA256 38fa8cfb9c1632a5cdf7a32fe1a7c5aa89e96c1d492c28624f4cc018e68458b9
 ENV GO_VERSION 1.9.3
+ENV GO_SHA256 a4da5f4c07dfda8194c4621611aeb7ceaab98af0b38bfb29e1be2ebb04c3556c
 ENV MAVEN_VERSION 3.9.1
 ENV PATCHELF_VERSION 0.18.0
+ENV PATCHELF_SHA256 ce84f2447fb7a8679e58bc54a20dc2b01b37b5802e12c57eece772a6f14bf3f0
 
 # Update as we need to use the vault now.
 RUN sed -i -e 's/^mirrorlist/#mirrorlist/g' -e 's/^#baseurl=http:\/\/mirror.centos.org\/centos\/$releasever\//baseurl=https:\/\/linuxsoft.cern.ch\/centos-vault\/\/6.10\//g' /etc/yum.repos.d/CentOS-Base.repo
@@ -44,9 +48,9 @@ RUN yum install -y \
 RUN mkdir $SOURCE_DIR
 WORKDIR $SOURCE_DIR
 
-RUN wget -q https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip && unzip ninja-linux.zip && mkdir -p /opt/ninja-$NINJA_VERSION/bin && mv ninja /opt/ninja-$NINJA_VERSION/bin && echo 'PATH=/opt/ninja-$NINJA_VERSION/bin:$PATH' >> ~/.bashrc
-RUN wget -q https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz && tar zxf go$GO_VERSION.linux-amd64.tar.gz && mv go /opt/ && echo 'PATH=/opt/go/bin:$PATH' >> ~/.bashrc && echo 'export GOROOT=/opt/go/' >> ~/.bashrc
-RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && tar zxf cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && mv cmake-$CMAKE_VERSION-linux-x86_64 /opt/ && echo 'PATH=/opt/cmake-$CMAKE_VERSION-linux-x86_64/bin:$PATH' >> ~/.bashrc
+RUN wget -q https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-linux.zip && echo "$NINJA_SHA256  ninja-linux.zip" | sha256sum -c - && unzip ninja-linux.zip && mkdir -p /opt/ninja-$NINJA_VERSION/bin && mv ninja /opt/ninja-$NINJA_VERSION/bin && echo 'PATH=/opt/ninja-$NINJA_VERSION/bin:$PATH' >> ~/.bashrc
+RUN wget -q https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz && echo "$GO_SHA256  go$GO_VERSION.linux-amd64.tar.gz" | sha256sum -c - && tar zxf go$GO_VERSION.linux-amd64.tar.gz && mv go /opt/ && echo 'PATH=/opt/go/bin:$PATH' >> ~/.bashrc && echo 'export GOROOT=/opt/go/' >> ~/.bashrc
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && echo "$CMAKE_SHA256  cmake-$CMAKE_VERSION-linux-x86_64.tar.gz" | sha256sum -c - && tar zxf cmake-$CMAKE_VERSION-linux-x86_64.tar.gz && mv cmake-$CMAKE_VERSION-linux-x86_64 /opt/ && echo 'PATH=/opt/cmake-$CMAKE_VERSION-linux-x86_64/bin:$PATH' >> ~/.bashrc
 
 RUN yum install -y centos-release-scl
 # Update repository urls as we need to use the vault now.
@@ -74,6 +78,7 @@ RUN set -x && \
 # static binary rather than going through yum.
 # --no-check-certificate for the same reason as the OpenSSL download above.
 RUN wget -q --no-check-certificate https://github.com/NixOS/patchelf/releases/download/$PATCHELF_VERSION/patchelf-$PATCHELF_VERSION-x86_64.tar.gz \
+ && echo "$PATCHELF_SHA256  patchelf-$PATCHELF_VERSION-x86_64.tar.gz" | sha256sum -c - \
  && mkdir -p /opt/patchelf-$PATCHELF_VERSION \
  && tar zxf patchelf-$PATCHELF_VERSION-x86_64.tar.gz -C /opt/patchelf-$PATCHELF_VERSION \
  && ln -s /opt/patchelf-$PATCHELF_VERSION/bin/patchelf /usr/local/bin/patchelf \
