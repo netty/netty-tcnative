@@ -102,6 +102,9 @@ Error relocating <lib>.so: __getauxval: symbol not found
 | `__isinf`, `__isnan` | APR-era glibc math aliases | no |
 | `__strdup` | APR | no |
 | `__pthread_key_create` | APR | no — but it is imported **WEAK**, so it may stay unresolved harmlessly |
+| `__libc_single_threaded` | libstdc++ 11+ headers on glibc 2.32+ read this byte to skip atomic refcounting; C++ in BoringSSL imports it as a **data** symbol | no. Defined as `0`, the conservative value |
+| `__isoc23_strtol`, `__isoc23_strtoul`, `__isoc23_strtoull` | glibc 2.38+ redirects `strtol` and friends there under `_GNU_SOURCE`, and no `-D` switches it off; from APR, the static `libstdc++.a` and BoringSSL's libcrypto respectively | no. Forwarded to the plain names via asm labels (a literal `strtol()` in the fallback would be redirected too and recurse on musl) |
+| `_dl_find_object` | `libgcc_eh.a` from gcc 12 on, when built against glibc 2.35+, uses it to find `.eh_frame` while unwinding | no. Stub returns -1 ("not found"); nothing in the artifact throws |
 
 ### Class C — Class B inside an ELF init constructor → **JVM crash, not an exception**
 
@@ -220,6 +223,14 @@ The check must go further than loading. Minimum bar, in order of strength:
 
 Only (3) would catch a library that loads but whose crypto is broken.
 
+In CI this is the `musl-verify` job. It runs against the CentOS 6 and CentOS 7 release jars on
+several Alpine variants, and, bare x86_64 only, against the two Debian 13 jars: the
+default-profile one and the **FIPS** one (`debian13-x86_64-fips`, see `docker/Dockerfile.debian13`).
+The FIPS leg is the one with no substitute: its power-on self-test and integrity check run in an
+ELF constructor during `dlopen`, so only a real load shows that the post-link `patchelf` left the
+module intact. Before that leg existed the FIPS profile was built by nobody but downstream users,
+and a change made to the release profiles and not ported to it surfaced only there.
+
 Two TLS 1.3 behaviours will make a naive handshake test report false failures:
 - the client reaches `NOT_HANDSHAKING` while the server still sits in `NEED_UNWRAP` waiting
   for optional post-handshake traffic — treat an idle `NEED_UNWRAP` as settled;
@@ -241,6 +252,7 @@ protocol/cipher against a released version. It must be identical.
 | `boringssl-static/pom.xml`, antrun `native-jar` target | post-link `patchelf --remove-needed ld-linux-*` (Class A). Present in the FIPS profile and both release profiles: `fips-boringssl-static`, `boringssl-static-default` (x86_64), and `linux-aarch64`. |
 | `docker/Dockerfile.centos6` | installs `patchelf` from the upstream prebuilt **static** binary — CentOS 6 is EOL with no EPEL, and `objcopy` cannot remove a `DT_NEEDED`. Needs `--no-check-certificate`, same as the OpenSSL download: the CA bundle cannot verify modern GitHub TLS. |
 | `docker/Dockerfile.cross_compile_aarch64` | installs `patchelf` from EPEL 7 (available there, unlike CentOS 6) |
+| `docker/Dockerfile.arch`, `docker/Dockerfile.opensuse` | also install `patchelf`, from the distro. Their `build` compose service runs a module-unfiltered `./mvnw clean package`, which builds `boringssl-static` and so hits the `patchelf` exec (`failonerror="true"`). CI does not run them, so a missing binary there is invisible to CI. The Debian 7 image has none: wheezy packages no `patchelf`, and its GCC 4.9 cannot build BoringSSL anyway, so only its dynamic-only service is usable. |
 
 Note the FIPS profile and two release profiles duplicate the whole native build, so **a change to
 one does not apply to the others**. `linux-aarch64` cross-compiles from an x86_64 host; patchelf
@@ -437,6 +449,9 @@ Other notes:
   *before* hawtjni. Use the `native-jar` target (phase `package`) or `process-classes`.
 - Ant's `<exec>` does not echo silent commands, so absence of `strip`/`patchelf` output in the
   log does **not** mean they did not run. Verify on the artifact instead.
+- The FIPS profile links with `-Wl,--gc-sections`. Its newer BoringSSL drags in libstdc++'s
+  `std::random_device`, which nothing calls and which imports `arc4random` (glibc 2.36+, absent
+  from musl). Dropping the dead code removes the import, so no fallback is needed for it.
 - Link flags are set per profile and are duplicated: the x86_64 default profile sets
   `hawtjniLdflags` in the `ldflags-setup` antrun execution, while the FIPS and `linux-aarch64`
   profiles hardcode `LDFLAGS` in their hawtjni `configureArgs`. Changing one does not change the
