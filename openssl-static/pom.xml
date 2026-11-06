@@ -277,7 +277,13 @@
                             <get src="https://www.openssl.org/source/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </else>
                         </if>
-                        <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
+                        <fail message="SHA-256 of openssl-${opensslVersion}.tar.gz does not match ${opensslSha256}">
+                          <condition>
+                            <not>
+                              <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" />
+                            </not>
+                          </condition>
+                        </fail>
 
                         <gunzip src="${project.build.directory}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/" />
                         <untar src="${project.build.directory}/openssl-${opensslVersion}.tar" dest="${project.build.directory}/" />
@@ -387,7 +393,13 @@
                             <get src="https://www.openssl.org/source/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </else>
                         </if>
-                        <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
+                        <fail message="SHA-256 of openssl-${opensslVersion}.tar.gz does not match ${opensslSha256}">
+                          <condition>
+                            <not>
+                              <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" />
+                            </not>
+                          </condition>
+                        </fail>
 
                         <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
@@ -485,7 +497,13 @@
                             <get src="https://www.openssl.org/source/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </else>
                         </if>
-                        <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
+                        <fail message="SHA-256 of openssl-${opensslVersion}.tar.gz does not match ${opensslSha256}">
+                          <condition>
+                            <not>
+                              <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" />
+                            </not>
+                          </condition>
+                        </fail>
 
                         <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">

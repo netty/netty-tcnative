@@ -589,7 +589,13 @@
 
                         <property name="aprArchiveFile" value="apr-${aprVersion}-win32-src.zip" />
                         <get src="https://archive.apache.org/dist/apr/${aprArchiveFile}" dest="${project.build.directory}/${aprArchiveFile}" verbose="on" />
-                        <checksum file="${project.build.directory}/${aprArchiveFile}" algorithm="SHA-256" property="${aprWinSha256}" verifyProperty="isEqual" />
+                        <fail message="SHA-256 of ${aprArchiveFile} does not match ${aprWinSha256}">
+                          <condition>
+                            <not>
+                              <checksum file="${project.build.directory}/${aprArchiveFile}" algorithm="SHA-256" property="${aprWinSha256}" />
+                            </not>
+                          </condition>
+                        </fail>
                         <unzip src="${project.build.directory}/${aprArchiveFile}" dest="${project.build.directory}" />
                         <condition property="windowsRelease" value="Win32 Release" else="x64 Release">
                           <equals arg1="${archBits}" arg2="32" />
@@ -695,7 +701,13 @@
                         <property name="aprTarGzFile" value="apr-${aprVersion}.tar.gz" />
                         <property name="aprTarFile" value="apr-${aprVersion}.tar" />
                         <get src="https://archive.apache.org/dist/apr/${aprTarGzFile}" dest="${project.build.directory}/${aprTarGzFile}" verbose="on" />
-                        <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="SHA-256" property="${aprSha256}" verifyProperty="isEqual" />
+                        <fail message="SHA-256 of ${aprTarGzFile} does not match ${aprSha256}">
+                          <condition>
+                            <not>
+                              <checksum file="${project.build.directory}/${aprTarGzFile}" algorithm="SHA-256" property="${aprSha256}" />
+                            </not>
+                          </condition>
+                        </fail>
                         <gunzip src="${project.build.directory}/${aprTarGzFile}" dest="${project.build.directory}" />
                         <!-- Use the tar command (rather than the untar ant task) in order to preserve file permissions. -->
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
