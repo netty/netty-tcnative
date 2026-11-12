@@ -186,12 +186,24 @@ static apr_status_t ssl_context_cleanup(void *data)
 }
 
 static void ssl_info_callback(const SSL *ssl, int where, int ret) {
-    tcn_ssl_state_t* state = NULL;
-    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
-        if ((state = tcn_SSL_get_app_state(ssl)) != NULL) {
-            state->handshakeCount++;
-        }
+    tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl);
+    if (state == NULL) {
+        return;
     }
+    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
+        state->handshakeCount++;
+    }
+#ifdef OPENSSL_IS_BORINGSSL
+    if (0 != (where & SSL_CB_HANDSHAKE_DONE)) {
+        // retain the credential before BoringSSL discards its handshake state
+        SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*) SSL_get0_selected_credential(ssl);
+        if (credential != NULL) {
+            SSL_CREDENTIAL_up_ref(credential);
+        }
+        SSL_CREDENTIAL_free(state->selected_credential);
+        state->selected_credential = credential;
+    }
+#endif
 }
 
 /* Initialize server context */
