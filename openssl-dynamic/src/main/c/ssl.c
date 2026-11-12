@@ -940,6 +940,10 @@ static void free_ssl_state(JNIEnv* e, tcn_ssl_state_t* state) {
     tcn_ssl_task_free(e, state->ssl_task);
     state->ssl_task = NULL;
 
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL_CREDENTIAL_free(state->selected_credential);
+#endif
+
     // Free the tcn_ssl_state_t itself as it was allocated via OPENSSL_malloc(...) before
     //
     // https://github.com/netty/netty-tcnative/issues/532
@@ -2801,7 +2805,8 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
     TCN_CHECK_NULL(ssl_, ssl, 0);
     const SSL_CREDENTIAL* credential = SSL_get0_selected_credential(ssl_);
     if (credential == NULL) {
-        return 0;
+        tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl_);
+        credential = state->selected_credential;
     }
     return (jlong)(intptr_t)credential;
 #else
