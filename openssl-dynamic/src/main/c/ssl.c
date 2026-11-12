@@ -1654,7 +1654,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getGroupName)(TCN_STDARGS, jlong ssl) {
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 {
-    STACK_OF(SSL_CIPHER) *sk = NULL;
+    const STACK_OF(SSL_CIPHER) *sk = NULL;
     int len;
     jobjectArray array = NULL;
     const SSL_CIPHER *cipher = NULL;
