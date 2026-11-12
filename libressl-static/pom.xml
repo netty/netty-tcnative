@@ -310,7 +310,13 @@
                         <echo message="Downloading LibreSSL" />
 
                         <get src="https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libresslArchive}" dest="${project.build.directory}/${libresslArchive}" verbose="on" />
-                        <checksum file="${project.build.directory}/${libresslArchive}" algorithm="SHA-256" property="${libresslSha256}" verifyProperty="isEqual" />
+                        <fail message="SHA-256 of ${libresslArchive} does not match ${libresslSha256}">
+                          <condition>
+                            <not>
+                              <checksum file="${project.build.directory}/${libresslArchive}" algorithm="SHA-256" property="${libresslSha256}" />
+                            </not>
+                          </condition>
+                        </fail>
                         <exec executable="tar" failonerror="true" dir="${project.build.directory}/" resolveexecutable="true">
                           <arg value="xfv" />
                           <arg value="${libresslArchive}" />
