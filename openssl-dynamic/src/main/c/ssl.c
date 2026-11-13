@@ -1590,7 +1590,9 @@ TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
-    return SSL_get_options(ssl_);
+    // The Java API uses an int, but the options are a 64 bit value in OpenSSL 3.x. Only the lower 32 bits can be
+    // reported, which matches what setOptions(...) and clearOptions(...) are able to modify.
+    return (jint) (uint32_t) SSL_get_options(ssl_);
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, setMode)(TCN_STDARGS, jlong ssl, jint mode)
