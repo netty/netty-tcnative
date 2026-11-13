@@ -171,6 +171,8 @@ static apr_status_t ssl_context_cleanup(void *data)
         }
 
         if (c->ticket_keys != NULL) {
+            // Wipe the keys before freeing them, OPENSSL_free(...) does not do this for us.
+            OPENSSL_cleanse(c->ticket_keys, sizeof(tcn_ssl_ticket_key_t) * c->ticket_keys_len);
             OPENSSL_free(c->ticket_keys);
             c->ticket_keys = NULL;
         }
@@ -1508,9 +1510,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     TCN_CHECK_NULL(c, ctx, /* void */);
     TCN_CHECK_NULL(keys, keys, /* void */);
 
-    jbyte* b = NULL;
-    jbyte* key = NULL;
     tcn_ssl_ticket_key_t* ticket_keys = NULL;
+    tcn_ssl_ticket_key_t* old_ticket_keys = NULL;
+    unsigned int old_ticket_keys_len;
+    jsize offset;
     int i;
     int cnt;
 
@@ -1520,27 +1523,32 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
         return;
     }
 
-    if ((b = (*e)->GetByteArrayElements(e, keys, NULL)) == NULL) {
-      OPENSSL_free(ticket_keys);
-      tcn_ThrowException(e, "GetByteArrayElements() returned null");
-      return;
-    }
-
+    // Copy the keys directly into our own memory. GetByteArrayElements(...) may hand out a temporary copy of the
+    // array that the JVM frees again without wiping it.
     for (i = 0; i < cnt; ++i) {
-        key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
-        memcpy(ticket_keys[i].key_name, key, 16);
-        memcpy(ticket_keys[i].hmac_key, key + 16, 16);
-        memcpy(ticket_keys[i].aes_key, key + 32, 16);
+        offset = SSL_SESSION_TICKET_KEY_SIZE * i;
+        (*e)->GetByteArrayRegion(e, keys, offset, 16, (jbyte*) ticket_keys[i].key_name);
+        (*e)->GetByteArrayRegion(e, keys, offset + 16, 16, (jbyte*) ticket_keys[i].hmac_key);
+        (*e)->GetByteArrayRegion(e, keys, offset + 32, 16, (jbyte*) ticket_keys[i].aes_key);
     }
-    (*e)->ReleaseByteArrayElements(e, keys, b, 0);
+    if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
+        OPENSSL_cleanse(ticket_keys, sizeof(tcn_ssl_ticket_key_t) * cnt);
+        OPENSSL_free(ticket_keys);
+        return;
+    }
 
     apr_thread_rwlock_wrlock(c->mutex);
-    if (c->ticket_keys) {
-        OPENSSL_free(c->ticket_keys);
-    }
+    old_ticket_keys = c->ticket_keys;
+    old_ticket_keys_len = c->ticket_keys_len;
     c->ticket_keys_len = cnt;
     c->ticket_keys = ticket_keys;
     apr_thread_rwlock_unlock(c->mutex);
+
+    if (old_ticket_keys != NULL) {
+        // Wipe the replaced keys before freeing them, OPENSSL_free(...) does not do this for us.
+        OPENSSL_cleanse(old_ticket_keys, sizeof(tcn_ssl_ticket_key_t) * old_ticket_keys_len);
+        OPENSSL_free(old_ticket_keys);
+    }
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
     SSL_CTX_set_tlsext_ticket_key_cb(c->ctx, ssl_tlsext_ticket_key_cb);
