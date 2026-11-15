@@ -2227,8 +2227,6 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     STACK_OF(CRYPTO_BUFFER) *chain = NULL;
     CRYPTO_BUFFER *buffer = NULL;
-    char *name = NULL;
-    char *header = NULL;
     uint8_t *data = NULL;
     long data_len;
 #else
@@ -2248,14 +2246,10 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
         tcn_throwOutOfMemoryError(e, "Unable to allocate memory for certificate chain");
         goto cleanup;
     }
-    while (PEM_read_bio(cert_bio, &name, &header, &data, &data_len)) {
-
-        OPENSSL_free(name);
-        name = NULL;
-
-        OPENSSL_free(header);
-        header = NULL;
-
+    // Only read CERTIFICATE blocks and skip everything else, like PEM_read_bio_X509(...) does in the OpenSSL code
+    // path below. Otherwise any other block, like the private key of a PEM file that contains the certificate and
+    // its key, would be added to the chain and so be sent to the remote peer during the handshake.
+    while (PEM_bytes_read_bio(&data, &data_len, NULL, PEM_STRING_X509, cert_bio, NULL, NULL)) {
         buffer = CRYPTO_BUFFER_new(data, data_len, NULL);
         OPENSSL_free(data);
         data = NULL;
