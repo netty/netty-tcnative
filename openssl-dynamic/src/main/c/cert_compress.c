@@ -79,6 +79,10 @@ static int decompress(jobject compression_algorithm, jmethodID decompress_method
     if (compression_algorithm == NULL || decompress_method == NULL) {
         return 0;
     }
+    // The Java side takes the uncompressed length as int.
+    if (uncompressed_len > INT32_MAX) {
+        return 0;
+    }
     if (tcn_get_java_env(&e) != JNI_OK) {
         return 0;
     }
@@ -91,7 +95,7 @@ static int decompress(jobject compression_algorithm, jmethodID decompress_method
     // BoringSSL checks that `uncompressed_len <= ssl->max_cert_list` before calling `ssl_cert_decompression_func_t`
     // `max_cert_list` contains the max cert size, avoiding excessive allocations.
     jbyteArray resultArray = (*e)->CallObjectMethod(e, compression_algorithm, decompress_method,
-                    P2J(ssl), uncompressed_len, inputArray);
+                    P2J(ssl), (jint) uncompressed_len, inputArray);
 
     NETTY_JNI_UTIL_DELETE_LOCAL(e, inputArray);
 

@@ -416,6 +416,9 @@ struct tcn_ssl_state_t {
     tcn_ssl_ctxt_t *ctx;
     tcn_ssl_task_t* ssl_task;
     tcn_ssl_verify_config_t verify_config;
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL_CREDENTIAL* selected_credential;
+#endif
     // Saved at async task creation time so the retry path can reproduce the
     // len < sk_CRYPTO_BUFFER_num(chain) check (both locals are 0/NULL there).
     int task_array_len;

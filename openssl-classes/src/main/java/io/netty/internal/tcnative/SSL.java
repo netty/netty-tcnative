@@ -994,6 +994,8 @@ public final class SSL {
 
     /**
      * Get the selected credential from an SSL instance.
+     * After a successful handshake, the selected credential remains available until
+     * another handshake completes or the SSL instance is freed.
      * 
      * <p>This is a BoringSSL-specific feature. See 
      * <a href="https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#SSL_get0_selected_credential">SSL_get0_selected_credential</a>

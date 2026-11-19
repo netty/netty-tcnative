@@ -171,6 +171,8 @@ static apr_status_t ssl_context_cleanup(void *data)
         }
 
         if (c->ticket_keys != NULL) {
+            // Wipe the keys before freeing them, OPENSSL_free(...) does not do this for us.
+            OPENSSL_cleanse(c->ticket_keys, sizeof(tcn_ssl_ticket_key_t) * c->ticket_keys_len);
             OPENSSL_free(c->ticket_keys);
             c->ticket_keys = NULL;
         }
@@ -186,12 +188,24 @@ static apr_status_t ssl_context_cleanup(void *data)
 }
 
 static void ssl_info_callback(const SSL *ssl, int where, int ret) {
-    tcn_ssl_state_t* state = NULL;
-    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
-        if ((state = tcn_SSL_get_app_state(ssl)) != NULL) {
-            state->handshakeCount++;
-        }
+    tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl);
+    if (state == NULL) {
+        return;
     }
+    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
+        state->handshakeCount++;
+    }
+#ifdef OPENSSL_IS_BORINGSSL
+    if (0 != (where & SSL_CB_HANDSHAKE_DONE)) {
+        // retain the credential before BoringSSL discards its handshake state
+        SSL_CREDENTIAL* credential = (SSL_CREDENTIAL*) SSL_get0_selected_credential(ssl);
+        if (credential != NULL) {
+            SSL_CREDENTIAL_up_ref(credential);
+        }
+        SSL_CREDENTIAL_free(state->selected_credential);
+        state->selected_credential = credential;
+    }
+#endif
 }
 
 /* Initialize server context */
@@ -542,7 +556,9 @@ TCN_IMPLEMENT_CALL(jint, SSLContext, getOptions)(TCN_STDARGS, jlong ctx)
 
     TCN_CHECK_NULL(c, ctx, 0);
 
-    return SSL_CTX_get_options(c->ctx);
+    // The Java API uses an int, but the options are a 64 bit value in OpenSSL 3.x. Only the lower 32 bits can be
+    // reported, which matches what setOptions(...) and clearOptions(...) are able to modify.
+    return (jint) (uint32_t) SSL_CTX_get_options(c->ctx);
 }
 
 TCN_IMPLEMENT_CALL(void, SSLContext, clearOptions)(TCN_STDARGS, jlong ctx,
@@ -1029,6 +1045,43 @@ cleanup:
 #endif // defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 }
 
+// Returns JNI_TRUE if the given buffer is a well-formed list of length-prefixed protocol names as used by ALPN / NPN.
+// select_next_proto(...) relies on this to not read out of bounds.
+static jboolean is_valid_proto_list(const unsigned char* data, unsigned int len) {
+    unsigned int i = 0;
+    while (i < len) {
+        i += 1 + data[i];
+    }
+    return i == len ? JNI_TRUE : JNI_FALSE;
+}
+
+// Copies the given byte[] into a newly allocated native buffer after validating it.
+// Returns 0 on success and -1 on failure, in which case an exception is pending and nothing was allocated.
+static int copy_proto_list(JNIEnv* e, jbyteArray array, unsigned char** out, unsigned int* out_len) {
+    int len = (*e)->GetArrayLength(e, array);
+    unsigned char* data = NULL;
+
+    if (len > 0) {
+        if ((data = OPENSSL_malloc(len)) == NULL) {
+            tcn_throwOutOfMemoryError(e, "OPENSSL_malloc failed");
+            return -1;
+        }
+        (*e)->GetByteArrayRegion(e, array, 0, len, (jbyte*) data);
+        if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
+            OPENSSL_free(data);
+            return -1;
+        }
+        if (!is_valid_proto_list(data, len)) {
+            OPENSSL_free(data);
+            tcn_ThrowIllegalArgumentException(e, "Invalid protocol list");
+            return -1;
+        }
+    }
+    *out = data;
+    *out_len = len;
+    return 0;
+}
+
 TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos0)(TCN_STDARGS, jlong ctx, jbyteArray next_protos,
         jint selectorFailureBehavior)
 {
@@ -1037,16 +1090,18 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setNpnProtos0)(TCN_STDARGS, jlong ctx, jbyt
     TCN_CHECK_NULL(c, ctx, /* void */);
 
     if (next_protos != NULL) {
-        OPENSSL_free(c->next_proto_data);
+        unsigned char* next_proto_data = NULL;
+        unsigned char* old_next_proto_data = NULL;
+        unsigned int next_proto_len = 0;
 
-        int next_protos_len = (*e)->GetArrayLength(e, next_protos);
-        c->next_proto_data = OPENSSL_malloc(next_protos_len);
-        if (c->next_proto_data == NULL) {
-            tcn_throwOutOfMemoryError(e, "OPENSSL_malloc failed");
+        // Allocate and validate the new data first so we never leave the context with a freed buffer if this fails.
+        if (copy_proto_list(e, next_protos, &next_proto_data, &next_proto_len) != 0) {
             return;
         }
-        c->next_proto_len = next_protos_len;
-        (*e)->GetByteArrayRegion(e, next_protos, 0, next_protos_len, (jbyte*) c->next_proto_data);
+        old_next_proto_data = c->next_proto_data;
+        c->next_proto_data = next_proto_data;
+        c->next_proto_len = next_proto_len;
+        OPENSSL_free(old_next_proto_data);
 
         // depending on if it's client mode or not we need to call different functions.
         if (c->mode == SSL_MODE_CLIENT)  {
@@ -1074,16 +1129,18 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setAlpnProtos0)(TCN_STDARGS, jlong ctx, jby
         TCN_CHECK_NULL(c, ctx, /* void */);
 
         if (alpn_protos != NULL) {
-            OPENSSL_free(c->alpn_proto_data);
+            unsigned char* alpn_proto_data = NULL;
+            unsigned char* old_alpn_proto_data = NULL;
+            unsigned int alpn_proto_len = 0;
 
-            int alpn_protos_len = (*e)->GetArrayLength(e, alpn_protos);
-            c->alpn_proto_data = OPENSSL_malloc(alpn_protos_len);
-            if (c->alpn_proto_data == NULL) {
-                tcn_throwOutOfMemoryError(e, "OPENSSL_malloc failed");
+            // Allocate and validate the new data first so we never leave the context with a freed buffer if this fails.
+            if (copy_proto_list(e, alpn_protos, &alpn_proto_data, &alpn_proto_len) != 0) {
                 return;
             }
-            c->alpn_proto_len = alpn_protos_len;
-            (*e)->GetByteArrayRegion(e, alpn_protos, 0, alpn_protos_len, (jbyte*) c->alpn_proto_data);
+            old_alpn_proto_data = c->alpn_proto_data;
+            c->alpn_proto_data = alpn_proto_data;
+            c->alpn_proto_len = alpn_proto_len;
+            OPENSSL_free(old_alpn_proto_data);
 
 
             // depending on if it's client mode or not we need to call different functions.
@@ -1453,9 +1510,10 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
     TCN_CHECK_NULL(c, ctx, /* void */);
     TCN_CHECK_NULL(keys, keys, /* void */);
 
-    jbyte* b = NULL;
-    jbyte* key = NULL;
     tcn_ssl_ticket_key_t* ticket_keys = NULL;
+    tcn_ssl_ticket_key_t* old_ticket_keys = NULL;
+    unsigned int old_ticket_keys_len;
+    jsize offset;
     int i;
     int cnt;
 
@@ -1465,27 +1523,32 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setSessionTicketKeys0)(TCN_STDARGS, jlong c
         return;
     }
 
-    if ((b = (*e)->GetByteArrayElements(e, keys, NULL)) == NULL) {
-      OPENSSL_free(ticket_keys);
-      tcn_ThrowException(e, "GetByteArrayElements() returned null");
-      return;
-    }
-
+    // Copy the keys directly into our own memory. GetByteArrayElements(...) may hand out a temporary copy of the
+    // array that the JVM frees again without wiping it.
     for (i = 0; i < cnt; ++i) {
-        key = b + (SSL_SESSION_TICKET_KEY_SIZE * i);
-        memcpy(ticket_keys[i].key_name, key, 16);
-        memcpy(ticket_keys[i].hmac_key, key + 16, 16);
-        memcpy(ticket_keys[i].aes_key, key + 32, 16);
+        offset = SSL_SESSION_TICKET_KEY_SIZE * i;
+        (*e)->GetByteArrayRegion(e, keys, offset, 16, (jbyte*) ticket_keys[i].key_name);
+        (*e)->GetByteArrayRegion(e, keys, offset + 16, 16, (jbyte*) ticket_keys[i].hmac_key);
+        (*e)->GetByteArrayRegion(e, keys, offset + 32, 16, (jbyte*) ticket_keys[i].aes_key);
     }
-    (*e)->ReleaseByteArrayElements(e, keys, b, 0);
+    if ((*e)->ExceptionCheck(e) == JNI_TRUE) {
+        OPENSSL_cleanse(ticket_keys, sizeof(tcn_ssl_ticket_key_t) * cnt);
+        OPENSSL_free(ticket_keys);
+        return;
+    }
 
     apr_thread_rwlock_wrlock(c->mutex);
-    if (c->ticket_keys) {
-        OPENSSL_free(c->ticket_keys);
-    }
+    old_ticket_keys = c->ticket_keys;
+    old_ticket_keys_len = c->ticket_keys_len;
     c->ticket_keys_len = cnt;
     c->ticket_keys = ticket_keys;
     apr_thread_rwlock_unlock(c->mutex);
+
+    if (old_ticket_keys != NULL) {
+        // Wipe the replaced keys before freeing them, OPENSSL_free(...) does not do this for us.
+        OPENSSL_cleanse(old_ticket_keys, sizeof(tcn_ssl_ticket_key_t) * old_ticket_keys_len);
+        OPENSSL_free(old_ticket_keys);
+    }
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
     SSL_CTX_set_tlsext_ticket_key_cb(c->ctx, ssl_tlsext_ticket_key_cb);
@@ -3006,6 +3069,12 @@ TCN_IMPLEMENT_CALL(void, SSLContext, setMaxCertList)(TCN_STDARGS, jlong ctx, jin
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_CHECK_NULL(c, ctx, /* void */);
+
+    // The size is converted to an unsigned type, so a negative value would end up as a huge limit.
+    if (size < 0) {
+        tcn_ThrowIllegalArgumentException(e, "size out of range");
+        return;
+    }
 
     SSL_CTX_set_max_cert_list(c->ctx, size);
 }

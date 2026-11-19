@@ -940,6 +940,10 @@ static void free_ssl_state(JNIEnv* e, tcn_ssl_state_t* state) {
     tcn_ssl_task_free(e, state->ssl_task);
     state->ssl_task = NULL;
 
+#ifdef OPENSSL_IS_BORINGSSL
+    SSL_CREDENTIAL_free(state->selected_credential);
+#endif
+
     // Free the tcn_ssl_state_t itself as it was allocated via OPENSSL_malloc(...) before
     //
     // https://github.com/netty/netty-tcnative/issues/532
@@ -1505,7 +1509,12 @@ TCN_IMPLEMENT_CALL(jlong, SSL, setTimeout)(TCN_STDARGS, jlong ssl, jlong seconds
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+    // The timeout is an uint32_t here
+    if (seconds < 0 || seconds > (jlong) UINT32_MAX) {
+#else
     if (seconds < 0 || !TCN_FITS_LONG(seconds)) {
+#endif
         tcn_ThrowIllegalArgumentException(e, "seconds out of range");
         return 0;
     }
@@ -1581,7 +1590,9 @@ TCN_IMPLEMENT_CALL(jint, SSL, getOptions)(TCN_STDARGS, jlong ssl)
 
     TCN_CHECK_NULL(ssl_, ssl, 0);
 
-    return SSL_get_options(ssl_);
+    // The Java API uses an int, but the options are a 64 bit value in OpenSSL 3.x. Only the lower 32 bits can be
+    // reported, which matches what setOptions(...) and clearOptions(...) are able to modify.
+    return (jint) (uint32_t) SSL_get_options(ssl_);
 }
 
 TCN_IMPLEMENT_CALL(jint, SSL, setMode)(TCN_STDARGS, jlong ssl, jint mode)
@@ -1649,7 +1660,7 @@ TCN_IMPLEMENT_CALL(jstring, SSL, getGroupName)(TCN_STDARGS, jlong ssl) {
 
 TCN_IMPLEMENT_CALL(jobjectArray, SSL, getCiphers)(TCN_STDARGS, jlong ssl)
 {
-    STACK_OF(SSL_CIPHER) *sk = NULL;
+    const STACK_OF(SSL_CIPHER) *sk = NULL;
     int len;
     jobjectArray array = NULL;
     const SSL_CIPHER *cipher = NULL;
@@ -2216,8 +2227,6 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
     STACK_OF(CRYPTO_BUFFER) *chain = NULL;
     CRYPTO_BUFFER *buffer = NULL;
-    char *name = NULL;
-    char *header = NULL;
     uint8_t *data = NULL;
     long data_len;
 #else
@@ -2237,14 +2246,10 @@ TCN_IMPLEMENT_CALL(jlong, SSL, parseX509Chain)(TCN_STDARGS, jlong x509ChainBio)
         tcn_throwOutOfMemoryError(e, "Unable to allocate memory for certificate chain");
         goto cleanup;
     }
-    while (PEM_read_bio(cert_bio, &name, &header, &data, &data_len)) {
-
-        OPENSSL_free(name);
-        name = NULL;
-
-        OPENSSL_free(header);
-        header = NULL;
-
+    // Only read CERTIFICATE blocks and skip everything else, like PEM_read_bio_X509(...) does in the OpenSSL code
+    // path below. Otherwise any other block, like the private key of a PEM file that contains the certificate and
+    // its key, would be added to the chain and so be sent to the remote peer during the handshake.
+    while (PEM_bytes_read_bio(&data, &data_len, NULL, PEM_STRING_X509, cert_bio, NULL, NULL)) {
         buffer = CRYPTO_BUFFER_new(data, data_len, NULL);
         OPENSSL_free(data);
         data = NULL;
@@ -2796,7 +2801,8 @@ TCN_IMPLEMENT_CALL(jlong, SSL, getSelectedCredential)(TCN_STDARGS, jlong ssl) {
     TCN_CHECK_NULL(ssl_, ssl, 0);
     const SSL_CREDENTIAL* credential = SSL_get0_selected_credential(ssl_);
     if (credential == NULL) {
-        return 0;
+        tcn_ssl_state_t* state = tcn_SSL_get_app_state(ssl_);
+        credential = state->selected_credential;
     }
     return (jlong)(intptr_t)credential;
 #else
