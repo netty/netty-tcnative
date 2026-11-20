@@ -9,7 +9,9 @@ services:
       dockerfile: docker/Dockerfile.cross_compile_aarch64
       args:
         gcc_version: "10.2-2020.11"
+        gcc_sha256: "fe7f72330216612de44891ebe5e228eed7c0c051ac090c395b2b33115c6f5408"
         apr_version: "1.7.6"
+        apr_sha256: "6a10e7f7430510600af25fabf466e1df61aaae910bf1dc5d10c44a4433ccc81d"
         openssl_version: "${OPENSSL_VERSION:-3.6.1}"
         openssl_sha256: "${OPENSSL_SHA256:-b1bfedcd5b289ff22aee87c9d600f515767ebf45f77168cb6d64f231f518a82e}"
       cache_from:
