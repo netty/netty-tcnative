@@ -37,7 +37,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public final class SSLContext {
-    private static final int MAX_ALPN_NPN_PROTO_SIZE = 65535;
+    // Each protocol name is prefixed with a single length byte in the wire format, see RFC 7301 Section 3.1.
+    private static final int MAX_ALPN_NPN_PROTO_SIZE = 255;
 
     private SSLContext() { }
 
