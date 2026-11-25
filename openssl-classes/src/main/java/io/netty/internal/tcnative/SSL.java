@@ -124,6 +124,16 @@ public final class SSL {
     public static final int SSL_CERT_COMPRESSION_DIRECTION_DECOMPRESS = sslCertCompressionDirectionDecompress();
     public static final int SSL_CERT_COMPRESSION_DIRECTION_BOTH = sslCertCompressionDirectionBoth();
 
+    /**
+     * Authentication method bits returned by {@link #authenticationMethodsPacked(long)}. Each constant
+     * corresponds to an OpenSSL {@code SSL_a*} authentication algorithm (see {@code sslutils.c}) and is
+     * initialized from native code so the Java and C definitions can not drift apart.
+     */
+    public static final int SSL_A_RSA = sslAuthRsa();
+    public static final int SSL_A_DSS = sslAuthDss();
+    public static final int SSL_A_NULL = sslAuthNull();
+    public static final int SSL_A_ECDSA = sslAuthEcdsa();
+
     /* Return OpenSSL version number */
     public static native int version();
 
@@ -671,6 +681,26 @@ public final class SSL {
      * @return the methods
      */
     public static native String[] authenticationMethods(long ssl);
+
+    /**
+     * Return the authentication methods packed into an {@code int}, avoiding {@code String[]} allocation.
+     * The returned value is a bitmask; each bit corresponds to one of the {@code SSL_A_*} constants
+     * defined in this class:
+     * <ul>
+     *     <li>{@link #SSL_A_RSA}   - RSA authentication (RSA, DHE_RSA, ECDHE_RSA)</li>
+     *     <li>{@link #SSL_A_DSS}   - DSS authentication (DHE_DSS)</li>
+     *     <li>{@link #SSL_A_NULL}  - no auth / anonymous (DH_anon, ECDH_anon)</li>
+     *     <li>{@link #SSL_A_ECDSA} - ECDSA authentication (ECDHE_ECDSA)</li>
+     * </ul>
+     * On OpenSSL &lt; 1.1.0 additional legacy bits (e.g. {@code SSL_aDH 0x0008}, {@code SSL_aECDH 0x0010},
+     * {@code SSL_aKRB5 0x0020}, {@code SSL_aPSK 0x0080}, {@code SSL_aGOST94 0x0100},
+     * {@code SSL_aGOST01 0x0200}) may also be set, as they are passed through directly from OpenSSL's
+     * {@code algorithm_auth}.
+     *
+     * @param ssl the SSL instance (SSL*)
+     * @return the packed authentication methods as a bitmask of {@code SSL_A_*} values
+     */
+    public static native int authenticationMethodsPacked(long ssl);
 
     /**
      * Set BIO of PEM-encoded Server CA Certificates
