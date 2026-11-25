@@ -1,0 +1,245 @@
+[
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethodAdapter",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.AsyncTask",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.Buffer",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.CertificateCallback",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.CertificateCallbackTask",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.CertificateCompressionAlgo",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.CertificateRequestedCallback",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.CertificateVerifier",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.CertificateVerifierTask",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.KeyLogCallback",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.Library",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.NativeStaticallyReferencedJniMethods",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.ResultCallback",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SessionTicketKey",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SniHostNameMatcher",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSL",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLContext",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLCredential",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLPrivateKeyMethod",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLPrivateKeyMethodDecryptTask",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLPrivateKeyMethodSignTask",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLPrivateKeyMethodTask",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLSession",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLSessionCache",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLTask",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {
+      "typeReachable": "io.netty.internal.tcnative.SSL"
+    },
+    "name": "io.netty.internal.tcnative.SSLTask$TaskCallback",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  }
+]
