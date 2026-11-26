@@ -106,6 +106,26 @@ public class AlpnProtosTest extends AbstractNativeTest {
     }
 
     @Test
+    public void testEmptyAlpnProtocolIsSkipped() throws Exception {
+        long serverCtx = newServerContext();
+        long clientCtx = newClientContext();
+        try {
+            // A zero-length name is not allowed by RFC 7301 and must be dropped instead of being sent to the peer.
+            SSLContext.setAlpnProtos(serverCtx, new String[] { "", "h2" },
+                    SSL.SSL_SELECTOR_FAILURE_NO_ADVERTISE);
+            SSLContext.setAlpnProtos(clientCtx, new String[] { "", "h2" },
+                    SSL.SSL_SELECTOR_FAILURE_NO_ADVERTISE);
+
+            Handshake handshake = handshake(clientCtx, serverCtx);
+            assertEquals("h2", handshake.clientAlpn);
+            assertEquals("h2", handshake.serverAlpn);
+        } finally {
+            SSLContext.free(clientCtx);
+            SSLContext.free(serverCtx);
+        }
+    }
+
+    @Test
     public void testMaxLengthAlpnProtocolIsNegotiated() throws Exception {
         long serverCtx = newServerContext();
         long clientCtx = newClientContext();

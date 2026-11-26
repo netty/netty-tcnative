@@ -573,7 +573,8 @@ public final class SSLContext {
         try {
             for (String p : protocols) {
                 byte[] bytes = p.getBytes(StandardCharsets.US_ASCII);
-                if (bytes.length <= MAX_ALPN_NPN_PROTO_SIZE) {
+                // Protocol names must be non-empty and fit into the single length byte, see RFC 7301 Section 3.1.
+                if (bytes.length > 0 && bytes.length <= MAX_ALPN_NPN_PROTO_SIZE) {
                     out.write(bytes.length);
                     out.write(bytes);
                 }
